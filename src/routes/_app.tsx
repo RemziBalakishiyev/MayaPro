@@ -21,7 +21,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/features/auth/store";
-import { fmtDate } from "@/lib/format";
+import { useDashboardStats } from "@/features/reports/queries";
+import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export const Route = createFileRoute("/_app")({
@@ -56,6 +57,8 @@ function AppLayout() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const { data: stats } = useDashboardStats();
+  const lowStockCount = stats?.lowStock.length ?? 0;
 
   const handleLogout = () => {
     logout();
@@ -92,10 +95,22 @@ function AppLayout() {
               }}
             >
               <Icon size={18} />
-              <span>{label}</span>
+              <span className="flex-1">{label}</span>
+              {to === "/mallar" && lowStockCount > 0 && (
+                <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {lowStockCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
+
+        <div className="border-t border-emerald-900 px-4 py-3">
+          <p className="text-[11px] text-emerald-300/60">Kassada olmalı</p>
+          <p className="text-lg font-bold tabular-nums text-emerald-300">
+            {fmtMoney(stats?.expectedCash ?? 0)}
+          </p>
+        </div>
 
         <div className="border-t border-emerald-900 px-3 py-3">
           <button
