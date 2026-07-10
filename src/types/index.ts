@@ -58,10 +58,13 @@ export interface Sale {
   productName: string;
   quantity: number;
   salePrice: number;
+  /** Endirimdən əvvəlki cəm (salePrice × quantity) */
+  subtotal: number;
   discount: number;
+  /** Endirimdən sonrakı yekun məbləğ (subtotal − discount) */
+  totalAmount: number;
   paymentType: PaymentType;
   customerId: string | null;
-  totalAmount: number;
   /** Satış anındakı real maya snapshot-u (1 ədəd) */
   costPerUnit?: number;
   profit: number;

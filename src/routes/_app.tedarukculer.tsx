@@ -1,10 +1,75 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
+import { Button } from "@/components/ui/Button";
+import { fmtMoney } from "@/lib/format";
+import { useSuppliers } from "@/features/suppliers/queries";
+import { SuppliersTable } from "@/features/suppliers/components/SuppliersTable";
+import { SupplierDrawer } from "@/features/suppliers/components/SupplierDrawer";
+import { NewSupplierModal } from "@/features/suppliers/components/NewSupplierModal";
+import { DebtModal } from "@/features/suppliers/components/DebtModal";
+import { PayModal } from "@/features/suppliers/components/PayModal";
+import type { Supplier } from "@/types";
 
 export const Route = createFileRoute("/_app/tedarukculer")({
-  component: Page,
+  component: TedarukculerPage,
 });
 
-function Page() {
-  return <PageHead title="Təchizatçılar" subtitle="Təchizatçı hesabları" />;
+function TedarukculerPage() {
+  const { data: suppliers = [], isLoading } = useSuppliers();
+
+  const [selected, setSelected] = useState<Supplier | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const [debtFor, setDebtFor] = useState<Supplier | null>(null);
+  const [payFor, setPayFor] = useState<Supplier | null>(null);
+
+  const totalDebt = useMemo(
+    () => suppliers.reduce((s, x) => s + x.remainingDebt, 0),
+    [suppliers],
+  );
+
+  // Modal/drawer-lərə güncəl datanı ötür (əməliyyatdan sonra yenilənsin)
+  const live = (s: Supplier | null) =>
+    s ? (suppliers.find((x) => x.id === s.id) ?? null) : null;
+
+  return (
+    <div>
+      <PageHead
+        title="Təchizatçılar"
+        subtitle={`${suppliers.length} təchizatçı · Mənim qalıq borcum: ${fmtMoney(totalDebt)}`}
+        actions={
+          <Button size="sm" icon={<Plus size={14} />} onClick={() => setNewOpen(true)}>
+            Yeni təchizatçı
+          </Button>
+        }
+      />
+
+      <SuppliersTable
+        suppliers={suppliers}
+        isLoading={isLoading}
+        onView={setSelected}
+        onAddDebt={setDebtFor}
+        onPay={setPayFor}
+      />
+
+      <SupplierDrawer
+        supplier={live(selected)}
+        onClose={() => setSelected(null)}
+        onAddDebt={setDebtFor}
+        onPay={setPayFor}
+      />
+      <NewSupplierModal open={newOpen} onClose={() => setNewOpen(false)} />
+      <DebtModal
+        open={!!debtFor}
+        onClose={() => setDebtFor(null)}
+        supplier={live(debtFor)}
+      />
+      <PayModal
+        open={!!payFor}
+        onClose={() => setPayFor(null)}
+        supplier={live(payFor)}
+      />
+    </div>
+  );
 }

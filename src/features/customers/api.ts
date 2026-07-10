@@ -2,8 +2,9 @@
  * Customers API qatı — mock/real sərhədi.
  */
 import { db } from "@/mocks/db";
+import { saleHandlers } from "@/mocks/handlers";
 import { uid } from "@/lib/format";
-import type { Customer } from "@/types";
+import type { Customer, CustomerPayment } from "@/types";
 
 const USE_MOCK = !import.meta.env.VITE_API_URL;
 
@@ -31,8 +32,19 @@ async function createCustomer(input: NewCustomer): Promise<Customer> {
   return db.customers.create(customer);
 }
 
+async function listPayments(customerId: string): Promise<CustomerPayment[]> {
+  const all = await db.payments.list();
+  return all.filter((p) => p.customerId === customerId);
+}
+
 export const customersApi = {
   list: () => (USE_MOCK ? db.customers.list() : notImplemented()),
   create: (input: NewCustomer) =>
     USE_MOCK ? createCustomer(input) : notImplemented(),
+  listPayments: (customerId: string) =>
+    USE_MOCK ? listPayments(customerId) : notImplemented(),
+  addPayment: (customerId: string, amount: number, note?: string) =>
+    USE_MOCK
+      ? saleHandlers.addCustomerPayment(customerId, amount, note)
+      : notImplemented(),
 };

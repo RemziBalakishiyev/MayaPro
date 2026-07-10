@@ -16,7 +16,7 @@ import type {
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 1;
+export const SEED_VERSION = 2;
 
 export interface SeedDatabase {
   products: Product[];
@@ -381,16 +381,18 @@ const buildSales = (
       const p = products[pi];
       const pay = payCycle[(d + k) % 6];
       const price = p.salePrice;
+      const subtotal = price * q;
       sales.push({
         id: uid("sal"),
         productId: p.id,
         productName: p.name,
         quantity: q,
         salePrice: price,
+        subtotal,
         discount: 0,
+        totalAmount: subtotal,
         paymentType: pay,
         customerId: pay === "Nisyə" ? customers[(d + k) % 3].id : null,
-        totalAmount: price * q,
         profit: (price - p.realCostPerUnit) * q,
         createdAt: daysAgoISO(d),
         employeeId: employees[(d + k) % 3].id,
@@ -413,16 +415,18 @@ const buildSales = (
   ];
   today.forEach(({ pi, q, pay, cus, emp }) => {
     const p = products[pi];
+    const subtotal = p.salePrice * q;
     sales.push({
       id: uid("sal"),
       productId: p.id,
       productName: p.name,
       quantity: q,
       salePrice: p.salePrice,
+      subtotal,
       discount: 0,
+      totalAmount: subtotal,
       paymentType: pay,
       customerId: cus || null,
-      totalAmount: p.salePrice * q,
       profit: (p.salePrice - p.realCostPerUnit) * q,
       createdAt: todayISO(),
       employeeId: emp,

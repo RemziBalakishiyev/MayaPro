@@ -32,7 +32,7 @@ export function TodaySalesList({ sales }: Props) {
           </span>
           <Badge tone={s.paymentType}>{s.paymentType}</Badge>
           <span className="w-24 text-right text-sm font-bold tabular-nums">
-            {fmtMoney(s.totalAmount - s.discount)}
+            {fmtMoney(s.totalAmount)}
           </span>
           <span
             className={`w-24 text-right text-xs font-semibold tabular-nums ${
