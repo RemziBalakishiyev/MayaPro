@@ -1,8 +1,18 @@
-/** WhatsApp xatırlatma linki (borc barədə). MVP formatı ilə eyni. */
-export const waLink = (phone: string, debt: number): string => {
+import { DEFAULT_WA_TEMPLATE } from "@/features/settings/store";
+
+/**
+ * WhatsApp borc xatırlatma linki.
+ * Telefon `\D` təmizlənir; şablondakı {debt} borc məbləği ilə əvəzlənir.
+ */
+export const waLink = (
+  phone: string,
+  debt: number,
+  template: string = DEFAULT_WA_TEMPLATE,
+): string => {
   const clean = (phone || "").replace(/\D/g, "");
-  const text = `Salam, sizdə ${debt.toFixed(
-    2,
-  )} AZN qalıq borc görünür. Zəhmət olmasa ödənişi tamamlayın.`;
+  const text = (template || DEFAULT_WA_TEMPLATE).replace(
+    "{debt}",
+    debt.toFixed(2),
+  );
   return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
 };

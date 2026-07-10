@@ -29,6 +29,7 @@ export const useCloseDay = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["closings"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };

@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { db } from "@/mocks/db";
+import { useSettingsStore } from "@/features/settings/store";
 import { fmtMoney } from "@/lib/format";
 import { useToast } from "@/components/ui/toast-store";
 import { calcRealCost, profitPerUnit, profitPercent, totalExpenses } from "../lib";
@@ -103,6 +104,7 @@ function CalcRow({
 
 export function ProductForm({ open, onClose, initial }: Props) {
   const toast = useToast();
+  const defaultMinStock = useSettingsStore((s) => s.defaultMinStock);
   const createMut = useCreateProduct();
   const updateMut = useUpdateProduct();
   const suppliers = useQuery({
@@ -122,8 +124,14 @@ export function ProductForm({ open, onClose, initial }: Props) {
   });
 
   useEffect(() => {
-    if (open) reset(toFormValues(initial));
-  }, [open, initial, reset]);
+    if (!open) return;
+    // Yeni mal üçün min stok default-u ayarlardan gəlir
+    reset(
+      initial
+        ? toFormValues(initial)
+        : { ...emptyValues, minStock: defaultMinStock },
+    );
+  }, [open, initial, reset, defaultMinStock]);
 
   // Canlı hesablama
   const w = watch();

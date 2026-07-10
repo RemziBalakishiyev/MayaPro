@@ -43,6 +43,7 @@ export const useAddCustomerPayment = () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       qc.invalidateQueries({ queryKey: customerKeys.payments(customerId) });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };

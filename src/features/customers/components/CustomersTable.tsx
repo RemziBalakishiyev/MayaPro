@@ -4,6 +4,7 @@ import { Eye, HandCoins, MessageCircle } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import { useSettingsStore } from "@/features/settings/store";
 import { waLink } from "../lib";
 import type { Customer } from "@/types";
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function CustomersTable({ customers, isLoading, onView, onPay }: Props) {
+  const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
   const columns = useMemo<ColumnDef<Customer, unknown>[]>(
     () => [
       {
@@ -92,7 +94,7 @@ export function CustomersTable({ customers, isLoading, onView, onPay }: Props) {
               {c.remainingDebt > 0 && (
                 <a
                   title="WhatsApp xatırlatma"
-                  href={waLink(c.phone, c.remainingDebt)}
+                  href={waLink(c.phone, c.remainingDebt, waTemplate)}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-md p-1.5 text-green-600 hover:bg-green-50"
@@ -105,7 +107,7 @@ export function CustomersTable({ customers, isLoading, onView, onPay }: Props) {
         },
       },
     ],
-    [onView, onPay],
+    [onView, onPay, waTemplate],
   );
 
   return (

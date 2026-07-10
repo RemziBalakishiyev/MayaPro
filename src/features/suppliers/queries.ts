@@ -26,6 +26,7 @@ export const useCreateSupplier = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: supplierKeys.all });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };
@@ -38,6 +39,7 @@ export const useAddSupplierDebt = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: supplierKeys.all });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };
@@ -51,6 +53,7 @@ export const useAddSupplierPayment = () => {
       qc.invalidateQueries({ queryKey: supplierKeys.all });
       qc.invalidateQueries({ queryKey: supplierKeys.payments(supplierId) });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };

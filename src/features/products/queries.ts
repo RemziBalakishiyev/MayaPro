@@ -32,7 +32,11 @@ export const useCreateProduct = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: NewProduct) => productsApi.create(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.all });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 };
 
@@ -41,7 +45,10 @@ export const useUpdateProduct = () => {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ProductUpdate }) =>
       productsApi.update(id, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.all });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 };
 
@@ -57,6 +64,10 @@ export const useAdjustStock = () => {
       delta: number;
       reason?: string;
     }) => productsApi.adjustStock(id, delta, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.all });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 };

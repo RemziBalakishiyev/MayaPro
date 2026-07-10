@@ -18,9 +18,12 @@ import {
   Settings,
   Store,
   LogOut,
+  Search,
   type LucideIcon,
 } from "lucide-react";
+import { useState } from "react";
 import { useAuthStore } from "@/features/auth/store";
+import { useSettingsStore } from "@/features/settings/store";
 import { useDashboardStats } from "@/features/reports/queries";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -59,6 +62,12 @@ function AppLayout() {
   const logout = useAuthStore((s) => s.logout);
   const { data: stats } = useDashboardStats();
   const lowStockCount = stats?.lowStock.length ?? 0;
+  const storeName = useSettingsStore((s) => s.storeName);
+  const [search, setSearch] = useState("");
+
+  const submitSearch = () => {
+    navigate({ to: "/mallar", search: { q: search.trim() || undefined } });
+  };
 
   const handleLogout = () => {
     logout();
@@ -126,12 +135,27 @@ function AppLayout() {
       {/* Main */}
       <div className="flex min-h-full flex-1 flex-col pl-60">
         {/* Topbar */}
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-stone-200 bg-white px-6">
-          <h2 className="text-base font-semibold text-stone-800">
-            Sədərək Anbar
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-stone-200 bg-white px-6">
+          <h2 className="shrink-0 text-base font-semibold text-stone-800">
+            {storeName}
           </h2>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-stone-500">{fmtDate(new Date())}</span>
+          <div className="relative max-w-xs flex-1">
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitSearch()}
+              placeholder="Mal axtar... (Enter)"
+              className="w-full rounded-lg border border-stone-300 bg-stone-50 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-4">
+            <span className="hidden text-sm text-stone-500 sm:inline">
+              {fmtDate(new Date())}
+            </span>
             {user && (
               <span
                 className={cn(

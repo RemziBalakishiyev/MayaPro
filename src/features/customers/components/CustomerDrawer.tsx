@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { useSales } from "@/features/sales/queries";
+import { useSettingsStore } from "@/features/settings/store";
 import { waLink } from "../lib";
 import { useCustomerPayments } from "../queries";
 import type { Customer } from "@/types";
@@ -27,6 +28,7 @@ interface HistoryRow {
 export function CustomerDrawer({ customer, onClose, onPay }: Props) {
   const { data: allSales = [] } = useSales();
   const { data: payments = [] } = useCustomerPayments(customer?.id);
+  const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
 
   const cusSales = useMemo(
     () =>
@@ -88,7 +90,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
             </Button>
             {customer.remainingDebt > 0 && (
               <a
-                href={waLink(customer.phone, customer.remainingDebt)}
+                href={waLink(customer.phone, customer.remainingDebt, waTemplate)}
                 target="_blank"
                 rel="noreferrer"
               >
