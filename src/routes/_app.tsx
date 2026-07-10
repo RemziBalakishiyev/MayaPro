@@ -1,0 +1,139 @@
+import {
+  createFileRoute,
+  redirect,
+  Link,
+  Outlet,
+  useNavigate,
+} from "@tanstack/react-router";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Users,
+  Truck,
+  Receipt,
+  Lock,
+  BarChart3,
+  UserCog,
+  Settings,
+  Store,
+  LogOut,
+  type LucideIcon,
+} from "lucide-react";
+import { useAuthStore } from "@/features/auth/store";
+import { fmtDate } from "@/lib/format";
+import { cn } from "@/lib/cn";
+
+export const Route = createFileRoute("/_app")({
+  beforeLoad: () => {
+    if (!useAuthStore.getState().user) {
+      throw redirect({ to: "/login" });
+    }
+  },
+  component: AppLayout,
+});
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const NAV: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/mallar", label: "Mallar", icon: Package },
+  { to: "/satis", label: "Satış", icon: ShoppingCart },
+  { to: "/borclar", label: "Nisyə Borclar", icon: Users },
+  { to: "/tedarukculer", label: "Təchizatçılar", icon: Truck },
+  { to: "/xercler", label: "Xərclər", icon: Receipt },
+  { to: "/gun-sonu", label: "Gün Sonu", icon: Lock },
+  { to: "/hesabatlar", label: "Hesabatlar", icon: BarChart3 },
+  { to: "/iscilar", label: "İşçilər", icon: UserCog },
+  { to: "/ayarlar", label: "Ayarlar", icon: Settings },
+];
+
+function AppLayout() {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
+
+  return (
+    <div className="flex min-h-full bg-stone-100">
+      {/* Sidebar */}
+      <aside className="fixed inset-y-0 left-0 flex w-60 flex-col bg-emerald-950">
+        <div className="flex items-center gap-2.5 px-4 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 ring-1 ring-emerald-400/40">
+            <Store size={18} className="text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-sm font-bold leading-tight text-white">
+              Sədərək Sistem
+            </p>
+            <p className="text-[11px] leading-tight text-emerald-300/70">
+              Anbar İdarəetməsi
+            </p>
+          </div>
+        </div>
+
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-2">
+          {NAV.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              activeOptions={{ exact: to === "/" }}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white"
+              activeProps={{
+                className: "bg-emerald-800 text-white",
+              }}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </nav>
+
+        <div className="border-t border-emerald-900 px-3 py-3">
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white"
+          >
+            <LogOut size={18} />
+            <span>Çıxış</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex min-h-full flex-1 flex-col pl-60">
+        {/* Topbar */}
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-stone-200 bg-white px-6">
+          <h2 className="text-base font-semibold text-stone-800">
+            Sədərək Anbar
+          </h2>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-stone-500">{fmtDate(new Date())}</span>
+            {user && (
+              <span
+                className={cn(
+                  "rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700",
+                )}
+              >
+                {user.name}
+              </span>
+            )}
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 p-6">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
