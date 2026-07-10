@@ -31,7 +31,7 @@ export function Badge({ children, tone, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset",
+        "inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-sm font-semibold ring-1 ring-inset",
         STATUS_STYLE[key] ?? FALLBACK,
         className,
       )}

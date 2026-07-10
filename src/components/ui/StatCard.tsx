@@ -28,17 +28,24 @@ export function StatCard({
   tone = "default",
 }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-          {label}
-        </span>
-        {Icon && <Icon size={16} className="text-stone-400" />}
+    <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-stone-500">{label}</span>
+        {Icon && (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-500">
+            <Icon size={18} />
+          </span>
+        )}
       </div>
-      <p className={cn("mt-1.5 text-xl font-bold tabular-nums", TONE[tone])}>
+      <p
+        className={cn(
+          "mt-2 text-3xl font-bold tabular-nums lg:text-4xl",
+          TONE[tone],
+        )}
+      >
         {value}
       </p>
-      {sub && <p className="mt-0.5 text-xs text-stone-500">{sub}</p>}
+      {sub && <p className="mt-1 text-sm text-stone-500">{sub}</p>}
     </div>
   );
 }

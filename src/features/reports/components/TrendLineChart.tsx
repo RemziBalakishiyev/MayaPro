@@ -24,7 +24,7 @@ export function TrendLineChart({
   xKey,
   dataKey = "qazanc",
   stroke = "#047857",
-  height = 230,
+  height = 300,
 }: Props) {
   const empty = data.every(
     (d) => Number((d as Record<string, unknown>)[dataKey]) === 0,

@@ -20,7 +20,7 @@ interface Props {
   height?: number;
 }
 
-export function DailyBarChart({ data, showProfit, height = 230 }: Props) {
+export function DailyBarChart({ data, showProfit, height = 300 }: Props) {
   const empty = data.every((d) => d.satis === 0 && d.qazanc === 0);
   if (empty) {
     return <EmptyState icon={BarChart3} title="Bu dövrdə satış yoxdur" />;

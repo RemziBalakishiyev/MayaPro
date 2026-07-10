@@ -66,9 +66,9 @@ export function DataTable<TData>({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-card">
         <table className="min-w-full divide-y divide-stone-200">
-          <thead>
+          <thead className="bg-stone-50">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => {
@@ -77,7 +77,7 @@ export function DataTable<TData>({
                   return (
                     <th
                       key={header.id}
-                      className="whitespace-nowrap px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-stone-500"
+                      className="whitespace-nowrap px-4 py-3.5 text-left text-sm font-bold text-stone-500"
                     >
                       {header.isPlaceholder ? null : (
                         <button
@@ -95,11 +95,11 @@ export function DataTable<TData>({
                           )}
                           {canSort &&
                             (sorted === "asc" ? (
-                              <ChevronUp size={13} />
+                              <ChevronUp size={15} />
                             ) : sorted === "desc" ? (
-                              <ChevronDown size={13} />
+                              <ChevronDown size={15} />
                             ) : (
-                              <ChevronsUpDown size={13} className="text-stone-300" />
+                              <ChevronsUpDown size={15} className="text-stone-300" />
                             ))}
                         </button>
                       )}
@@ -111,11 +111,11 @@ export function DataTable<TData>({
           </thead>
           <tbody className="divide-y divide-stone-100">
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="hover:bg-stone-50">
+              <tr key={row.id} className="transition-colors hover:bg-stone-50">
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className="whitespace-nowrap px-3 py-2.5 text-sm text-stone-700"
+                    className="whitespace-nowrap px-4 py-4 text-base text-stone-700"
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
@@ -134,14 +134,14 @@ export function DataTable<TData>({
           <button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Əvvəlki
           </button>
           <button
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Növbəti
           </button>

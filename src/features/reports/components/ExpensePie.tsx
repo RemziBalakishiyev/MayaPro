@@ -15,7 +15,7 @@ interface Props {
   height?: number;
 }
 
-export function ExpensePie({ data, height = 230 }: Props) {
+export function ExpensePie({ data, height = 300 }: Props) {
   const nonZero = data.filter((d) => d.value > 0);
   if (nonZero.length === 0) {
     return <EmptyState icon={Receipt} title="Xərc datası yoxdur" />;

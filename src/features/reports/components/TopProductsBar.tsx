@@ -15,7 +15,7 @@ interface Props {
   height?: number;
 }
 
-export function TopProductsBar({ data, height = 230 }: Props) {
+export function TopProductsBar({ data, height = 300 }: Props) {
   if (data.length === 0) {
     return <EmptyState icon={Package} title="Satış datası yoxdur" />;
   }
