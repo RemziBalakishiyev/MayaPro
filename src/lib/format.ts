@@ -24,3 +24,22 @@ export const fmtDate = (
 /** Sadə unikal identifikator. */
 export const uid = (prefix = "id"): string =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+/** Bugünün ISO tarixi: "2026-07-10" */
+export const todayISO = (): string => new Date().toISOString().slice(0, 10);
+
+/** N gün əvvəlin ISO tarixi. */
+export const daysAgoISO = (d: number): string => {
+  const t = new Date();
+  t.setDate(t.getDate() - d);
+  return t.toISOString().slice(0, 10);
+};
+
+/** Verilmiş ISO tarixdən bu günə qədər keçən gün sayı. */
+export const daysBetween = (iso?: string | null): number => {
+  if (!iso) return 999;
+  return Math.floor(
+    (new Date(todayISO()).getTime() - new Date(iso.slice(0, 10)).getTime()) /
+      86400000,
+  );
+};
