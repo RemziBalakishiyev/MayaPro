@@ -1,6 +1,7 @@
 /** Biznes məntiqli mock əməliyyatlar. */
 import { db } from "./db";
 import { calcRealCost } from "@/features/products/lib";
+import { categoryToExpenseKey } from "@/features/expenses/lib";
 import { uid, todayISO, fmtMoney } from "@/lib/format";
 import { useAuthStore } from "@/features/auth/store";
 import type {
@@ -10,6 +11,9 @@ import type {
   CustomerPayment,
   Supplier,
   SupplierPayment,
+  Expense,
+  ExpenseCategory,
+  Closing,
 } from "@/types";
 
 /** Yeni mal üçün giriş — hesablanan/avtomatik sahələr xaric. */
@@ -280,5 +284,83 @@ export const supplierHandlers = {
       `${s.name} — ${fmtMoney(amount)}`,
     );
     return payment;
+  },
+};
+
+/** Yeni xərc üçün giriş. */
+export interface NewExpense {
+  title: string;
+  category: ExpenseCategory;
+  amount: number;
+  date: string;
+  productId: string | null;
+  note?: string;
+}
+
+export const expenseHandlers = {
+  list: () => db.expenses.list(),
+
+  /**
+   * Xərc yazılır. ƏSAS QAYDA: xərc bir mala bağlıdırsa (productId),
+   * uyğun kateqoriya breakdown-una əlavə olunur və real maya YENİDƏN
+   * hesablanır — beləcə malın real mayası artır.
+   */
+  async createExpense(input: NewExpense): Promise<Expense> {
+    const expense: Expense = {
+      id: uid("exp"),
+      title: input.title.trim(),
+      category: input.category,
+      amount: input.amount,
+      productId: input.productId || null,
+      date: input.date,
+      note: input.note ?? "",
+    };
+    await db.expenses.create(expense);
+
+    if (expense.productId) {
+      const p = await db.products.get(expense.productId);
+      if (p) {
+        const key = categoryToExpenseKey(expense.category);
+        const expenses = {
+          ...p.expenses,
+          [key]: (Number(p.expenses[key]) || 0) + expense.amount,
+        };
+        const realCostPerUnit = calcRealCost(
+          p.purchasePrice,
+          p.initialQuantity,
+          expenses,
+        );
+        await db.products.update(p.id, {
+          expenses,
+          realCostPerUnit,
+          updatedAt: todayISO(),
+        });
+      }
+    }
+
+    await logActivity(
+      "Xərc əlavə etdi",
+      `${expense.title} — ${fmtMoney(expense.amount)}`,
+    );
+    return expense;
+  },
+};
+
+export const closingHandlers = {
+  list: () => db.closings.list(),
+
+  /** Günü bağlayır. Eyni tarix üçün ikinci bağlanışa icazə vermir. */
+  async closeDay(input: Omit<Closing, "id">): Promise<Closing> {
+    const existing = await db.closings.list();
+    if (existing.some((c) => c.date === input.date)) {
+      throw new Error("Bu gün artıq bağlanıb");
+    }
+    const closing: Closing = { ...input, id: uid("cls") };
+    await db.closings.create(closing);
+    await logActivity(
+      "Gün sonu bağladı",
+      `${input.date} — fərq: ${fmtMoney(input.difference)}`,
+    );
+    return closing;
   },
 };

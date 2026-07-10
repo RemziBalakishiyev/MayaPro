@@ -9,6 +9,14 @@ export type ProductStatus =
   | "Satılmır"
   | "Ziyana satılır";
 
+export type ExpenseCategory =
+  | "Yol"
+  | "Fəhlə"
+  | "Anbar/Yer"
+  | "Paket/Qutu"
+  | "Mağaza"
+  | "Digər";
+
 /** Auth istifadəçisinin rolu. */
 export type Role = "sahib" | "menecer" | "satici";
 
@@ -105,7 +113,7 @@ export interface Employee {
 export interface Expense {
   id: string;
   title: string;
-  category: string;
+  category: ExpenseCategory;
   amount: number;
   productId: string | null;
   date: string;
