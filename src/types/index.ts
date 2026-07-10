@@ -62,6 +62,8 @@ export interface Sale {
   paymentType: PaymentType;
   customerId: string | null;
   totalAmount: number;
+  /** Satış anındakı real maya snapshot-u (1 ədəd) */
+  costPerUnit?: number;
   profit: number;
   createdAt: string;
   employeeId: string;
@@ -113,6 +115,7 @@ export interface CustomerPayment {
   amount: number;
   date: string;
   method: string;
+  note?: string;
 }
 
 export interface SupplierPayment {
