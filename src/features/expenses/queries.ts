@@ -19,6 +19,7 @@ export const useCreateExpense = () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
       qc.invalidateQueries({ queryKey: ["products"] }); // maya dəyişə bilər
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["summary"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });

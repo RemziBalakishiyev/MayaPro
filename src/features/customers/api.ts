@@ -1,10 +1,9 @@
 /**
  * Customers API qatı — mock/real sərhədi.
  *
- * DİQQƏT (DTO uyğunsuzluğu): backend CustomerDto yalnız tək `debt` sahəsi verir;
- * frontend Customer isə totalDebt/paidAmount/remainingDebt/lastPurchaseDate/
- * lastPaymentDate gözləyir. Frontend tipi dəyişdirilmir — adapterdə
- * remainingDebt=totalDebt=debt, paidAmount=0, tarixlər boş qoyulur.
+ * Backend CustomerDto: debt (qalıq), paidAmount, lastPurchaseDate, lastPaymentDate.
+ * Adapter: remainingDebt=debt, totalDebt=debt+paidAmount (ümumi=qalıq+ödənilmiş),
+ * paidAmount və tarixlər birbaşa serverdən.
  */
 import { db } from "@/mocks/db";
 import { saleHandlers } from "@/mocks/handlers";
@@ -24,6 +23,9 @@ interface CustomerDto {
   phone: string | null;
   note: string | null;
   debt: number;
+  paidAmount: number;
+  lastPurchaseDate: string | null;
+  lastPaymentDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,11 +43,11 @@ const toCustomer = (d: CustomerDto): Customer => ({
   id: d.id,
   name: d.name,
   phone: d.phone ?? "",
-  totalDebt: d.debt,
-  paidAmount: 0,
+  totalDebt: d.debt + d.paidAmount,
+  paidAmount: d.paidAmount,
   remainingDebt: d.debt,
-  lastPurchaseDate: "",
-  lastPaymentDate: "",
+  lastPurchaseDate: d.lastPurchaseDate ?? "",
+  lastPaymentDate: d.lastPaymentDate ?? "",
 });
 
 const toPayment = (d: CustomerPaymentDto): CustomerPayment => ({

@@ -26,6 +26,8 @@ export interface ProductWithStatus extends Product {
 export interface FrozenProduct extends ProductWithStatus {
   idleDays: number;
   frozenValue: number;
+  /** Heç satılmayıb (server daysSinceLastSale=null). Yoxdursa idleDays etibarlıdır. */
+  neverSold?: boolean;
 }
 
 /** productId → sonuncu satış tarixi. */

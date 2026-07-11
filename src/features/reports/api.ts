@@ -1,15 +1,14 @@
 /**
  * Reports/Dashboard API qatı.
  *
- * Server /api/reports/dashboard və /api/reports/summary AGGREGAT rəqəmləri verir
- * (bugünkü satış/qazanc/xərc, kassada olmalı, borclar, anbar dəyəri). Lakin qrafik
- * seriyaları, son satış/ödəniş siyahıları və donmuş mal detalları server DTO-sunda
- * YOXDUR — onlar üçün xam kolleksiyalar çəkilir və client-də hesablanır.
- * Beləliklə getAll() həm xam datanı, həm də server aggregatlarını qaytarır;
- * computeDashboardStats server rəqəmlərini əsas götürüb qalanını tamamlayır.
+ * REAL rejimdə Dashboard TAM /api/reports/dashboard cavabından qurulur
+ * (qrafiklər, son satış/ödəniş, donmuş mallar daxil) — xam kolleksiya ÇƏKİLMİR.
+ * Yalnız ödəniş növü bölgüsü (nağd/kart/nisyə) üçün /api/reports/summary?today
+ * əlavə çağırılır. getAll() isə YALNIZ Hesabatlar səhifəsi üçün xam kolleksiyaları
+ * verir (dövr filtrləri client-də tətbiq olunur).
  *
- * Qeyd (uyğunsuzluq): qlobal ödənişlər endpoint-i yoxdur → dashboard-un "son
- * ödənişlər" bloku real rejimdə boş qalır (payments: []).
+ * MOCK rejimdə köhnə davranış: getAll() db-dən oxuyur, dashboard client-də
+ * computeDashboardStats ilə hesablanır.
  */
 import { db } from "@/mocks/db";
 import { USE_MOCK, apiClient } from "@/lib/api-client";
@@ -45,7 +44,19 @@ export interface DashboardDto {
   totalCustomerDebt: number;
   totalSupplierDebt: number;
   expectedCash: number;
-  frozenProducts: { days30: number; days60: number; days90: number };
+  frozenProducts: {
+    days30: number;
+    days60: number;
+    days90: number;
+    items: {
+      id: string;
+      name: string;
+      quantity: number;
+      frozenValue: number;
+      /** Son satışdan keçən gün; heç satılmayıbsa null. */
+      daysSinceLastSale: number | null;
+    }[];
+  };
   topProducts: {
     productId: string;
     name: string;
@@ -57,6 +68,22 @@ export interface DashboardDto {
     name: string;
     quantity: number;
     minStock: number;
+  }[];
+  dailySeries: { date: string; sales: number; profit: number }[];
+  monthlySeries: { month: string; profit: number }[];
+  recentSales: {
+    id: string;
+    date: string;
+    productName: string;
+    quantity: number;
+    totalAmount: number;
+    paymentType: string;
+  }[];
+  recentPayments: {
+    id: string;
+    date: string;
+    customerName: string;
+    amount: number;
   }[];
 }
 
@@ -74,6 +101,7 @@ export interface SummaryData {
   creditSales: number;
 }
 
+/** Hesabatlar səhifəsi üçün xam kolleksiyalar. */
 export interface DashboardData {
   products: Product[];
   sales: Sale[];
@@ -83,9 +111,6 @@ export interface DashboardData {
   employees: Employee[];
   closings: Closing[];
   payments: CustomerPayment[];
-  /** Real rejimdə server aggregatları (mock rejimdə undefined). */
-  dashboard?: DashboardDto;
-  summaryToday?: SummaryData;
 }
 
 /** Mock rejim üçün dövr xülasəsi — db-dən hesablanır. */
@@ -120,11 +145,18 @@ async function mockSummary(period: Period): Promise<SummaryData> {
 }
 
 export const reportsApi = {
+  /** Server dashboard aggregatı (real). Mock rejimdə null. */
+  getDashboard: (): Promise<DashboardDto | null> =>
+    USE_MOCK
+      ? Promise.resolve(null)
+      : apiClient.get<DashboardDto>("/api/reports/dashboard"),
+
   getSummary: (period: Period): Promise<SummaryData> =>
     USE_MOCK
       ? mockSummary(period)
       : apiClient.get<SummaryData>(`/api/reports/summary?period=${period}`),
 
+  /** Hesabatlar üçün xam kolleksiyalar (dashboard səhifəsi bunu ÇAĞIRMIR). */
   async getAll(): Promise<DashboardData> {
     if (USE_MOCK) {
       const [
@@ -158,27 +190,16 @@ export const reportsApi = {
       };
     }
 
-    const [
-      products,
-      sales,
-      customers,
-      suppliers,
-      expenses,
-      employees,
-      closings,
-      dashboard,
-      summaryToday,
-    ] = await Promise.all([
-      productsApi.list(),
-      salesApi.list(),
-      customersApi.list(),
-      suppliersApi.list(),
-      expensesApi.list(),
-      employeesApi.list(),
-      closingsApi.list(),
-      apiClient.get<DashboardDto>("/api/reports/dashboard"),
-      reportsApi.getSummary("today"),
-    ]);
+    const [products, sales, customers, suppliers, expenses, employees, closings] =
+      await Promise.all([
+        productsApi.list(),
+        salesApi.list(),
+        customersApi.list(),
+        suppliersApi.list(),
+        expensesApi.list(),
+        employeesApi.list(),
+        closingsApi.list(),
+      ]);
     return {
       products,
       sales,
@@ -188,8 +209,6 @@ export const reportsApi = {
       employees,
       closings,
       payments: [], // qlobal ödənişlər endpoint-i yoxdur
-      dashboard,
-      summaryToday,
     };
   },
 };

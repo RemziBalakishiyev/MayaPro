@@ -1,10 +1,9 @@
 /**
  * Suppliers API qatı — mock/real sərhədi.
  *
- * DİQQƏT (DTO uyğunsuzluğu): backend SupplierDto tək `debt` sahəsi verir;
- * frontend Supplier isə totalDebt/paidAmount/remainingDebt/itemCount/
- * lastPaymentDate gözləyir. Adapterdə remainingDebt=totalDebt=debt, qalanlar
- * 0/boş. Backend-də `contactName` var, frontend istifadə etmir.
+ * Backend SupplierDto: debt (qalıq), paidAmount, lastPaymentDate (+ contactName).
+ * Adapter: remainingDebt=debt, totalDebt=debt+paidAmount, paidAmount və
+ * lastPaymentDate serverdən. itemCount backend-də yoxdur → 0 (uyğunsuzluq).
  */
 import { supplierHandlers, type NewSupplier } from "@/mocks/handlers";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
@@ -17,6 +16,8 @@ interface SupplierDto {
   phone: string | null;
   note: string | null;
   debt: number;
+  paidAmount: number;
+  lastPaymentDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,11 +35,11 @@ const toSupplier = (d: SupplierDto): Supplier => ({
   id: d.id,
   name: d.name,
   phone: d.phone ?? "",
-  totalDebt: d.debt,
-  paidAmount: 0,
+  totalDebt: d.debt + d.paidAmount,
+  paidAmount: d.paidAmount,
   remainingDebt: d.debt,
   itemCount: 0,
-  lastPaymentDate: "",
+  lastPaymentDate: d.lastPaymentDate ?? "",
 });
 
 const toPayment = (d: SupplierPaymentDto): SupplierPayment => ({

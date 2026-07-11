@@ -145,7 +145,9 @@ function DashboardPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-stone-700">{p.name}</p>
                     <p className="text-[11px] text-stone-400">
-                      {p.idleDays >= 90 ? "90+" : p.idleDays >= 60 ? "60+" : "30+"} gündür satılmır
+                      {p.neverSold
+                        ? "Heç satılmayıb"
+                        : `${p.idleDays >= 90 ? "90+" : p.idleDays >= 60 ? "60+" : "30+"} gündür satılmır`}
                     </p>
                   </div>
                   <span className="text-sm font-bold tabular-nums text-sky-700">
