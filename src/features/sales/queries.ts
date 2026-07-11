@@ -10,16 +10,16 @@ export const saleKeys = {
 export const useSales = () =>
   useQuery({
     queryKey: saleKeys.all,
-    queryFn: salesApi.list,
+    queryFn: () => salesApi.list(),
   });
 
 /** Yalnız bugünkü satışlar (ən yenisi əvvəldə). */
 export const useTodaySales = () =>
   useQuery({
     queryKey: saleKeys.all,
-    queryFn: salesApi.list,
+    queryFn: () => salesApi.list(),
     select: (sales: Sale[]) =>
-      sales.filter((s) => s.createdAt === todayISO()).reverse(),
+      sales.filter((s) => s.createdAt.slice(0, 10) === todayISO()).reverse(),
   });
 
 export const useCreateSale = () => {

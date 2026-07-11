@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/toast-store";
 import { useSettingsStore, type Settings } from "@/features/settings/store";
+import { useSettings, useUpdateSettings } from "@/features/settings/queries";
+import { useCan } from "@/features/auth/store";
 
 const PERMS = [
   {
@@ -34,7 +36,9 @@ export const Route = createFileRoute("/_app/ayarlar")({
 function AyarlarPage() {
   const toast = useToast();
   const settings = useSettingsStore();
-  const update = useSettingsStore((s) => s.update);
+  const { data: server } = useSettings();
+  const updateSettings = useUpdateSettings();
+  const canEdit = useCan()("settings.write");
 
   const [f, setF] = useState<Settings>({
     storeName: settings.storeName,
@@ -45,15 +49,24 @@ function AyarlarPage() {
     language: settings.language,
   });
 
+  // Serverdən ayarlar gələndə formu yenilə (mənbə = API).
+  useEffect(() => {
+    if (server) setF({ ...server });
+  }, [server]);
+
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) =>
     setF((x) => ({ ...x, [k]: v }));
 
-  const save = () => {
-    update({
-      ...f,
-      defaultMinStock: Number(f.defaultMinStock) || 0,
-    });
-    toast.success("Ayarlar yadda saxlandı");
+  const save = async () => {
+    try {
+      await updateSettings.mutateAsync({
+        ...f,
+        defaultMinStock: Number(f.defaultMinStock) || 0,
+      });
+      toast.success("Ayarlar yadda saxlandı");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Yadda saxlanmadı");
+    }
   };
 
   return (
@@ -62,13 +75,29 @@ function AyarlarPage() {
         title="Ayarlar"
         subtitle="Mağaza və sistem parametrləri"
         actions={
-          <Button size="sm" icon={<Check size={14} />} onClick={save}>
-            Yadda saxla
-          </Button>
+          canEdit && (
+            <Button
+              size="sm"
+              icon={<Check size={14} />}
+              onClick={save}
+              disabled={updateSettings.isPending}
+            >
+              Yadda saxla
+            </Button>
+          )
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      {!canEdit && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl bg-stone-50 px-4 py-3 text-sm font-medium text-stone-600 ring-1 ring-stone-200">
+          <Lock size={16} /> Ayarları yalnız sahibkar dəyişə bilər.
+        </div>
+      )}
+
+      <fieldset
+        disabled={!canEdit}
+        className="m-0 grid gap-5 border-0 p-0 lg:grid-cols-2"
+      >
         <Card title="Mağaza məlumatları">
           <div className="space-y-3">
             <Field label="Mağaza adı">
@@ -125,7 +154,8 @@ function AyarlarPage() {
 
         <Card title="İşçi icazələri" className="lg:col-span-2">
           <p className="mb-3 text-xs text-stone-400">
-            Rol əsaslı icazələr backend ilə aktivləşəcək.
+            Rol əsaslı icazələr aktivdir — backend hər əməliyyatı rola görə
+            yoxlayır.
           </p>
           <div className="grid gap-3 md:grid-cols-3">
             {PERMS.map((p) => (
@@ -139,7 +169,7 @@ function AyarlarPage() {
             ))}
           </div>
         </Card>
-      </div>
+      </fieldset>
     </div>
   );
 }

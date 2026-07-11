@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
 import { fmtMoney } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
+import { useCan } from "@/features/auth/store";
 import { productStatus } from "@/features/products/lib";
 import {
   ProductFilters,
@@ -39,6 +40,7 @@ function MallarPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const { data: products = [], isLoading } = useProducts();
+  const canWrite = useCan()("products.write");
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -122,9 +124,11 @@ function MallarPage() {
             >
               Barkod/QR çap
             </Button>
-            <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>
-              Yeni mal
-            </Button>
+            {canWrite && (
+              <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>
+                Yeni mal
+              </Button>
+            )}
           </>
         }
       />
@@ -139,6 +143,7 @@ function MallarPage() {
       <ProductsTable
         products={filtered}
         isLoading={isLoading}
+        canEdit={canWrite}
         onEdit={(p) => {
           setEditing(p);
           setFormOpen(true);

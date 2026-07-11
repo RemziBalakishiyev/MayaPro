@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
-import { Store } from "lucide-react";
+import { Store, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/features/auth/store";
-import { uid } from "@/lib/format";
+import { authApi } from "@/features/auth/api";
+import { ApiError, USE_MOCK } from "@/lib/api-client";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: () => {
@@ -14,26 +16,39 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-interface LoginForm {
-  username: string;
+interface LoginFormValues {
+  phone: string;
   password: string;
 }
 
 function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const { register, handleSubmit } = useForm<LoginForm>({
-    defaultValues: { username: "", password: "" },
+  const [serverError, setServerError] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
+    defaultValues: { phone: "", password: "" },
   });
 
-  const onSubmit = (data: LoginForm) => {
-    // Mock: istənilən dəyərlə daxil olur
-    login({
-      id: uid("user"),
-      name: data.username.trim() || "İstifadəçi",
-      role: "sahib",
-    });
-    navigate({ to: "/" });
+  const onSubmit = async (data: LoginFormValues) => {
+    setServerError(null);
+    try {
+      const { user, token } = await authApi.login(
+        data.phone.trim(),
+        data.password,
+      );
+      login(user, token);
+      navigate({ to: "/" });
+    } catch (e) {
+      setServerError(
+        e instanceof ApiError
+          ? e.message
+          : "Giriş alınmadı. Bağlantını yoxlayın.",
+      );
+    }
   };
 
   return (
@@ -49,16 +64,26 @@ function LoginPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-700">
-              İstifadəçi adı
+              Telefon
             </label>
             <input
-              {...register("username")}
+              type="tel"
+              inputMode="tel"
+              autoComplete="username"
+              {...register("phone", {
+                required: "Telefon nömrəsi mütləqdir",
+              })}
               className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-              placeholder="admin"
+              placeholder="0501112233"
             />
+            {errors.phone && (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                {errors.phone.message}
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-700">
@@ -66,18 +91,43 @@ function LoginPage() {
             </label>
             <input
               type="password"
-              {...register("password")}
+              autoComplete="current-password"
+              {...register("password", { required: "Şifrə mütləqdir" })}
               className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="••••••"
             />
+            {errors.password && (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                {errors.password.message}
+              </p>
+            )}
           </div>
+
+          {serverError && (
+            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200">
+              {serverError}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full rounded-lg bg-emerald-700 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
+            disabled={isSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60"
           >
+            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
             Daxil ol
           </button>
         </form>
+
+        {import.meta.env.DEV && !USE_MOCK && (
+          <div className="mt-6 rounded-lg bg-stone-50 px-3 py-2.5 text-[11px] leading-relaxed text-stone-500 ring-1 ring-stone-200">
+            <p className="mb-1 font-semibold text-stone-600">Demo girişlər (yalnız DEV)</p>
+            <p>Sahib — 0501112233</p>
+            <p>Menecer — 0552223344</p>
+            <p>Satıcı — 0553334455</p>
+            <p className="mt-1">Şifrə: <b>demo123</b></p>
+          </div>
+        )}
       </div>
     </div>
   );

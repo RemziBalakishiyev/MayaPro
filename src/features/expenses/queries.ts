@@ -8,7 +8,7 @@ export const expenseKeys = {
 export const useExpenses = () =>
   useQuery({
     queryKey: expenseKeys.all,
-    queryFn: expensesApi.list,
+    queryFn: () => expensesApi.list(),
   });
 
 export const useCreateExpense = () => {

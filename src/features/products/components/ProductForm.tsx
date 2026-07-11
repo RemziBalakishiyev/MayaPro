@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Check } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Field } from "@/components/ui/Field";
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
-import { db } from "@/mocks/db";
+import { useSuppliers } from "@/features/suppliers/queries";
 import { useSettingsStore } from "@/features/settings/store";
 import { fmtMoney } from "@/lib/format";
 import { useToast } from "@/components/ui/toast-store";
@@ -107,10 +106,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const defaultMinStock = useSettingsStore((s) => s.defaultMinStock);
   const createMut = useCreateProduct();
   const updateMut = useUpdateProduct();
-  const suppliers = useQuery({
-    queryKey: ["suppliers"],
-    queryFn: () => db.suppliers.list(),
-  });
+  const suppliers = useSuppliers();
 
   const {
     register,

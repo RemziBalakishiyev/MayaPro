@@ -12,11 +12,19 @@ export type StockMode = "add" | "sub";
 interface Props {
   products: Product[];
   isLoading?: boolean;
+  /** Redaktə (mal yeniləmə) icazəsi — satıcıda gizli. Stok düzəlişi hamıda qalır. */
+  canEdit?: boolean;
   onEdit: (product: Product) => void;
   onAdjust: (product: Product, mode: StockMode) => void;
 }
 
-export function ProductsTable({ products, isLoading, onEdit, onAdjust }: Props) {
+export function ProductsTable({
+  products,
+  isLoading,
+  canEdit = true,
+  onEdit,
+  onAdjust,
+}: Props) {
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
     () => [
       {
@@ -158,19 +166,21 @@ export function ProductsTable({ products, isLoading, onEdit, onAdjust }: Props) 
               >
                 <Minus size={15} />
               </button>
-              <button
-                title="Redaktə et"
-                onClick={() => onEdit(p)}
-                className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-              >
-                <Pencil size={15} />
-              </button>
+              {canEdit && (
+                <button
+                  title="Redaktə et"
+                  onClick={() => onEdit(p)}
+                  className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
+                >
+                  <Pencil size={15} />
+                </button>
+              )}
             </div>
           );
         },
       },
     ],
-    [onEdit, onAdjust],
+    [onEdit, onAdjust, canEdit],
   );
 
   return (

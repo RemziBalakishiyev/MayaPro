@@ -27,6 +27,7 @@ import {
 import { useState } from "react";
 import { useAuthStore } from "@/features/auth/store";
 import { useSettingsStore } from "@/features/settings/store";
+import { useHydrateSettings } from "@/features/settings/queries";
 import { useDashboardStats } from "@/features/reports/queries";
 import { fmtMoney } from "@/lib/format";
 
@@ -70,6 +71,7 @@ function AppLayout() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  useHydrateSettings();
   const { data: stats } = useDashboardStats();
   const lowStockCount = stats?.lowStock.length ?? 0;
   const storeName = useSettingsStore((s) => s.storeName);

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { reportsApi, type DashboardData } from "./api";
+import type { Period } from "./lib";
 import {
   sumBy,
   withStatus,
@@ -49,32 +50,42 @@ export const computeDashboardStats = (data: DashboardData): DashboardStats => {
   const t = todayISO();
   const { products, sales, customers, suppliers, expenses, employees, closings, payments } =
     data;
+  const srv = data.dashboard;
+  const sum = data.summaryToday;
 
-  const todaySales = sales.filter((s) => s.createdAt === t);
+  const todaySales = sales.filter((s) => s.createdAt.slice(0, 10) === t);
   const paySum = (pt: string) =>
     sumBy(
       todaySales.filter((s) => s.paymentType === pt),
       (s) => s.totalAmount,
     );
 
-  const todayCash = paySum("Nağd");
-  const todayCard = paySum("Kart");
-  const todayCredit = paySum("Nisyə");
-  const todayTotal = sumBy(todaySales, (s) => s.totalAmount);
-  const todayProfit = sumBy(todaySales, (s) => s.profit);
-  const todayExpenses = sumBy(
-    expenses.filter((e) => e.date === t),
-    (e) => e.amount,
-  );
+  // Bugünkü rəqəmlər: real rejimdə server (summary/dashboard) əsasdır,
+  // mock rejimdə client hesablaması.
+  const todayCash = sum?.cashSales ?? paySum("Nağd");
+  const todayCard = sum?.cardSales ?? paySum("Kart");
+  const todayCredit = sum?.creditSales ?? paySum("Nisyə");
+  const todayTotal = srv?.todaySales ?? sumBy(todaySales, (s) => s.totalAmount);
+  const todayProfit = srv?.todayProfit ?? sumBy(todaySales, (s) => s.profit);
+  const todayExpenses =
+    srv?.todayExpenses ??
+    sumBy(
+      expenses.filter((e) => e.date.slice(0, 10) === t),
+      (e) => e.amount,
+    );
 
-  const stockValue = sumBy(products, (p) => p.realCostPerUnit * p.quantity);
-  const receivables = sumBy(customers, (c) => c.remainingDebt);
-  const payables = sumBy(suppliers, (s) => s.remainingDebt);
+  const stockValue =
+    srv?.stockCostValue ?? sumBy(products, (p) => p.realCostPerUnit * p.quantity);
+  const receivables =
+    srv?.totalCustomerDebt ?? sumBy(customers, (c) => c.remainingDebt);
+  const payables =
+    srv?.totalSupplierDebt ?? sumBy(suppliers, (s) => s.remainingDebt);
 
   // Açılış kassası = son bağlanışın faktiki məbləği (yoxdursa 0)
   const lastClosing = [...closings].sort((a, b) => (a.date < b.date ? 1 : -1))[0];
   const openingCash = lastClosing?.actualCash ?? 0;
-  const expectedCash = openingCash + todayCash - todayExpenses;
+  const expectedCash =
+    srv?.expectedCash ?? openingCash + todayCash - todayExpenses;
 
   const statusList = withStatus(products, sales);
   const lowStock = statusList.filter((p) => p.quantity <= p.minStock);
@@ -130,4 +141,11 @@ export const useLowStockCount = () =>
     queryKey: ["dashboard"],
     queryFn: reportsApi.getAll,
     select: (d: DashboardData) => lowStockProducts(d.products).length,
+  });
+
+/** Dövr xülasəsi — server /api/reports/summary (gün sonu cəmləri də bundan gəlir). */
+export const useSummary = (period: Period) =>
+  useQuery({
+    queryKey: ["summary", period],
+    queryFn: () => reportsApi.getSummary(period),
   });

@@ -8,8 +8,8 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { StatCard } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/toast-store";
 import { fmtMoney, fmtDate, todayISO } from "@/lib/format";
-import { useSales } from "@/features/sales/queries";
-import { useExpenses } from "@/features/expenses/queries";
+import { useSummary } from "@/features/reports/queries";
+import { useCan } from "@/features/auth/store";
 import { useClosings, useTodayClosing, useCloseDay } from "../queries";
 import { expectedCash as calcExpected, difference as calcDiff } from "../lib";
 
@@ -45,37 +45,22 @@ function Row({
 export function DayEndCard() {
   const toast = useToast();
   const t = todayISO();
-  const { data: sales = [] } = useSales();
-  const { data: expenses = [] } = useExpenses();
+  // Gün cəmləri serverdən (mock rejimdə mock summary) — GET /api/reports/summary?period=today
+  const { data: summary } = useSummary("today");
   const { data: closings = [] } = useClosings();
   const { data: todayClosing } = useTodayClosing();
   const closeDay = useCloseDay();
+  const canClose = useCan()("closings.write");
 
   const [openingCash, setOpeningCash] = useState("");
   const [touched, setTouched] = useState(false);
   const [actualCash, setActualCash] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const { cashSales, cardSales, creditSales } = useMemo(() => {
-    const today = sales.filter((s) => s.createdAt === t);
-    const sumBy = (pt: string) =>
-      today
-        .filter((s) => s.paymentType === pt)
-        .reduce((sum, s) => sum + s.totalAmount, 0);
-    return {
-      cashSales: sumBy("Nağd"),
-      cardSales: sumBy("Kart"),
-      creditSales: sumBy("Nisyə"),
-    };
-  }, [sales, t]);
-
-  const todayExpenses = useMemo(
-    () =>
-      expenses
-        .filter((e) => e.date === t)
-        .reduce((sum, e) => sum + e.amount, 0),
-    [expenses, t],
-  );
+  const cashSales = summary?.cashSales ?? 0;
+  const cardSales = summary?.cardSales ?? 0;
+  const creditSales = summary?.creditSales ?? 0;
+  const todayExpenses = summary?.expenses ?? 0;
 
   // Açılış kassası defolt: ən son (dünənki) bağlanışın faktiki məbləği, yoxdursa 0
   const defaultOpening = useMemo(() => {
@@ -96,16 +81,10 @@ export function DayEndCard() {
 
   const doClose = async () => {
     try {
+      // Server yalnız openingCash/actualCash/note qəbul edir; cəmləri özü hesablayır.
       await closeDay.mutateAsync({
-        date: t,
         openingCash: oc,
-        cashSales,
-        cardSales,
-        creditSales,
-        expenses: todayExpenses,
-        expectedCash: expected,
         actualCash: ac ?? expected,
-        difference: diff ?? 0,
       });
       toast.success("Gün sonu bağlandı");
     } catch (e) {
@@ -198,6 +177,13 @@ export function DayEndCard() {
         />
       </Card>
 
+      {!canClose ? (
+        <Card title="Faktiki sayım">
+          <div className="flex items-center gap-2 rounded-xl bg-stone-50 px-4 py-3 text-sm font-medium text-stone-600 ring-1 ring-stone-200">
+            <Lock size={16} /> Günü yalnız sahibkar bağlaya bilər.
+          </div>
+        </Card>
+      ) : (
       <Card title="Faktiki sayım">
         <Field
           label="Faktiki sayılan pul"
@@ -248,6 +234,7 @@ export function DayEndCard() {
           Günü bağla
         </Button>
       </Card>
+      )}
 
       <ConfirmModal
         open={confirmOpen}

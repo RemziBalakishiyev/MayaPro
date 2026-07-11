@@ -5,6 +5,7 @@ import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { fmtMoney } from "@/lib/format";
 import { useSuppliers } from "@/features/suppliers/queries";
+import { useCan } from "@/features/auth/store";
 import { SuppliersTable } from "@/features/suppliers/components/SuppliersTable";
 import { SupplierDrawer } from "@/features/suppliers/components/SupplierDrawer";
 import { NewSupplierModal } from "@/features/suppliers/components/NewSupplierModal";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/_app/tedarukculer")({
 
 function TedarukculerPage() {
   const { data: suppliers = [], isLoading } = useSuppliers();
+  const canWrite = useCan()("suppliers.write");
 
   const [selected, setSelected] = useState<Supplier | null>(null);
   const [newOpen, setNewOpen] = useState(false);
@@ -39,9 +41,11 @@ function TedarukculerPage() {
         title="Təchizatçılar"
         subtitle={`${suppliers.length} təchizatçı · Mənim qalıq borcum: ${fmtMoney(totalDebt)}`}
         actions={
-          <Button size="sm" icon={<Plus size={14} />} onClick={() => setNewOpen(true)}>
-            Yeni təchizatçı
-          </Button>
+          canWrite && (
+            <Button size="sm" icon={<Plus size={14} />} onClick={() => setNewOpen(true)}>
+              Yeni təchizatçı
+            </Button>
+          )
         }
       />
 

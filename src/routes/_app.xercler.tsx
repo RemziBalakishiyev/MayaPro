@@ -10,6 +10,7 @@ import { useExpenses } from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
 import { useProducts } from "@/features/products/queries";
+import { useCan } from "@/features/auth/store";
 
 const searchSchema = z.object({
   month: z.string().optional(), // "YYYY-MM"
@@ -25,6 +26,7 @@ function XerclerPage() {
   const search = Route.useSearch();
   const { data: expenses = [], isLoading } = useExpenses();
   const { data: products = [] } = useProducts();
+  const canWrite = useCan()("expenses.write");
   const [formOpen, setFormOpen] = useState(false);
 
   const month = search.month ?? todayISO().slice(0, 7);
@@ -51,9 +53,11 @@ function XerclerPage() {
         title="Xərclər"
         subtitle="Xərc qeydləri və mala bağlı maya təsiri"
         actions={
-          <Button size="sm" icon={<Plus size={14} />} onClick={() => setFormOpen(true)}>
-            Yeni xərc
-          </Button>
+          canWrite && (
+            <Button size="sm" icon={<Plus size={14} />} onClick={() => setFormOpen(true)}>
+              Yeni xərc
+            </Button>
+          )
         }
       />
 

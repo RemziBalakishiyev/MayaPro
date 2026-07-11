@@ -346,20 +346,67 @@ export const expenseHandlers = {
   },
 };
 
+/** Gün sonu bağlanışı girişi — cəmlər serverdə/mock qatında hesablanır. */
+export interface CloseDayInput {
+  openingCash: number;
+  actualCash: number;
+  note?: string;
+}
+
 export const closingHandlers = {
   list: () => db.closings.list(),
 
-  /** Günü bağlayır. Eyni tarix üçün ikinci bağlanışa icazə vermir. */
-  async closeDay(input: Omit<Closing, "id">): Promise<Closing> {
+  /** Bugünkü bağlanış (varsa) — real API-də GET /api/closings/today qarşılığı. */
+  async today(): Promise<Closing | null> {
+    const t = todayISO();
+    const all = await db.closings.list();
+    return all.find((c) => c.date === t) ?? null;
+  },
+
+  /**
+   * Günü bağlayır. Gün cəmləri (nağd/kart/nisyə, xərc) mock db-dən hesablanır —
+   * real backend-dəki server-side hesablamanı təqlid edir.
+   * Eyni tarix üçün ikinci bağlanışa icazə vermir.
+   */
+  async closeDay(input: CloseDayInput): Promise<Closing> {
+    const t = todayISO();
     const existing = await db.closings.list();
-    if (existing.some((c) => c.date === input.date)) {
+    if (existing.some((c) => c.date === t)) {
       throw new Error("Bu gün artıq bağlanıb");
     }
-    const closing: Closing = { ...input, id: uid("cls") };
+
+    const sales = (await db.sales.list()).filter(
+      (s) => s.createdAt.slice(0, 10) === t,
+    );
+    const sumPt = (pt: PaymentType) =>
+      sales
+        .filter((s) => s.paymentType === pt)
+        .reduce((a, s) => a + s.totalAmount, 0);
+    const cashSales = sumPt("Nağd");
+    const cardSales = sumPt("Kart");
+    const creditSales = sumPt("Nisyə");
+    const expenses = (await db.expenses.list())
+      .filter((e) => e.date.slice(0, 10) === t)
+      .reduce((a, e) => a + e.amount, 0);
+    const expectedCash = input.openingCash + cashSales - expenses;
+    const difference = input.actualCash - expectedCash;
+
+    const closing: Closing = {
+      id: uid("cls"),
+      date: t,
+      openingCash: input.openingCash,
+      cashSales,
+      cardSales,
+      creditSales,
+      expenses,
+      expectedCash,
+      actualCash: input.actualCash,
+      difference,
+    };
     await db.closings.create(closing);
     await logActivity(
       "Gün sonu bağladı",
-      `${input.date} — fərq: ${fmtMoney(input.difference)}`,
+      `${t} — fərq: ${fmtMoney(difference)}`,
     );
     return closing;
   },
