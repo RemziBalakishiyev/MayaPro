@@ -76,9 +76,35 @@ export function ExpensesTable({ expenses, isLoading, productName }: Props) {
       data={expenses}
       isLoading={isLoading}
       emptyState={{
-        title: "Xərc yoxdur",
-        description: "İlk xərci əlavə edin.",
+        title: "Bu ay xərc yoxdur",
+        description: "«Yeni xərc» düyməsi ilə ilk xərci əlavə edin.",
       }}
+      mobileCard={(e) => (
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold text-stone-900">
+                {e.title}
+              </p>
+              <p className="text-sm text-stone-400">{fmtDate(e.date)}</p>
+            </div>
+            <span className="shrink-0 text-xl font-bold tabular-nums text-red-600">
+              −{fmtMoney(e.amount)}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge>{e.category}</Badge>
+            {e.productId && (
+              <span className="text-sm font-medium text-emerald-700">
+                {productName(e.productId)}
+              </span>
+            )}
+          </div>
+          {e.note && (
+            <p className="mt-2 text-sm text-stone-500">{e.note}</p>
+          )}
+        </div>
+      )}
     />
   );
 }

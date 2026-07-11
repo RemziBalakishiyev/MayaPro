@@ -42,7 +42,7 @@ function TedarukculerPage() {
         subtitle={`${suppliers.length} təchizatçı · Mənim qalıq borcum: ${fmtMoney(totalDebt)}`}
         actions={
           canWrite && (
-            <Button size="sm" icon={<Plus size={14} />} onClick={() => setNewOpen(true)}>
+            <Button size="md" icon={<Plus size={18} />} onClick={() => setNewOpen(true)}>
               Yeni təchizatçı
             </Button>
           )

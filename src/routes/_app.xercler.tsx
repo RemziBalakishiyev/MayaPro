@@ -54,7 +54,7 @@ function XerclerPage() {
         subtitle="Xərc qeydləri və mala bağlı maya təsiri"
         actions={
           canWrite && (
-            <Button size="sm" icon={<Plus size={14} />} onClick={() => setFormOpen(true)}>
+            <Button size="md" icon={<Plus size={18} />} onClick={() => setFormOpen(true)}>
               Yeni xərc
             </Button>
           )

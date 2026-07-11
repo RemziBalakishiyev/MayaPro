@@ -24,7 +24,7 @@ export default {
         "safe-bottom": "env(safe-area-inset-bottom)",
       },
       maxWidth: {
-        content: "1400px",
+        content: "1280px",
       },
     },
   },

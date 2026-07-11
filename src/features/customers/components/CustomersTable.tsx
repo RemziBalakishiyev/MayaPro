@@ -115,7 +115,65 @@ export function CustomersTable({ customers, isLoading, onView, onPay }: Props) {
       columns={columns}
       data={customers}
       isLoading={isLoading}
-      emptyState={{ title: "Müştəri tapılmadı" }}
+      emptyState={{
+        title: "Hələ müştəri yoxdur",
+        description: "Yuxarıdakı «Yeni müştəri» düyməsi ilə əlavə edin.",
+      }}
+      mobileCard={(c) => {
+        const debt = c.remainingDebt;
+        return (
+          <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold text-stone-900">
+                  {c.name}
+                </p>
+                <p className="text-sm text-stone-400">{c.phone || "—"}</p>
+              </div>
+              <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
+                {debt > 0 ? "Borclu" : "Ödənilib"}
+              </Badge>
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-sm font-medium text-stone-500">
+                Qalıq borc
+              </span>
+              <span
+                className={`text-xl font-bold tabular-nums ${
+                  debt > 0 ? "text-red-600" : "text-emerald-700"
+                }`}
+              >
+                {fmtMoney(debt)}
+              </span>
+            </div>
+            <div className="mt-3 flex gap-2 border-t border-stone-100 pt-3">
+              <button
+                onClick={() => onView(c)}
+                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
+              >
+                <Eye size={18} /> Detal
+              </button>
+              <button
+                onClick={() => onPay(c)}
+                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-base font-semibold text-emerald-700 active:bg-emerald-100"
+              >
+                <HandCoins size={18} /> Ödəniş
+              </button>
+              {debt > 0 && (
+                <a
+                  href={waLink(c.phone, debt, waTemplate)}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp xatırlatma"
+                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-green-50 text-green-600 active:bg-green-100"
+                >
+                  <MessageCircle size={18} />
+                </a>
+              )}
+            </div>
+          </div>
+        );
+      }}
     />
   );
 }

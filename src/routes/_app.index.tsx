@@ -163,7 +163,11 @@ function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Son satışlar">
           {d.recentSales.length === 0 ? (
-            <EmptyState icon={ShoppingCart} title="Satış yoxdur" />
+            <EmptyState
+              icon={ShoppingCart}
+              title="Hələ satış yoxdur"
+              hint="Satış edildikcə sonuncular burada görünəcək."
+            />
           ) : (
             <div className="divide-y divide-stone-100">
               {d.recentSales.map((s) => (
@@ -188,7 +192,11 @@ function DashboardPage() {
 
         <Card title="Son ödənişlər (nisyə)">
           {d.recentPayments.length === 0 ? (
-            <EmptyState icon={HandCoins} title="Ödəniş yoxdur" />
+            <EmptyState
+              icon={HandCoins}
+              title="Hələ ödəniş yoxdur"
+              hint="Müştərilər borc ödədikcə burada görünəcək."
+            />
           ) : (
             <div className="divide-y divide-stone-100">
               {d.recentPayments.map((p) => (

@@ -65,7 +65,7 @@ function BorclarPage() {
         title="Nisyə Borclar"
         subtitle={`${customers.length} müştəri · Ümumi qalıq borc: ${fmtMoney(totalDebt)}`}
         actions={
-          <Button size="sm" icon={<Plus size={14} />} onClick={() => setNewOpen(true)}>
+          <Button size="md" icon={<Plus size={18} />} onClick={() => setNewOpen(true)}>
             Yeni müştəri
           </Button>
         }

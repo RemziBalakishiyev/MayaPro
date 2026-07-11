@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
-import { fmtDate, todayISO } from "@/lib/format";
 import { DayEndCard } from "@/features/day-end/components/DayEndCard";
 import { ClosingHistory } from "@/features/day-end/components/ClosingHistory";
 
@@ -14,7 +13,7 @@ function GunSonuPage() {
     <div className="space-y-5">
       <PageHead
         title="Gün Sonu Bağlanış"
-        subtitle={`${fmtDate(todayISO())} — kassanı sayın və günü bağlayın`}
+        subtitle="Günün sonunda kassadakı nağd pulu sayıb bura yazın — sistem özü yoxlayacaq"
       />
 
       <DayEndCard />

@@ -2,12 +2,22 @@ import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Package, Plus, Minus, Pencil } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
+import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { profitPercent } from "../lib";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import type { Product } from "@/types";
 
 export type StockMode = "add" | "sub";
+
+/** Anbar yerini yığcam formata salır: "Anbar A / Rəf 3 / Qutu 12" → "A / R3 / Q12". */
+const shortLocation = (p: Product): string => {
+  const wh = (p.warehouse || "").split(" ").filter(Boolean).pop() || "";
+  const parts = [wh, p.shelf && `R${p.shelf}`, p.box && `Q${p.box}`].filter(
+    Boolean,
+  );
+  return parts.length ? parts.join(" / ") : p.location || "—";
+};
 
 interface Props {
   products: Product[];
@@ -45,15 +55,24 @@ export function ProductsTable({
                   <Package size={16} />
                 )}
               </div>
-              <div>
-                <p className="font-semibold text-stone-900">{p.name}</p>
-                <p className="text-[11px] text-stone-400">{p.model}</p>
+              <div className="min-w-0 max-w-[150px]">
+                <p
+                  className="truncate font-semibold text-stone-900"
+                  title={p.name}
+                >
+                  {p.name}
+                </p>
+                <p className="truncate text-[11px] text-stone-400">{p.model}</p>
               </div>
             </div>
           );
         },
       },
-      { accessorKey: "category", header: "Kateqoriya" },
+      {
+        accessorKey: "category",
+        header: "Kateqoriya",
+        meta: { className: "hidden 2xl:table-cell" },
+      },
       {
         accessorKey: "purchasePrice",
         header: "Alış",
@@ -134,8 +153,12 @@ export function ProductsTable({
       {
         accessorKey: "location",
         header: "Anbar yeri",
-        cell: ({ getValue }) => (
-          <span className="text-xs">{getValue() as string}</span>
+        enableSorting: false,
+        meta: { className: "hidden 2xl:table-cell" },
+        cell: ({ row }) => (
+          <span className="text-xs" title={row.original.location}>
+            {shortLocation(row.original)}
+          </span>
         ),
       },
       {
@@ -191,6 +214,81 @@ export function ProductsTable({
       emptyState={{
         title: "Mal tapılmadı",
         description: "Filterləri dəyişin və ya yeni mal əlavə edin.",
+      }}
+      mobileCard={(p) => {
+        const loss = p.salePrice < p.realCostPerUnit;
+        return (
+          <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold text-stone-900">
+                  {p.name}
+                </p>
+                {p.model && (
+                  <p className="truncate text-sm text-stone-400">{p.model}</p>
+                )}
+              </div>
+              <ProductStatusBadge product={p} />
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-stone-50 py-2">
+                <p className="text-xs font-medium text-stone-400">Stok</p>
+                <p
+                  className={cn(
+                    "text-base font-bold tabular-nums",
+                    p.quantity === 0
+                      ? "text-red-600"
+                      : p.quantity <= p.minStock
+                        ? "text-amber-600"
+                        : "text-stone-900",
+                  )}
+                >
+                  {p.quantity}
+                </p>
+              </div>
+              <div className="rounded-xl bg-stone-50 py-2">
+                <p className="text-xs font-medium text-stone-400">Real maya</p>
+                <p className="text-base font-bold tabular-nums text-stone-900">
+                  {fmtMoney(p.realCostPerUnit)}
+                </p>
+              </div>
+              <div className="rounded-xl bg-stone-50 py-2">
+                <p className="text-xs font-medium text-stone-400">Satış</p>
+                <p
+                  className={cn(
+                    "text-base font-bold tabular-nums",
+                    loss ? "text-red-600" : "text-emerald-700",
+                  )}
+                >
+                  {fmtMoney(p.salePrice)}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2 border-t border-stone-100 pt-3">
+              <button
+                onClick={() => onAdjust(p, "add")}
+                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-base font-semibold text-emerald-700 active:bg-emerald-100"
+              >
+                <Plus size={18} /> Stok
+              </button>
+              <button
+                onClick={() => onAdjust(p, "sub")}
+                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-50 text-base font-semibold text-amber-700 active:bg-amber-100"
+              >
+                <Minus size={18} /> Stok
+              </button>
+              {canEdit && (
+                <button
+                  onClick={() => onEdit(p)}
+                  aria-label="Redaktə et"
+                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200"
+                >
+                  <Pencil size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+        );
       }}
     />
   );

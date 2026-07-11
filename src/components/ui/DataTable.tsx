@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -7,11 +8,20 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
+  type RowData,
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Spinner } from "./Spinner";
 import { EmptyState } from "./EmptyState";
+
+// Sütunlara responsiv gizlətmə üçün className vermək imkanı.
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    className?: string;
+  }
+}
 
 export interface DataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
@@ -20,6 +30,11 @@ export interface DataTableProps<TData> {
   emptyState?: { title: string; description?: string };
   /** Səhifədəki sətir sayı (defolt 10) */
   pageSize?: number;
+  /**
+   * Mobil kart görünüşü. Verilərsə, kiçik ekranda (md-dən aşağı) cədvəl əvəzinə
+   * hər sətir bu funksiyanın qaytardığı kart kimi göstərilir; md-dən yuxarı cədvəl.
+   */
+  mobileCard?: (row: TData) => ReactNode;
 }
 
 export function DataTable<TData>({
@@ -28,6 +43,7 @@ export function DataTable<TData>({
   isLoading,
   emptyState,
   pageSize = 10,
+  mobileCard,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -66,7 +82,22 @@ export function DataTable<TData>({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-card">
+      {/* Mobil: kart görünüşü (md-dən aşağı) */}
+      {mobileCard && (
+        <div className="space-y-3 md:hidden">
+          {table.getRowModel().rows.map((row) => (
+            <div key={row.id}>{mobileCard(row.original)}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop/planşet: cədvəl. mobileCard varsa yalnız md-dən yuxarı görünür. */}
+      <div
+        className={cn(
+          "overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-card",
+          mobileCard && "hidden md:block",
+        )}
+      >
         <table className="min-w-full divide-y divide-stone-200">
           <thead className="bg-stone-50">
             {table.getHeaderGroups().map((hg) => (
@@ -77,7 +108,11 @@ export function DataTable<TData>({
                   return (
                     <th
                       key={header.id}
-                      className="whitespace-nowrap px-4 py-3.5 text-left text-sm font-bold text-stone-500"
+                      className={cn(
+                        "whitespace-nowrap px-3 py-3.5 text-left text-sm font-bold text-stone-500",
+                        (header.column.columnDef.meta as { className?: string })
+                          ?.className,
+                      )}
                     >
                       {header.isPlaceholder ? null : (
                         <button
@@ -115,7 +150,11 @@ export function DataTable<TData>({
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className="whitespace-nowrap px-4 py-4 text-base text-stone-700"
+                    className={cn(
+                      "whitespace-nowrap px-3 py-4 text-base text-stone-700",
+                      (cell.column.columnDef.meta as { className?: string })
+                        ?.className,
+                    )}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

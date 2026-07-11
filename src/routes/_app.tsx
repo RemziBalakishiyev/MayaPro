@@ -175,40 +175,42 @@ function AppLayout() {
 
       {/* Main column */}
       <div className="flex min-h-full flex-col lg:pl-64">
-        {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-stone-200 bg-white px-4 lg:px-8">
-          <button
-            onClick={() => setMenuOpen(true)}
-            aria-label="Menyu"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-stone-600 hover:bg-stone-100 lg:hidden"
-          >
-            <Menu size={24} />
-          </button>
+        {/* Topbar — daxili content konteyneri ilə eyni max-width və düzləmə */}
+        <header className="sticky top-0 z-30 border-b border-stone-200 bg-white">
+          <div className="mx-auto flex h-16 max-w-content items-center gap-3 px-4 lg:px-8">
+            <button
+              onClick={() => setMenuOpen(true)}
+              aria-label="Menyu"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-stone-600 hover:bg-stone-100 lg:hidden"
+            >
+              <Menu size={24} />
+            </button>
 
-          <h2 className="shrink-0 text-lg font-bold text-stone-800 lg:hidden">
-            {storeName}
-          </h2>
+            <h2 className="shrink-0 text-lg font-bold text-stone-800 lg:hidden">
+              {storeName}
+            </h2>
 
-          <div className="relative hidden max-w-md flex-1 sm:block">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitSearch()}
-              placeholder="Mal axtar... (Enter)"
-              className="h-11 w-full rounded-xl border border-stone-300 bg-stone-50 pl-11 pr-4 text-base outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/20"
-            />
-          </div>
+            <div className="relative hidden max-w-md flex-1 sm:block">
+              <Search
+                size={18}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
+              />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitSearch()}
+                placeholder="Mal axtar... (Enter)"
+                className="h-11 w-full rounded-xl border border-stone-300 bg-stone-50 pl-11 pr-4 text-base outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/20"
+              />
+            </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-3">
-            {user && (
-              <span className="flex h-10 items-center rounded-full bg-emerald-50 px-4 text-base font-semibold text-emerald-700">
-                {user.name}
-              </span>
-            )}
+            <div className="ml-auto flex shrink-0 items-center gap-3">
+              {user && (
+                <span className="flex h-10 items-center rounded-full bg-emerald-50 px-4 text-base font-semibold text-emerald-700">
+                  {user.name}
+                </span>
+              )}
+            </div>
           </div>
         </header>
 

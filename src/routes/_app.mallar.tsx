@@ -125,7 +125,7 @@ function MallarPage() {
               Barkod/QR çap
             </Button>
             {canWrite && (
-              <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>
+              <Button size="md" icon={<Plus size={18} />} onClick={openNew}>
                 Yeni mal
               </Button>
             )}
