@@ -1,6 +1,14 @@
 import type { ExpenseBreakdown, Product, ProductStatus } from "@/types";
 import { daysBetween } from "@/lib/format";
 
+/** Xüsusiyyət dəyərlərini axtarış üçün bir sətirdə birləşdirir. */
+export const attrText = (p: Product): string =>
+  (p.attributes ?? []).map((a) => a.value).join(" ");
+
+/** Cədvəl/kart alt-sətri üçün ilk xüsusiyyət dəyəri (yoxdursa boş). */
+export const firstAttrValue = (p: Product): string =>
+  (p.attributes ?? [])[0]?.value ?? "";
+
 /** Partiya xərclərinin cəmi. */
 export const totalExpenses = (e: ExpenseBreakdown): number =>
   (Number(e.yol) || 0) +

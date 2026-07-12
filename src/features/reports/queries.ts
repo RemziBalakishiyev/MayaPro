@@ -49,6 +49,8 @@ export interface DashboardStats {
   expByCat: NamedValue[];
   empName: (id: string) => string;
   cusName: (id: string) => string;
+  /** Son satış üçün müştəri adı (nisyədə dolu, nağd/kartda null). */
+  recentSaleCustomer: (saleId: string) => string | null;
 }
 
 /** MOCK: xam kolleksiyalardan client-side hesablama. */
@@ -88,6 +90,17 @@ export const computeDashboardStats = (data: DashboardData): DashboardStats => {
   const empMap = new Map(employees.map((e) => [e.id, e.name]));
   const cusMap = new Map(customers.map((c) => [c.id, c.name]));
 
+  const recentSalesList = [...sales].reverse().slice(0, 5);
+  // Son satışlarda müştəri adı: yalnız nisyə satışlarda (customerId dolu).
+  const recentSaleCusMap = new Map(
+    recentSalesList.map((s) => [
+      s.id,
+      s.paymentType === "Nisyə" && s.customerId
+        ? (cusMap.get(s.customerId) ?? null)
+        : null,
+    ]),
+  );
+
   return {
     todayTotal,
     todayProfit,
@@ -104,7 +117,7 @@ export const computeDashboardStats = (data: DashboardData): DashboardStats => {
     topProducts: topProductsByQty(sales, products),
     lowStock,
     frozen: frozenProducts(products, sales),
-    recentSales: [...sales].reverse().slice(0, 5),
+    recentSales: recentSalesList,
     recentPayments: [...payments]
       .sort((a, b) => (a.date < b.date ? 1 : -1))
       .slice(0, 5),
@@ -113,6 +126,7 @@ export const computeDashboardStats = (data: DashboardData): DashboardStats => {
     expByCat: expenseByCategory(expenses),
     empName: (id) => empMap.get(id) ?? "—",
     cusName: (id) => cusMap.get(id) ?? "—",
+    recentSaleCustomer: (id) => recentSaleCusMap.get(id) ?? null,
   };
 };
 
@@ -190,6 +204,10 @@ export const assembleDashboardStats = (
       }) as CustomerPayment,
   );
   const cusMap = new Map(d.recentPayments.map((rp) => [rp.id, rp.customerName]));
+  // Son satış → müştəri adı (serverdən; nağd/kartda null).
+  const recentSaleCusMap = new Map(
+    d.recentSales.map((rs) => [rs.id, rs.customerName ?? null]),
+  );
 
   return {
     todayTotal: d.todaySales,
@@ -221,6 +239,7 @@ export const assembleDashboardStats = (
     expByCat: [], // dashboard səhifəsi istifadə etmir (ExpensePie Hesabatlardadır)
     empName: () => "—", // recentSales-də satıcı adı yoxdur
     cusName: (id) => cusMap.get(id) ?? "—",
+    recentSaleCustomer: (id) => recentSaleCusMap.get(id) ?? null,
   };
 };
 

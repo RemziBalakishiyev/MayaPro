@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
+import { attrText, firstAttrValue } from "@/features/products/lib";
 import { useCustomers } from "@/features/customers/queries";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { netTotal, saleProfit, isLossSale } from "../lib";
@@ -194,7 +195,7 @@ export function QuickSaleScreen() {
     const query = search.trim().toLowerCase();
     if (query) {
       return products.filter((p) =>
-        `${p.name} ${p.barcode} ${p.model} ${p.category} ${p.color}`
+        `${p.name} ${p.barcode} ${p.category} ${attrText(p)}`
           .toLowerCase()
           .includes(query),
       );
@@ -304,9 +305,16 @@ export function QuickSaleScreen() {
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="line-clamp-2 min-h-[2.5rem] text-base font-bold text-stone-900">
-                          {p.name}
-                        </p>
+                        <div className="min-w-0">
+                          <p className="line-clamp-2 text-base font-bold text-stone-900">
+                            {p.name}
+                          </p>
+                          {firstAttrValue(p) && (
+                            <p className="truncate text-xs text-stone-400">
+                              {firstAttrValue(p)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-end justify-between gap-2">
                         <span className="text-xl font-bold tabular-nums text-emerald-700">

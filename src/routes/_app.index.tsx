@@ -170,14 +170,17 @@ function DashboardPage() {
             />
           ) : (
             <div className="divide-y divide-stone-100">
-              {d.recentSales.map((s) => (
+              {d.recentSales.map((s) => {
+                const cus = d.recentSaleCustomer(s.id);
+                return (
                 <div key={s.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-stone-800">
                       {s.productName} × {s.quantity}
                     </p>
-                    <p className="text-[11px] text-stone-400">
-                      {fmtDate(s.createdAt)} · {d.empName(s.employeeId)}
+                    <p className="truncate text-[11px] text-stone-400">
+                      {fmtDate(s.createdAt)}
+                      {cus ? ` · ${cus}` : ""}
                     </p>
                   </div>
                   <Badge tone={s.paymentType}>{s.paymentType}</Badge>
@@ -185,7 +188,8 @@ function DashboardPage() {
                     {fmtMoney(s.totalAmount)}
                   </span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>

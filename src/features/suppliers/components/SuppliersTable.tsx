@@ -39,6 +39,15 @@ export function SuppliersTable({
         ),
       },
       {
+        accessorKey: "itemCount",
+        header: "Mal sayı",
+        cell: ({ getValue }) => (
+          <span className="tabular-nums font-semibold text-stone-700">
+            {(getValue() as number) ?? 0}
+          </span>
+        ),
+      },
+      {
         accessorKey: "remainingDebt",
         header: "Mənim borcum",
         cell: ({ getValue }) => {
@@ -114,7 +123,9 @@ export function SuppliersTable({
                 <p className="truncate text-lg font-bold text-stone-900">
                   {s.name}
                 </p>
-                <p className="text-sm text-stone-400">{s.phone || "—"}</p>
+                <p className="text-sm text-stone-400">
+                  {s.phone || "—"} · {s.itemCount} mal
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-xs font-medium text-stone-400">Mənim borcum</p>

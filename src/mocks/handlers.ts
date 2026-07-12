@@ -14,6 +14,7 @@ import type {
   Expense,
   ExpenseCategory,
   Closing,
+  Category,
 } from "@/types";
 
 /** Yeni mal üçün giriş — hesablanan/avtomatik sahələr xaric. */
@@ -91,6 +92,23 @@ export const productHandlers = {
       `${current.name} ${delta > 0 ? "+" : ""}${delta}${suffix}`,
     );
     return updated;
+  },
+};
+
+export const categoryHandlers = {
+  list: () => db.categories.list(),
+
+  /** Yeni kateqoriya yaradır; ad təkrarlanırsa (registrsiz) xəta atır. */
+  async create(name: string): Promise<Category> {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Kateqoriya adı boş ola bilməz");
+    const existing = await db.categories.list();
+    if (existing.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      throw new Error("Bu kateqoriya artıq mövcuddur");
+    }
+    const category: Category = { id: uid("cat"), name: trimmed };
+    await db.categories.create(category);
+    return category;
   },
 };
 
@@ -222,7 +240,18 @@ export interface NewSupplier {
 }
 
 export const supplierHandlers = {
-  list: () => db.suppliers.list(),
+  /** Təchizatçılar + hər biri üçün bağlı məhsul sayı (itemCount) real hesablanır. */
+  async list(): Promise<Supplier[]> {
+    const [suppliers, products] = await Promise.all([
+      db.suppliers.list(),
+      db.products.list(),
+    ]);
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      counts.set(p.supplierId, (counts.get(p.supplierId) ?? 0) + 1);
+    }
+    return suppliers.map((s) => ({ ...s, itemCount: counts.get(s.id) ?? 0 }));
+  },
 
   listPayments: async (supplierId: string): Promise<SupplierPayment[]> => {
     const all = await db.supplierPayments.list();

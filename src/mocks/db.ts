@@ -15,6 +15,7 @@ import type {
   Activity,
   CustomerPayment,
   SupplierPayment,
+  Category,
 } from "@/types";
 
 const DB_KEY = "sederek-db";
@@ -89,6 +90,7 @@ function collection<T extends Entity>(name: CollectionName) {
 
 export const db = {
   products: collection<Product>("products"),
+  categories: collection<Category>("categories"),
   sales: collection<Sale>("sales"),
   customers: collection<Customer>("customers"),
   suppliers: collection<Supplier>("suppliers"),

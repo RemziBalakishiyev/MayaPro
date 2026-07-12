@@ -12,14 +12,16 @@ import type {
   SupplierPayment,
   Activity,
   Closing,
+  Category,
   PaymentType,
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 2;
+export const SEED_VERSION = 3;
 
 export interface SeedDatabase {
   products: Product[];
+  categories: Category[];
   sales: Sale[];
   customers: Customer[];
   suppliers: Supplier[];
@@ -263,6 +265,13 @@ const parseLocation = (location: string) => {
 
 const buildProducts = (): Product[] =>
   rawProducts.map((p, i) => {
+    // Köhnə düz sahələri dinamik attributes formatına çevir (boş dəyərləri buraxma).
+    const { size, color, model, ...rest } = p;
+    const attributes = [
+      { name: "Ölçü", value: size },
+      { name: "Rəng", value: color },
+      { name: "Model", value: model },
+    ].filter((a) => a.value);
     const realCostPerUnit = calcRealCost(
       p.purchasePrice,
       p.initialQuantity,
@@ -270,7 +279,8 @@ const buildProducts = (): Product[] =>
     );
     const loc = parseLocation(p.location);
     return {
-      ...p,
+      ...rest,
+      attributes,
       id: `prd_${i + 1}`,
       barcode: `SDK${String(1000 + i + 1)}`,
       currency: "AZN",
@@ -281,6 +291,12 @@ const buildProducts = (): Product[] =>
       ...loc,
     };
   });
+
+/** Kateqoriyalar seed-i — mal siyahısındakı distinct kateqoriyalardan. */
+const buildCategories = (): Category[] => {
+  const names = [...new Set(rawProducts.map((p) => p.category))].filter(Boolean);
+  return names.map((name, i) => ({ id: `cat_${i + 1}`, name }));
+};
 
 const buildCustomers = (): Customer[] =>
   [
@@ -594,6 +610,7 @@ export const buildSeed = (): SeedDatabase => {
   const sales = buildSales(products, customers, employees);
   return {
     products,
+    categories: buildCategories(),
     sales,
     customers,
     suppliers,

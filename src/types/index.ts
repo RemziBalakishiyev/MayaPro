@@ -29,14 +29,25 @@ export interface ExpenseBreakdown {
   diger: number;
 }
 
+/** Məhsul kateqoriyası. */
+export interface Category {
+  id: string;
+  name: string;
+}
+
+/** Malın dinamik xüsusiyyəti (ad + dəyər), məs. { name: "Ölçü", value: "M" }. */
+export interface ProductAttribute {
+  name: string;
+  value: string;
+}
+
 /** Anbardakı mal. */
 export interface Product {
   id: string;
   name: string;
   category: string;
-  size: string;
-  color: string;
-  model: string;
+  /** Dinamik xüsusiyyətlər (köhnə size/color/model əvəzinə). */
+  attributes: ProductAttribute[];
   barcode: string;
   image: string;
   note: string;

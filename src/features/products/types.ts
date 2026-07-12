@@ -12,13 +12,20 @@ export const expensesSchema = z.object({
 });
 
 /** Mal formu üçün Zod sxemi (bir mənbə, tip z.infer ilə çıxarılır). */
+/** Dinamik xüsusiyyət sətri (ad + dəyər). */
+export const attributeSchema = z.object({
+  name: z.string().default(""),
+  value: z.string().default(""),
+});
+
 export const productSchema = z.object({
   name: z.string().min(1, "Mal adı mütləqdir"),
   image: z.string().default(""),
   category: z.string().default(""),
-  model: z.string().default(""),
-  size: z.string().default(""),
-  color: z.string().default(""),
+  attributes: z
+    .array(attributeSchema)
+    .max(15, "Maksimum 15 xüsusiyyət")
+    .default([]),
   barcode: z.string().default(""),
   purchasePrice: z.coerce.number().gt(0, "Alış qiyməti mütləqdir"),
   salePrice: z.coerce.number().gt(0, "Satış qiyməti mütləqdir"),

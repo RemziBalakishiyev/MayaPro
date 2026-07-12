@@ -78,6 +78,8 @@ export interface DashboardDto {
     quantity: number;
     totalAmount: number;
     paymentType: string;
+    /** Nisyə satışda müştəri adı; nağd/kartda null. */
+    customerName?: string | null;
   }[];
   recentPayments: {
     id: string;

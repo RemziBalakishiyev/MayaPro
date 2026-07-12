@@ -4,7 +4,7 @@ import { Package, Plus, Minus, Pencil } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
-import { profitPercent } from "../lib";
+import { profitPercent, firstAttrValue } from "../lib";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import type { Product } from "@/types";
 
@@ -62,7 +62,9 @@ export function ProductsTable({
                 >
                   {p.name}
                 </p>
-                <p className="truncate text-[11px] text-stone-400">{p.model}</p>
+                <p className="truncate text-[11px] text-stone-400">
+                  {firstAttrValue(p)}
+                </p>
               </div>
             </div>
           );
@@ -224,8 +226,10 @@ export function ProductsTable({
                 <p className="truncate text-lg font-bold text-stone-900">
                   {p.name}
                 </p>
-                {p.model && (
-                  <p className="truncate text-sm text-stone-400">{p.model}</p>
+                {firstAttrValue(p) && (
+                  <p className="truncate text-sm text-stone-400">
+                    {firstAttrValue(p)}
+                  </p>
                 )}
               </div>
               <ProductStatusBadge product={p} />

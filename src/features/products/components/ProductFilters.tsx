@@ -42,7 +42,7 @@ export function ProductFilters({
         <input
           value={value.q ?? ""}
           onChange={(e) => onChange({ q: e.target.value || undefined })}
-          placeholder="Ad, model, rəng üzrə axtar..."
+          placeholder="Ad, kateqoriya, xüsusiyyət üzrə axtar..."
           className={`${inputCls} pl-8`}
         />
       </div>

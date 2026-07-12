@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
 import { fmtMoney } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
+import { useCategories } from "@/features/categories/queries";
 import { useCan } from "@/features/auth/store";
-import { productStatus } from "@/features/products/lib";
+import { productStatus, attrText } from "@/features/products/lib";
 import {
   ProductFilters,
   type ProductFilterValues,
@@ -40,6 +41,7 @@ function MallarPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const { data: products = [], isLoading } = useProducts();
+  const { data: categoryList = [] } = useCategories();
   const canWrite = useCan()("products.write");
 
   const [formOpen, setFormOpen] = useState(false);
@@ -49,9 +51,17 @@ function MallarPage() {
     mode: StockMode;
   } | null>(null);
 
+  // Kateqoriyalar backend siyahısından; malda olan, lakin siyahıda olmayan
+  // köhnə kateqoriyalar da filtrdə görünsün deyə birləşdirilir.
   const categories = useMemo(
-    () => [...new Set(products.map((p) => p.category))].filter(Boolean),
-    [products],
+    () =>
+      [
+        ...new Set([
+          ...categoryList.map((c) => c.name),
+          ...products.map((p) => p.category),
+        ]),
+      ].filter(Boolean),
+    [categoryList, products],
   );
   const locations = useMemo(
     () =>
@@ -66,9 +76,7 @@ function MallarPage() {
     return products.filter((p) => {
       if (
         q &&
-        !`${p.name} ${p.category} ${p.model} ${p.color}`
-          .toLowerCase()
-          .includes(q)
+        !`${p.name} ${p.category} ${attrText(p)}`.toLowerCase().includes(q)
       )
         return false;
       if (search.cat && p.category !== search.cat) return false;
