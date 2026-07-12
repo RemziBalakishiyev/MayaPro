@@ -1,8 +1,7 @@
 import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { ImagePlus, Trash2, RefreshCw } from "lucide-react";
-import { Button } from "./Button";
-import { Input, inputCls } from "./Input";
+import { Input } from "./Input";
 import { useToast } from "./toast-store";
 import { CLOUDINARY_ENABLED, uploadImage } from "@/lib/cloudinary";
 
@@ -55,7 +54,7 @@ export function ImageUpload({ value, onChange, disabled }: Props) {
   };
 
   return (
-    <div className="space-y-2">
+    <div>
       <input
         ref={fileRef}
         type="file"
@@ -65,50 +64,57 @@ export function ImageUpload({ value, onChange, disabled }: Props) {
       />
 
       {value ? (
-        <div className="flex items-center gap-3">
-          <img
-            src={value}
-            alt="Mal şəkli"
-            className="h-24 w-24 shrink-0 rounded-xl border border-stone-200 object-cover"
-          />
-          <div className="flex flex-col gap-2">
-            <Button
+        // Böyük kvadrat preview + üstündə Dəyiş/Sil zolağı.
+        <div className="relative h-32 w-32 overflow-hidden rounded-2xl border border-stone-200">
+          <img src={value} alt="Mal şəkli" className="h-full w-full object-cover" />
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-stone-200 border-t-emerald-600" />
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 flex divide-x divide-white/20 bg-stone-900/60 text-white">
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
-              icon={<RefreshCw size={14} />}
               onClick={pick}
               disabled={disabled || uploading}
+              className="flex flex-1 items-center justify-center gap-1 py-1.5 text-xs font-semibold hover:bg-stone-900/80 disabled:opacity-50"
             >
-              {uploading ? "Yüklənir..." : "Dəyiş"}
-            </Button>
-            <Button
+              <RefreshCw size={12} /> Dəyiş
+            </button>
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              icon={<Trash2 size={14} />}
               onClick={() => onChange("")}
               disabled={disabled || uploading}
+              className="flex flex-1 items-center justify-center gap-1 py-1.5 text-xs font-semibold hover:bg-red-600 disabled:opacity-50"
             >
-              Sil
-            </Button>
+              <Trash2 size={12} /> Sil
+            </button>
           </div>
         </div>
       ) : (
+        // Cəlbedici drop-zone.
         <button
           type="button"
           onClick={pick}
           disabled={disabled || uploading}
-          className={`${inputCls} flex h-24 items-center justify-center gap-2 border-dashed bg-stone-50 text-stone-500 hover:border-emerald-400 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60`}
+          className="flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 py-7 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50/40 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {uploading ? (
             <>
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-stone-200 border-t-emerald-600" />
-              Yüklənir...
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-stone-200 border-t-emerald-600" />
+              <span className="text-sm font-semibold text-stone-600">
+                Yüklənir...
+              </span>
             </>
           ) : (
             <>
-              <ImagePlus size={18} /> Şəkil seç
+              <ImagePlus size={26} className="text-stone-400" />
+              <span className="text-sm font-semibold text-stone-700">
+                Şəkil əlavə et
+              </span>
+              <span className="text-xs text-stone-400">
+                Kameradan və ya qalereyadan
+              </span>
             </>
           )}
         </button>

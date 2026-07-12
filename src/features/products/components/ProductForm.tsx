@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Check, ChevronDown, Plus, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  ClipboardList,
+  Coins,
+  MapPin,
+  Package,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -31,6 +43,7 @@ interface Props {
 /** Xüsusiyyət adı üçün təklif siyahısı. */
 const ATTR_SUGGESTIONS = ["Ölçü", "Rəng", "Model", "Material", "Marka"];
 const MAX_ATTRS = 15;
+const NEW_CATEGORY = "__new__";
 
 const emptyValues: ProductFormValues = {
   name: "",
@@ -75,36 +88,42 @@ const toFormValues = (p: Product | null): ProductFormValues => {
   };
 };
 
-function CalcRow({
-  label,
-  value,
-  bold,
-  tone,
+/** Bölmə kartı: yumşaq fon + başlıq + ikon + bir cümlə izah. */
+function Section({
+  icon: Icon,
+  title,
+  desc,
+  tone = "muted",
+  children,
 }: {
-  label: string;
-  value: string;
-  bold?: boolean;
-  tone?: string;
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  tone?: "muted" | "plain";
+  children: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-1">
-      <span
-        className={`text-xs ${bold ? "font-bold text-stone-800" : "text-stone-500"}`}
-      >
-        {label}
-      </span>
-      <span
-        className={`text-sm tabular-nums ${bold ? "font-bold" : "font-semibold"} ${
-          tone ?? "text-stone-800"
-        }`}
-      >
-        {value}
-      </span>
-    </div>
+    <section
+      className={cn(
+        "rounded-2xl border border-stone-200 p-4",
+        tone === "muted" ? "bg-stone-50" : "bg-white",
+      )}
+    >
+      <div className="mb-3 flex items-start gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+          <Icon size={16} />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-stone-900">{title}</h3>
+          <p className="text-xs text-stone-500">{desc}</p>
+        </div>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
   );
 }
 
-/** Kateqoriya seçimi + inline "yeni kateqoriya" yaratma. */
+/** Kateqoriya seçimi + select-in içində son seçim olaraq "yeni yaratma". */
 function CategoryField({
   value,
   onChange,
@@ -177,23 +196,51 @@ function CategoryField({
   const missing = value && !cats.some((c) => c.name === value);
 
   return (
-    <div className="space-y-1.5">
-      <Select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">Seçin...</option>
-        {missing && <option value={value}>{value}</option>}
-        {cats.map((c) => (
-          <option key={c.id} value={c.name}>
-            {c.name}
-          </option>
-        ))}
-      </Select>
-      <button
-        type="button"
-        onClick={() => setAdding(true)}
-        className="text-xs font-semibold text-emerald-700 hover:underline"
-      >
-        + Yeni kateqoriya
-      </button>
+    <Select
+      value={value}
+      onChange={(e) => {
+        if (e.target.value === NEW_CATEGORY) setAdding(true);
+        else onChange(e.target.value);
+      }}
+    >
+      <option value="">Seçin...</option>
+      {missing && <option value={value}>{value}</option>}
+      {cats.map((c) => (
+        <option key={c.id} value={c.name}>
+          {c.name}
+        </option>
+      ))}
+      <option value={NEW_CATEGORY}>+ Yeni kateqoriya</option>
+    </Select>
+  );
+}
+
+/** Qiymət/say sahəsi: label + input + kiçik izah + (opsional) əlavə sətir. */
+function PriceField({
+  label,
+  hint,
+  error,
+  extra,
+  children,
+}: {
+  label: string;
+  hint: string;
+  error?: string;
+  extra?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-stone-700">
+        {label} <span className="text-red-500">*</span>
+      </label>
+      {children}
+      {error ? (
+        <p className="mt-1 text-xs font-medium text-red-600">{error}</p>
+      ) : (
+        <p className="mt-1 text-xs text-stone-500">{hint}</p>
+      )}
+      {extra}
     </div>
   );
 }
@@ -240,13 +287,10 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const qty = Number(w.quantity) || 0;
   const pp = Number(w.purchasePrice) || 0;
   const sp = Number(w.salePrice) || 0;
-  const totalPurchase = pp * qty;
   const totalExp = totalExpenses(w.expenses);
-  const totalCost = totalPurchase + totalExp;
   const realCost = calcRealCost(pp, qty, w.expenses);
   const perUnit = profitPerUnit(sp, realCost);
   const percent = profitPercent(sp, realCost);
-  const totalExpectedProfit = perUnit * qty;
   const loss = sp > 0 && realCost > 0 && sp < realCost;
 
   const buildLocation = (v: ProductFormValues) =>
@@ -280,16 +324,71 @@ export function ProductForm({ open, onClose, initial }: Props) {
 
   const saving = createMut.isPending || updateMut.isPending;
 
+  // Alt-da sabit canlı nəticə paneli + düymələr.
+  const footer = (
+    <>
+      <div
+        className={cn(
+          "grid grid-cols-3 gap-2 px-5 py-3 text-white",
+          loss ? "bg-red-950" : "bg-emerald-950",
+        )}
+      >
+        <ResultCell label="Real maya" value={fmtMoney(realCost)} tone="neutral" />
+        <ResultCell
+          label="Qazanc"
+          value={fmtMoney(perUnit)}
+          tone={loss ? "loss" : "ok"}
+        />
+        <ResultCell
+          label="Qazanc %"
+          value={`${percent.toFixed(0)}%`}
+          tone={loss ? "loss" : "ok"}
+        />
+        {loss && (
+          <p className="col-span-3 flex items-center gap-1.5 pt-1 text-xs font-semibold text-red-300">
+            <AlertTriangle size={13} /> Satış qiyməti real mayadan aşağıdır —
+            ziyana satırsınız!
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-2 border-t border-stone-100 bg-white px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          Ləğv et
+        </Button>
+        <Button
+          type="submit"
+          form="product-form"
+          disabled={saving}
+          icon={<Check size={16} />}
+          className="h-[52px] flex-1 text-base"
+        >
+          {initial?.id ? "Yadda saxla" : "Malı əlavə et"}
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <Drawer
       open={open}
       onClose={onClose}
+      wide
+      footer={footer}
       title={initial?.id ? "Malı redaktə et" : "Yeni mal əlavə et"}
     >
-      <form onSubmit={handleSubmit(onValid)} className="space-y-5">
-        <div className="space-y-3">
+      <form id="product-form" onSubmit={handleSubmit(onValid)} className="space-y-4">
+        {/* ① Mal haqqında */}
+        <Section
+          icon={Package}
+          title="Mal haqqında"
+          desc="Malın adı, şəkli və əsas məlumatları"
+        >
           <Field label="Mal adı" required error={errors.name?.message}>
-            <Input {...register("name")} placeholder="Məs: Kişi cins şalvar" />
+            <Input
+              {...register("name")}
+              placeholder="Məs: Kişi cins şalvar"
+              className="h-14 text-lg"
+            />
           </Field>
           <Field label="Şəkil">
             <ImageUpload
@@ -305,22 +404,20 @@ export function ProductForm({ open, onClose, initial }: Props) {
             />
           </Field>
 
-          {/* Dinamik xüsusiyyətlər */}
-          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-stone-500">
-                Xüsusiyyətlər
-              </h4>
-              <span className="text-[11px] text-stone-400">
-                {fields.length}/{MAX_ATTRS}
-              </span>
-            </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-stone-700">
+              Xüsusiyyətlər
+            </label>
             <datalist id="attr-names">
               {ATTR_SUGGESTIONS.map((n) => (
                 <option key={n} value={n} />
               ))}
             </datalist>
-            {fields.length > 0 && (
+            {fields.length === 0 ? (
+              <p className="mb-2 text-xs text-stone-400">
+                Ölçü, rəng, marka kimi əlavə məlumatlar — istəyə bağlı
+              </p>
+            ) : (
               <div className="mb-2 space-y-2">
                 {fields.map((f, idx) => (
                   <div key={f.id} className="flex items-center gap-2">
@@ -362,24 +459,43 @@ export function ProductForm({ open, onClose, initial }: Props) {
           <Field label="Barkod">
             <Input {...register("barcode")} placeholder="SDK1001" />
           </Field>
+        </Section>
+
+        {/* ② Qiymət və say */}
+        <Section
+          icon={Coins}
+          title="Qiymət və say"
+          desc="Neçəyə aldın, neçəyə satırsan və neçə ədəd"
+        >
           <div className="grid grid-cols-3 gap-3">
-            <Field
-              label="Alış qiyməti"
-              required
+            <PriceField
+              label="Alış"
+              hint="aldığın qiymət"
               error={errors.purchasePrice?.message}
             >
               <Input type="number" min="0" step="0.01" {...register("purchasePrice")} />
-            </Field>
-            <Field
-              label="Satış qiyməti"
-              required
+            </PriceField>
+            <PriceField
+              label="Satış"
+              hint="satacağın qiymət"
               error={errors.salePrice?.message}
+              extra={
+                perUnit > 0 && !errors.salePrice ? (
+                  <p className="mt-0.5 text-xs font-semibold text-emerald-700">
+                    +{fmtMoney(perUnit)} qazanc
+                  </p>
+                ) : null
+              }
             >
               <Input type="number" min="0" step="0.01" {...register("salePrice")} />
-            </Field>
-            <Field label="Miqdar" required error={errors.quantity?.message}>
+            </PriceField>
+            <PriceField
+              label="Miqdar"
+              hint="neçə ədəd"
+              error={errors.quantity?.message}
+            >
               <Input type="number" min="0" {...register("quantity")} />
-            </Field>
+            </PriceField>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valyuta">
@@ -389,16 +505,29 @@ export function ProductForm({ open, onClose, initial }: Props) {
                 <option>TRY</option>
               </Select>
             </Field>
-            <Field label="Təchizatçı">
-              <Select {...register("supplierId")}>
-                <option value="">Seçin...</option>
-                {(suppliers.data ?? []).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </Select>
+            <Field label="Minimum stok" hint="bu saydan aşağı düşəndə xəbərdarlıq">
+              <Input type="number" min="0" {...register("minStock")} />
             </Field>
+          </div>
+        </Section>
+
+        {/* ③ Yer */}
+        <Section
+          icon={MapPin}
+          title="Yer"
+          desc="Təchizatçı və anbardakı yeri"
+        >
+          <Field label="Təchizatçı">
+            <Select {...register("supplierId")}>
+              <option value="">Seçin...</option>
+              {(suppliers.data ?? []).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Anbar">
               <Input {...register("warehouse")} />
             </Field>
@@ -412,107 +541,89 @@ export function ProductForm({ open, onClose, initial }: Props) {
               <Input {...register("box")} placeholder="12" />
             </Field>
           </div>
-          <Field label="Minimum stok">
-            <Input type="number" min="0" {...register("minStock")} />
-          </Field>
+        </Section>
+
+        {/* ④ Əlavə */}
+        <Section
+          icon={ClipboardList}
+          title="Əlavə"
+          desc="Qeyd və partiya xərcləri — istəyə bağlı"
+        >
           <Field label="Qeyd">
             <Textarea {...register("note")} />
           </Field>
-        </div>
 
-        {/* Partiya xərcləri — accordion (default bağlı) */}
-        <div className="rounded-xl border border-stone-200 bg-stone-50">
-          <button
-            type="button"
-            onClick={() => setExpensesOpen((o) => !o)}
-            className="flex w-full items-center justify-between p-4 text-left"
-          >
-            <span className="text-xs font-bold uppercase tracking-wide text-stone-500">
-              Partiya xərcləri
-              {totalExp > 0 && (
-                <span className="ml-1 text-emerald-700"> · {fmtMoney(totalExp)}</span>
-              )}
-            </span>
-            <ChevronDown
-              size={18}
-              className={cn(
-                "text-stone-400 transition-transform",
-                expensesOpen && "rotate-180",
-              )}
-            />
-          </button>
-          {expensesOpen && (
-            <div className="grid grid-cols-2 gap-3 px-4 pb-4">
-              <Field label="Yol pulu">
-                <Input type="number" min="0" {...register("expenses.yol")} />
-              </Field>
-              <Field label="Fəhlə pulu">
-                <Input type="number" min="0" {...register("expenses.fehle")} />
-              </Field>
-              <Field label="Yer/anbar xərci">
-                <Input type="number" min="0" {...register("expenses.yer")} />
-              </Field>
-              <Field label="Paket/qutu xərci">
-                <Input type="number" min="0" {...register("expenses.paket")} />
-              </Field>
-              <Field label="Digər xərc">
-                <Input type="number" min="0" {...register("expenses.diger")} />
-              </Field>
-            </div>
-          )}
-        </div>
-
-        <div
-          className={`rounded-xl border p-4 ${
-            loss ? "border-red-300 bg-red-50" : "border-emerald-200 bg-emerald-50"
-          }`}
-        >
-          <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-stone-600">
-            Avtomatik hesablama
-          </h4>
-          <CalcRow label="Toplam alış məbləği" value={fmtMoney(totalPurchase)} />
-          <CalcRow label="Toplam xərc" value={fmtMoney(totalExp)} />
-          <CalcRow label="Toplam maya" value={fmtMoney(totalCost)} bold />
-          <div className="my-1.5 border-t border-stone-200" />
-          <CalcRow
-            label="1 ədədin real mayası"
-            value={fmtMoney(realCost)}
-            bold
-            tone="text-emerald-800"
-          />
-          <CalcRow
-            label="1 ədəd qazanc"
-            value={fmtMoney(perUnit)}
-            tone={perUnit < 0 ? "text-red-600" : "text-emerald-700"}
-          />
-          <CalcRow
-            label="Ümumi gözlənilən qazanc"
-            value={fmtMoney(totalExpectedProfit)}
-            tone={totalExpectedProfit < 0 ? "text-red-600" : "text-emerald-700"}
-          />
-          <CalcRow
-            label="Mənfəət faizi"
-            value={`${percent.toFixed(1)} %`}
-            bold
-            tone={percent < 0 ? "text-red-600" : "text-emerald-700"}
-          />
-          {loss && (
-            <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-2 text-xs font-bold text-red-700">
-              <AlertTriangle size={14} /> Satış qiyməti real mayadan aşağıdır — bu
-              qiymətə ziyana satırsınız!
-            </p>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-stone-100 pt-4">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            İmtina
-          </Button>
-          <Button type="submit" disabled={saving} icon={<Check size={15} />}>
-            {initial?.id ? "Yadda saxla" : "Malı əlavə et"}
-          </Button>
-        </div>
+          <div className="rounded-xl border border-stone-200 bg-white">
+            <button
+              type="button"
+              onClick={() => setExpensesOpen((o) => !o)}
+              className="flex w-full items-center justify-between p-3 text-left"
+            >
+              <span className="text-xs font-bold uppercase tracking-wide text-stone-500">
+                Partiya xərcləri
+                {totalExp > 0 && (
+                  <span className="ml-1 text-emerald-700"> · {fmtMoney(totalExp)}</span>
+                )}
+              </span>
+              <ChevronDown
+                size={18}
+                className={cn(
+                  "text-stone-400 transition-transform",
+                  expensesOpen && "rotate-180",
+                )}
+              />
+            </button>
+            {expensesOpen && (
+              <div className="grid grid-cols-2 gap-3 px-3 pb-3">
+                <Field label="Yol pulu">
+                  <Input type="number" min="0" {...register("expenses.yol")} />
+                </Field>
+                <Field label="Fəhlə pulu">
+                  <Input type="number" min="0" {...register("expenses.fehle")} />
+                </Field>
+                <Field label="Yer/anbar xərci">
+                  <Input type="number" min="0" {...register("expenses.yer")} />
+                </Field>
+                <Field label="Paket/qutu xərci">
+                  <Input type="number" min="0" {...register("expenses.paket")} />
+                </Field>
+                <Field label="Digər xərc">
+                  <Input type="number" min="0" {...register("expenses.diger")} />
+                </Field>
+              </div>
+            )}
+          </div>
+        </Section>
       </form>
     </Drawer>
+  );
+}
+
+/** Canlı nəticə paneli üçün tək rəqəm. */
+function ResultCell({
+  label,
+  value,
+  tone = "ok",
+}: {
+  label: string;
+  value: string;
+  tone?: "ok" | "loss" | "neutral";
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium text-white/60">{label}</p>
+      <p
+        className={cn(
+          "text-lg font-bold tabular-nums",
+          tone === "loss"
+            ? "text-red-300"
+            : tone === "neutral"
+              ? "text-white"
+              : "text-emerald-300",
+        )}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
