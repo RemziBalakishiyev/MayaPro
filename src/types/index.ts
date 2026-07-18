@@ -73,7 +73,8 @@ export interface Product {
 
 export interface Sale {
   id: string;
-  productId: string;
+  /** Katalog malı satışında dolu; sərbəst (manual) satışda null. */
+  productId: string | null;
   productName: string;
   quantity: number;
   salePrice: number;
@@ -84,9 +85,12 @@ export interface Sale {
   totalAmount: number;
   paymentType: PaymentType;
   customerId: string | null;
-  /** Satış anındakı real maya snapshot-u (1 ədəd) */
-  costPerUnit?: number;
-  profit: number;
+  /** Satış anındakı real maya snapshot-u (1 ədəd); manual satışda maya bilinmirsə null. */
+  costPerUnit?: number | null;
+  /** Qazanc; manual satışda maya naməlumdursa null ("naməlum"). */
+  profit: number | null;
+  /** Sərbəst (katalogdankənar) satış bayrağı. */
+  isManual?: boolean;
   createdAt: string;
   employeeId: string;
 }

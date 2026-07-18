@@ -175,9 +175,9 @@ function AppLayout() {
 
       {/* Main column */}
       <div className="flex min-h-full flex-col lg:pl-64">
-        {/* Topbar — daxili content konteyneri ilə eyni max-width və düzləmə */}
+        {/* Topbar */}
         <header className="sticky top-0 z-30 border-b border-stone-200 bg-white">
-          <div className="mx-auto flex h-16 max-w-content items-center gap-3 px-4 lg:px-8">
+          <div className="flex h-16 items-center gap-3 px-4 lg:px-8">
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Menyu"
@@ -214,8 +214,8 @@ function AppLayout() {
           </div>
         </header>
 
-        {/* Content */}
-        <main className="mx-auto w-full max-w-content flex-1 px-4 pb-28 pt-6 lg:px-8 lg:pb-10">
+        {/* Content — sidebar yanında tam en */}
+        <main className="w-full flex-1 px-4 pb-28 pt-6 lg:px-8 lg:pb-10">
           <Outlet />
         </main>
       </div>

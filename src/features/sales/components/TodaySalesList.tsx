@@ -27,21 +27,37 @@ export function TodaySalesList({ sales }: Props) {
           key={s.id}
           className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
         >
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-stone-800">
-            {s.productName} × {s.quantity}
+          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span className="min-w-0 truncate text-sm font-semibold text-stone-800">
+              {s.productName} × {s.quantity}
+            </span>
+            {s.isManual && (
+              <Badge
+                tone="Sərbəst"
+                className="shrink-0 px-1.5 py-0.5 text-[11px]"
+              >
+                Sərbəst
+              </Badge>
+            )}
           </span>
           <Badge tone={s.paymentType}>{s.paymentType}</Badge>
           <span className="w-24 text-right text-sm font-bold tabular-nums">
             {fmtMoney(s.totalAmount)}
           </span>
-          <span
-            className={`w-24 text-right text-xs font-semibold tabular-nums ${
-              s.profit < 0 ? "text-red-600" : "text-emerald-700"
-            }`}
-          >
-            {s.profit >= 0 ? "+" : ""}
-            {fmtMoney(s.profit)}
-          </span>
+          {s.profit == null ? (
+            <span className="w-24 text-right text-xs font-semibold tabular-nums text-stone-400">
+              —
+            </span>
+          ) : (
+            <span
+              className={`w-24 text-right text-xs font-semibold tabular-nums ${
+                s.profit < 0 ? "text-red-600" : "text-emerald-700"
+              }`}
+            >
+              {s.profit >= 0 ? "+" : ""}
+              {fmtMoney(s.profit)}
+            </span>
+          )}
         </div>
       ))}
     </div>

@@ -23,9 +23,6 @@ export default {
       spacing: {
         "safe-bottom": "env(safe-area-inset-bottom)",
       },
-      maxWidth: {
-        content: "1280px",
-      },
     },
   },
   plugins: [],

@@ -69,7 +69,7 @@ function HesabatlarPage() {
 
     return {
       sales: sumBy(periodSales, (s) => s.totalAmount),
-      profit: sumBy(periodSales, (s) => s.profit),
+      profit: sumBy(periodSales, (s) => s.profit ?? 0),
       expenses: sumBy(periodExpenses, (e) => e.amount),
       stockValue: sumBy(products, (p) => p.realCostPerUnit * p.quantity),
       cashSales: sumBy(

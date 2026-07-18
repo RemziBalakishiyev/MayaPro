@@ -39,7 +39,7 @@ export function StatCard({
       </div>
       <p
         className={cn(
-          "mt-2 text-3xl font-bold tabular-nums lg:text-4xl",
+          "mt-2 text-2xl font-bold tabular-nums whitespace-nowrap leading-tight lg:text-3xl",
           TONE[tone],
         )}
       >

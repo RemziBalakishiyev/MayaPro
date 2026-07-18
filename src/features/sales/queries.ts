@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { salesApi, type CreateSaleInput } from "./api";
+import { salesApi } from "./api";
+import { createSaleSchema, type CreateSaleInput } from "./types";
 import { todayISO } from "@/lib/format";
 import type { Sale } from "@/types";
 
@@ -25,7 +26,8 @@ export const useTodaySales = () =>
 export const useCreateSale = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateSaleInput) => salesApi.create(input),
+    mutationFn: (input: CreateSaleInput) =>
+      salesApi.create(createSaleSchema.parse(input)),
     onSuccess: () => {
       // Satış → stok azaldı, borc dəyişə bilər, dashboard yeniləndi
       qc.invalidateQueries({ queryKey: ["sales"] });

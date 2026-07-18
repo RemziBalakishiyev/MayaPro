@@ -39,6 +39,10 @@ export interface DashboardStats {
   expectedCash: number;
   /** Kağız üzərində qazanc (bugünkü qazanc, nisyə daxil) */
   paperProfit: number;
+  /** Bugünkü qazancı naməlum olan satışların sayı (sərbəst, mayasız). */
+  unknownProfitSalesCount: number;
+  /** Həmin satışların ümumi satış məbləği. */
+  unknownProfitAmount: number;
   topProducts: TopProduct[];
   lowStock: ProductWithStatus[];
   frozen: FrozenProduct[];
@@ -70,7 +74,11 @@ export const computeDashboardStats = (data: DashboardData): DashboardStats => {
   const todayCard = paySum("Kart");
   const todayCredit = paySum("Nisyə");
   const todayTotal = sumBy(todaySales, (s) => s.totalAmount);
-  const todayProfit = sumBy(todaySales, (s) => s.profit);
+  // Qazancı naməlum (null) satışlar 0 sayılır, ayrıca sayılır
+  const todayProfit = sumBy(todaySales, (s) => s.profit ?? 0);
+  const unknownProfitSales = todaySales.filter((s) => s.profit == null);
+  const unknownProfitSalesCount = unknownProfitSales.length;
+  const unknownProfitAmount = sumBy(unknownProfitSales, (s) => s.totalAmount);
   const todayExpenses = sumBy(
     expenses.filter((e) => e.date.slice(0, 10) === t),
     (e) => e.amount,
@@ -114,6 +122,8 @@ export const computeDashboardStats = (data: DashboardData): DashboardStats => {
     openingCash,
     expectedCash,
     paperProfit: todayProfit,
+    unknownProfitSalesCount,
+    unknownProfitAmount,
     topProducts: topProductsByQty(sales, products),
     lowStock,
     frozen: frozenProducts(products, sales),
@@ -222,6 +232,8 @@ export const assembleDashboardStats = (
     openingCash,
     expectedCash: d.expectedCash,
     paperProfit: d.todayProfit,
+    unknownProfitSalesCount: d.unknownProfitSalesCount ?? 0,
+    unknownProfitAmount: d.unknownProfitAmount ?? 0,
     topProducts,
     lowStock,
     frozen,

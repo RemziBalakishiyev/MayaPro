@@ -21,6 +21,7 @@ import { Route as AppHesabatlarRouteImport } from './routes/_app.hesabatlar'
 import { Route as AppGunSonuRouteImport } from './routes/_app.gun-sonu'
 import { Route as AppBorclarRouteImport } from './routes/_app.borclar'
 import { Route as AppAyarlarRouteImport } from './routes/_app.ayarlar'
+import { Route as AppMallarIdRouteImport } from './routes/_app.mallar_.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -81,6 +82,11 @@ const AppAyarlarRoute = AppAyarlarRouteImport.update({
   path: '/ayarlar',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMallarIdRoute = AppMallarIdRouteImport.update({
+  id: '/mallar_/$id',
+  path: '/mallar/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/satis': typeof AppSatisRoute
   '/tedarukculer': typeof AppTedarukculerRoute
   '/xercler': typeof AppXerclerRoute
+  '/mallar/$id': typeof AppMallarIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/tedarukculer': typeof AppTedarukculerRoute
   '/xercler': typeof AppXerclerRoute
   '/': typeof AppIndexRoute
+  '/mallar/$id': typeof AppMallarIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_app/tedarukculer': typeof AppTedarukculerRoute
   '/_app/xercler': typeof AppXerclerRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/mallar_/$id': typeof AppMallarIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/satis'
     | '/tedarukculer'
     | '/xercler'
+    | '/mallar/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/tedarukculer'
     | '/xercler'
     | '/'
+    | '/mallar/$id'
   id:
     | '__root__'
     | '/_app'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_app/tedarukculer'
     | '/_app/xercler'
     | '/_app/'
+    | '/_app/mallar_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -257,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAyarlarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/mallar_/$id': {
+      id: '/_app/mallar_/$id'
+      path: '/mallar/$id'
+      fullPath: '/mallar/$id'
+      preLoaderRoute: typeof AppMallarIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -271,6 +290,7 @@ interface AppRouteChildren {
   AppTedarukculerRoute: typeof AppTedarukculerRoute
   AppXerclerRoute: typeof AppXerclerRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppMallarIdRoute: typeof AppMallarIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -284,6 +304,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTedarukculerRoute: AppTedarukculerRoute,
   AppXerclerRoute: AppXerclerRoute,
   AppIndexRoute: AppIndexRoute,
+  AppMallarIdRoute: AppMallarIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

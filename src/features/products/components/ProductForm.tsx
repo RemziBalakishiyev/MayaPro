@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
@@ -40,8 +40,6 @@ interface Props {
   initial: Product | null;
 }
 
-/** Xüsusiyyət adı üçün təklif siyahısı. */
-const ATTR_SUGGESTIONS = ["Ölçü", "Rəng", "Model", "Material", "Marka"];
 const MAX_ATTRS = 15;
 const NEW_CATEGORY = "__new__";
 
@@ -57,8 +55,8 @@ const emptyValues: ProductFormValues = {
   minStock: 10,
   currency: "AZN",
   supplierId: "",
-  store: "Mağaza 1",
-  warehouse: "Anbar A",
+  store: "",
+  warehouse: "",
   shelf: "",
   box: "",
   note: "",
@@ -408,11 +406,6 @@ export function ProductForm({ open, onClose, initial }: Props) {
             <label className="mb-1.5 block text-sm font-medium text-stone-700">
               Xüsusiyyətlər
             </label>
-            <datalist id="attr-names">
-              {ATTR_SUGGESTIONS.map((n) => (
-                <option key={n} value={n} />
-              ))}
-            </datalist>
             {fields.length === 0 ? (
               <p className="mb-2 text-xs text-stone-400">
                 Ölçü, rəng, marka kimi əlavə məlumatlar — istəyə bağlı
@@ -422,7 +415,6 @@ export function ProductForm({ open, onClose, initial }: Props) {
                 {fields.map((f, idx) => (
                   <div key={f.id} className="flex items-center gap-2">
                     <Input
-                      list="attr-names"
                       placeholder="Ad (məs. Ölçü)"
                       className="flex-1"
                       {...register(`attributes.${idx}.name`)}
@@ -499,11 +491,23 @@ export function ProductForm({ open, onClose, initial }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valyuta">
-              <Select {...register("currency")}>
-                <option>AZN</option>
-                <option>USD</option>
-                <option>TRY</option>
-              </Select>
+              <Controller
+                name="currency"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    name={field.name}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  >
+                    <option>AZN</option>
+                    <option>USD</option>
+                    <option>TRY</option>
+                  </Select>
+                )}
+              />
             </Field>
             <Field label="Minimum stok" hint="bu saydan aşağı düşəndə xəbərdarlıq">
               <Input type="number" min="0" {...register("minStock")} />
@@ -518,14 +522,26 @@ export function ProductForm({ open, onClose, initial }: Props) {
           desc="Təchizatçı və anbardakı yeri"
         >
           <Field label="Təchizatçı">
-            <Select {...register("supplierId")}>
-              <option value="">Seçin...</option>
-              {(suppliers.data ?? []).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </Select>
+            <Controller
+              name="supplierId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  name={field.name}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  onChange={(e) => field.onChange(e.target.value)}
+                >
+                  <option value="">Seçin...</option>
+                  {(suppliers.data ?? []).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Anbar">
@@ -614,7 +630,7 @@ function ResultCell({
       <p className="text-[11px] font-medium text-white/60">{label}</p>
       <p
         className={cn(
-          "text-lg font-bold tabular-nums",
+          "text-lg font-bold tabular-nums whitespace-nowrap",
           tone === "loss"
             ? "text-red-300"
             : tone === "neutral"

@@ -1,14 +1,16 @@
 /**
  * Sales API qatı — mock/real sərhədi.
  */
-import { saleHandlers, type CreateSaleInput } from "@/mocks/handlers";
+import { saleHandlers } from "@/mocks/handlers";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
+import type { CreateSaleInput } from "@/features/sales/types";
 import type { Sale } from "@/types";
 
 /** Backend SaleDto → frontend Sale (null sahələr normallaşdırılır). */
-interface SaleDto extends Omit<Sale, "customerId" | "employeeId"> {
+interface SaleDto extends Omit<Sale, "customerId" | "employeeId" | "isManual"> {
   customerId: string | null;
   employeeId: string | null;
+  isManual?: boolean;
   soldByName?: string;
 }
 
@@ -16,6 +18,7 @@ const toSale = (d: SaleDto): Sale => ({
   ...d,
   customerId: d.customerId ?? null,
   employeeId: d.employeeId ?? "",
+  isManual: d.isManual ?? false,
 });
 
 export const salesApi = {

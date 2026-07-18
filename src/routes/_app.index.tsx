@@ -61,6 +61,11 @@ function DashboardPage() {
         <StatCard
           label="Bugünkü qazanc"
           value={fmtMoney(d.todayProfit)}
+          sub={
+            d.unknownProfitSalesCount > 0
+              ? `${d.unknownProfitSalesCount} satışın qazancı naməlum (${fmtMoney(d.unknownProfitAmount)} satış)`
+              : undefined
+          }
           icon={TrendingUp}
           tone="green"
         />

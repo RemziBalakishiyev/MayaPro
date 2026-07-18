@@ -1,6 +1,7 @@
 import { useMemo } from "react";
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Package, Plus, Minus, Pencil } from "lucide-react";
+import { Package, Plus, Minus, Pencil, Eye } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -43,7 +44,11 @@ export function ProductsTable({
         cell: ({ row }) => {
           const p = row.original;
           return (
-            <div className="flex items-center gap-2.5">
+            <Link
+              to="/mallar/$id"
+              params={{ id: p.id }}
+              className="flex items-center gap-2.5 hover:opacity-80"
+            >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-400">
                 {p.image ? (
                   <img
@@ -57,7 +62,7 @@ export function ProductsTable({
               </div>
               <div className="min-w-0 max-w-[150px]">
                 <p
-                  className="truncate font-semibold text-stone-900"
+                  className="truncate font-semibold text-stone-900 hover:text-emerald-700 hover:underline"
                   title={p.name}
                 >
                   {p.name}
@@ -66,7 +71,7 @@ export function ProductsTable({
                   {firstAttrValue(p)}
                 </p>
               </div>
-            </div>
+            </Link>
           );
         },
       },
@@ -177,6 +182,14 @@ export function ProductsTable({
           const p = row.original;
           return (
             <div className="flex justify-end gap-1">
+              <Link
+                to="/mallar/$id"
+                params={{ id: p.id }}
+                title="Detallara bax"
+                className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
+              >
+                <Eye size={15} />
+              </Link>
               <button
                 title="Stok artır"
                 onClick={() => onAdjust(p, "add")}
@@ -222,7 +235,11 @@ export function ProductsTable({
         return (
           <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+              <Link
+                to="/mallar/$id"
+                params={{ id: p.id }}
+                className="min-w-0"
+              >
                 <p className="truncate text-lg font-bold text-stone-900">
                   {p.name}
                 </p>
@@ -231,7 +248,7 @@ export function ProductsTable({
                     {firstAttrValue(p)}
                   </p>
                 )}
-              </div>
+              </Link>
               <ProductStatusBadge product={p} />
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -252,7 +269,7 @@ export function ProductsTable({
               </div>
               <div className="rounded-xl bg-stone-50 py-2">
                 <p className="text-xs font-medium text-stone-400">Real maya</p>
-                <p className="text-base font-bold tabular-nums text-stone-900">
+                <p className="text-base font-bold tabular-nums whitespace-nowrap text-stone-900">
                   {fmtMoney(p.realCostPerUnit)}
                 </p>
               </div>
@@ -260,7 +277,7 @@ export function ProductsTable({
                 <p className="text-xs font-medium text-stone-400">Satış</p>
                 <p
                   className={cn(
-                    "text-base font-bold tabular-nums",
+                    "text-base font-bold tabular-nums whitespace-nowrap",
                     loss ? "text-red-600" : "text-emerald-700",
                   )}
                 >

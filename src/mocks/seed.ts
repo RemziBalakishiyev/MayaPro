@@ -17,7 +17,7 @@ import type {
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 3;
+export const SEED_VERSION = 4;
 
 export interface SeedDatabase {
   products: Product[];
@@ -448,6 +448,43 @@ const buildSales = (
       employeeId: emp,
     });
   });
+
+  // Sərbəst (katalogdankənar) satışlar — biri mayasız (qazanc naməlum), biri maya ilə
+  sales.push({
+    id: uid("sal"),
+    productId: null,
+    productName: "Əl ilə: USB kabel",
+    quantity: 1,
+    salePrice: 5,
+    subtotal: 5,
+    discount: 0,
+    totalAmount: 5,
+    paymentType: "Nağd",
+    customerId: null,
+    costPerUnit: null,
+    profit: null,
+    isManual: true,
+    createdAt: todayISO(),
+    employeeId: "emp_3",
+  });
+  sales.push({
+    id: uid("sal"),
+    productId: null,
+    productName: "Əl ilə: telefon qabı",
+    quantity: 2,
+    salePrice: 15,
+    subtotal: 30,
+    discount: 0,
+    totalAmount: 30,
+    paymentType: "Nağd",
+    customerId: null,
+    costPerUnit: 8,
+    profit: (15 - 8) * 2,
+    isManual: true,
+    createdAt: todayISO(),
+    employeeId: "emp_2",
+  });
+
   return sales;
 };
 

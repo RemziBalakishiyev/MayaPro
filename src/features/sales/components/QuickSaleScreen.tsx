@@ -6,6 +6,7 @@ import {
   CreditCard,
   HandCoins,
   Minus,
+  PackagePlus,
   Plus,
   Search,
   ShoppingCart,
@@ -74,6 +75,11 @@ export function QuickSaleScreen() {
   const [note, setNote] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // ——— Sərbəst (manual) satış ———
+  const [isManual, setIsManual] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualCost, setManualCost] = useState("");
+
   // ——— Yalnız təqdimat state ———
   const [search, setSearch] = useState("");
   const [cusQuery, setCusQuery] = useState("");
@@ -86,6 +92,8 @@ export function QuickSaleScreen() {
 
   const product = products.find((p) => p.id === productId);
   const inStock = products.filter((p) => p.quantity > 0);
+  // Detallar ekranı: katalog malı seçilib VƏ YA sərbəst satış rejimi
+  const showDetails = !!product || isManual;
 
   // Mal dəyişəndə qiymət default = malın satış qiyməti
   useEffect(() => {
@@ -95,8 +103,8 @@ export function QuickSaleScreen() {
 
   // Seçim ekranına qayıdanda axtarışa fokus
   useEffect(() => {
-    if (!productId && !success) searchRef.current?.focus();
-  }, [productId, success]);
+    if (!showDetails && !success) searchRef.current?.focus();
+  }, [showDetails, success]);
 
   // Uğur ekranı 2 saniyə → təmiz seçimə qayıt
   useEffect(() => {
@@ -113,20 +121,29 @@ export function QuickSaleScreen() {
   const q = Math.max(1, Number(qty) || 1);
   const sp = Number(price) || 0;
   const disc = Number(discount) || 0;
-  const realCost = product?.realCostPerUnit ?? 0;
+  // Maya: katalogda hər zaman dolu; sərbəstdə boşdursa null ("naməlum" qazanc)
+  const realCost: number | null = isManual
+    ? manualCost.trim() === ""
+      ? null
+      : Number(manualCost) || 0
+    : (product?.realCostPerUnit ?? 0);
   const net = netTotal(sp, q, disc);
-  const profit = saleProfit(sp, q, disc, realCost);
-  const belowCost = !!product && isLossSale(sp, realCost);
-  const notEnoughStock = !!product && q > product.quantity;
+  const profit: number | null =
+    realCost == null ? null : saleProfit(sp, q, disc, realCost);
+  const belowCost = realCost != null && isLossSale(sp, realCost);
+  const notEnoughStock = !isManual && !!product && q > product.quantity;
 
   const canSubmit =
-    !!product &&
+    (isManual ? manualName.trim().length > 0 : !!product) &&
     sp > 0 &&
     !notEnoughStock &&
     (payType !== "Nisyə" || !!customerId);
 
   const reset = () => {
     setProductId("");
+    setIsManual(false);
+    setManualName("");
+    setManualCost("");
     setQty("1");
     setPrice("");
     setDiscount("");
@@ -138,16 +155,20 @@ export function QuickSaleScreen() {
   };
 
   const complete = async () => {
-    if (!product) return;
-    const captured = { name: product.name, amount: net };
+    if (!isManual && !product) return;
+    const displayName = isManual ? manualName.trim() : product!.name;
+    const captured = { name: displayName, amount: net };
     try {
       await createSale.mutateAsync({
-        productId: product.id,
+        productId: isManual ? null : product!.id,
+        productName: isManual ? displayName : undefined,
+        isManual,
         quantity: q,
         salePrice: sp,
         discount: disc,
         paymentType: payType,
         customerId: payType === "Nisyə" ? customerId : null,
+        costPerUnit: isManual ? realCost : undefined,
         note: note.trim() || undefined,
       });
       setSuccess(captured);
@@ -157,26 +178,46 @@ export function QuickSaleScreen() {
   };
 
   const trySubmit = () => {
-    if (profit < 0) setConfirmOpen(true);
+    if (profit != null && profit < 0) setConfirmOpen(true);
     else complete();
   };
 
   const selectProduct = (p: Product) => {
     if (p.quantity <= 0) return;
+    setIsManual(false);
+    setManualName("");
+    setManualCost("");
     setProductId(p.id);
     setQty("1");
     setDiscount("");
     setCustomerId("");
   };
 
-  const changeProduct = () => {
+  // Sərbəst satışa keçid: axtarılan mətn (varsa) ad sahəsinə hazır köçür
+  const startManual = (name: string) => {
+    setIsManual(true);
+    setManualName(name);
+    setManualCost("");
     setProductId("");
     setQty("1");
+    setPrice("");
+    setDiscount("");
+    setPayType("Nağd");
+    setCustomerId("");
+  };
+
+  const changeProduct = () => {
+    setProductId("");
+    setIsManual(false);
+    setManualName("");
+    setManualCost("");
+    setQty("1");
+    setPrice("");
     setDiscount("");
   };
 
   const step = (delta: number) => {
-    const max = product?.quantity ?? 1;
+    const max = isManual ? Infinity : (product?.quantity ?? 1);
     setQty((prev) => String(Math.min(max, Math.max(1, (Number(prev) || 1) + delta))));
   };
 
@@ -184,6 +225,7 @@ export function QuickSaleScreen() {
   const topProductIds = useMemo(() => {
     const cnt: Record<string, number> = {};
     allSales.forEach((s) => {
+      if (!s.productId) return; // sərbəst satış — katalog malı yoxdur
       cnt[s.productId] = (cnt[s.productId] ?? 0) + s.quantity;
     });
     return Object.entries(cnt)
@@ -256,22 +298,31 @@ export function QuickSaleScreen() {
           {todayChip}
         </div>
 
-        {!product ? (
+        {!showDetails ? (
           /* ——— MAL SEÇİMİ ——— */
           <div>
-            <div className="relative mb-4">
-              <Search
-                size={22}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"
-              />
-              <input
-                ref={searchRef}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-                placeholder="Mal adı və ya barkod..."
-                className="h-[52px] w-full rounded-2xl border border-stone-300 bg-white pl-12 pr-4 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-              />
+            <div className="mb-4 flex gap-2.5">
+              <div className="relative flex-1">
+                <Search
+                  size={22}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"
+                />
+                <input
+                  ref={searchRef}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  autoFocus
+                  placeholder="Mal adı və ya barkod..."
+                  className="h-[52px] w-full rounded-2xl border border-stone-300 bg-white pl-12 pr-4 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                />
+              </div>
+              <button
+                onClick={() => startManual("")}
+                className="flex h-[52px] shrink-0 items-center gap-2 rounded-2xl border-2 border-emerald-600 bg-white px-4 text-base font-bold text-emerald-700 shadow-card transition active:scale-[0.98] active:bg-emerald-50 sm:px-5"
+              >
+                <PackagePlus size={22} />
+                <span className="hidden sm:inline">Sərbəst satış</span>
+              </button>
             </div>
 
             {!search.trim() && (
@@ -282,10 +333,22 @@ export function QuickSaleScreen() {
 
             {shownProducts.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center">
-                <p className="text-base font-bold text-stone-600">Mal tapılmadı</p>
-                <p className="mt-1 text-sm text-stone-500">
-                  Başqa ad və ya barkod yoxlayın.
+                <p className="text-base font-bold text-stone-600">
+                  {search.trim() ? `«${search.trim()}» tapılmadı` : "Mal tapılmadı"}
                 </p>
+                <p className="mt-1 text-sm text-stone-500">
+                  Başqa ad yoxlayın və ya sərbəst satışla daxil edin.
+                </p>
+                {search.trim() && (
+                  <Button
+                    size="lg"
+                    className="mx-auto mt-4 justify-center"
+                    icon={<PackagePlus size={20} />}
+                    onClick={() => startManual(search.trim())}
+                  >
+                    «{search.trim()}» — Sərbəst satışla daxil et
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
@@ -342,23 +405,47 @@ export function QuickSaleScreen() {
         ) : (
           /* ——— SATIŞ DETALLARI ——— */
           <div className="space-y-4">
-            {/* Seçilmiş mal */}
-            <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-lg font-bold text-stone-900">
-                  {product.name}
-                </p>
-                <p className="text-sm text-stone-500">
-                  {fmtMoney(product.salePrice)} · stok: {product.quantity} əd.
-                </p>
+            {isManual ? (
+              /* Sərbəst satış — mal adı böyük input */
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">
+                    <PackagePlus size={14} /> Sərbəst satış
+                  </span>
+                  <button
+                    onClick={changeProduct}
+                    className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 active:bg-stone-100"
+                  >
+                    <ArrowLeft size={16} /> Dəyiş
+                  </button>
+                </div>
+                <input
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  autoFocus
+                  placeholder="Mal adı (məcburi)"
+                  className="h-14 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                />
               </div>
-              <button
-                onClick={changeProduct}
-                className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-base font-semibold text-stone-700 ring-1 ring-stone-300 active:bg-stone-100"
-              >
-                <ArrowLeft size={18} /> Dəyiş
-              </button>
-            </div>
+            ) : (
+              /* Seçilmiş mal */
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-lg font-bold text-stone-900">
+                    {product!.name}
+                  </p>
+                  <p className="text-sm text-stone-500">
+                    {fmtMoney(product!.salePrice)} · stok: {product!.quantity} əd.
+                  </p>
+                </div>
+                <button
+                  onClick={changeProduct}
+                  className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-base font-semibold text-stone-700 ring-1 ring-stone-300 active:bg-stone-100"
+                >
+                  <ArrowLeft size={18} /> Dəyiş
+                </button>
+              </div>
+            )}
 
             {/* Say — nəhəng stepper */}
             <div>
@@ -380,14 +467,14 @@ export function QuickSaleScreen() {
                 />
                 <button
                   onClick={() => step(1)}
-                  disabled={!!product && q >= product.quantity}
+                  disabled={!isManual && !!product && q >= product.quantity}
                   aria-label="Artır"
                   className="flex h-16 w-16 items-center justify-center rounded-xl bg-emerald-600 text-white active:bg-emerald-700 disabled:opacity-40"
                 >
                   <Plus size={28} />
                 </button>
               </div>
-              {notEnoughStock && (
+              {notEnoughStock && product && (
                 <p className="mt-1.5 text-sm font-semibold text-red-600">
                   Stokda yalnız {product.quantity} əd. var.
                 </p>
@@ -425,6 +512,27 @@ export function QuickSaleScreen() {
                 />
               </div>
             </div>
+
+            {/* Maya — yalnız sərbəst satışda, istəyə bağlı */}
+            {isManual && (
+              <div>
+                <p className="mb-2 text-sm font-semibold text-stone-600">
+                  Maya (bilirsənsə, 1 əd.)
+                </p>
+                <input
+                  value={manualCost}
+                  onChange={(e) => setManualCost(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="—"
+                  className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                />
+                {manualCost.trim() === "" && (
+                  <p className="mt-1.5 text-xs text-stone-500">
+                    Boş qalsa bu satışın qazancı hesabatlarda «naməlum» görünəcək.
+                  </p>
+                )}
+              </div>
+            )}
 
             {belowCost && (
               <div className="flex items-center gap-2.5 rounded-xl bg-red-50 px-4 py-3.5 text-base font-bold text-red-700 ring-1 ring-red-200">
@@ -533,7 +641,7 @@ export function QuickSaleScreen() {
 
       {/* SAĞ (desktop): cəmi + bugünkü satışlar */}
       <div className="hidden lg:flex lg:flex-col lg:gap-4">
-        {product && (
+        {showDetails && (
           <div className="sticky top-20 rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
             <TotalContent
               net={net}
@@ -557,7 +665,7 @@ export function QuickSaleScreen() {
       </div>
 
       {/* MOBİL: sabit aşağı cəmi paneli (yalnız detallarda) */}
-      {product && (
+      {showDetails && (
         <div className="fixed inset-x-0 bottom-[72px] z-30 border-t border-stone-200 bg-white p-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] lg:hidden">
           <TotalContent
             net={net}
@@ -590,7 +698,7 @@ export function QuickSaleScreen() {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={complete}
-        lossAmount={profit}
+        lossAmount={profit ?? 0}
       />
     </div>
   );
@@ -605,7 +713,7 @@ function TotalContent({
   onSubmit,
 }: {
   net: number;
-  profit: number;
+  profit: number | null;
   canSubmit: boolean;
   pending: boolean;
   onSubmit: () => void;
@@ -621,15 +729,21 @@ function TotalContent({
             {fmtMoney(net)}
           </p>
         </div>
-        <p
-          className={cn(
-            "text-sm font-bold tabular-nums",
-            profit < 0 ? "text-red-600" : "text-emerald-700",
-          )}
-        >
-          Qazanc: {profit >= 0 ? "+" : ""}
-          {fmtMoney(profit)}
-        </p>
+        {profit == null ? (
+          <p className="text-sm font-bold tabular-nums text-stone-400">
+            Qazanc: naməlum
+          </p>
+        ) : (
+          <p
+            className={cn(
+              "text-sm font-bold tabular-nums",
+              profit < 0 ? "text-red-600" : "text-emerald-700",
+            )}
+          >
+            Qazanc: {profit >= 0 ? "+" : ""}
+            {fmtMoney(profit)}
+          </p>
+        )}
       </div>
       <button
         onClick={onSubmit}

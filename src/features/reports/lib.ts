@@ -34,6 +34,7 @@ export interface FrozenProduct extends ProductWithStatus {
 export const lastSaleMap = (sales: Sale[]): Record<string, string> => {
   const m: Record<string, string> = {};
   sales.forEach((s) => {
+    if (!s.productId) return; // sərbəst satış — katalog malı yoxdur
     if (!m[s.productId] || s.createdAt > m[s.productId]) m[s.productId] = s.createdAt;
   });
   return m;
@@ -82,6 +83,7 @@ export const topProductsByQty = (
 ): TopProduct[] => {
   const byId: Record<string, number> = {};
   sales.forEach((s) => {
+    if (!s.productId) return; // sərbəst satış — katalog malı yoxdur
     byId[s.productId] = (byId[s.productId] ?? 0) + s.quantity;
   });
   return Object.entries(byId)
@@ -108,7 +110,7 @@ export const dailySeries = (sales: Sale[], days = 14): DailyPoint[] => {
     out.push({
       date: fmtDate(iso).slice(0, 5),
       satis: round2(sumBy(ds, (s) => s.totalAmount)),
-      qazanc: round2(sumBy(ds, (s) => s.profit)),
+      qazanc: round2(sumBy(ds, (s) => s.profit ?? 0)),
     });
   }
   return out;
@@ -129,7 +131,7 @@ export const weeklySeries = (sales: Sale[], weeks = 6): WeekPoint[] => {
       const d = s.createdAt.slice(0, 10);
       return d >= from && d <= to;
     });
-    out.push({ week: `H${weeks - w}`, qazanc: Math.round(sumBy(ws, (s) => s.profit)) });
+    out.push({ week: `H${weeks - w}`, qazanc: Math.round(sumBy(ws, (s) => s.profit ?? 0)) });
   }
   return out;
 };
@@ -159,7 +161,7 @@ export const monthlySeries = (sales: Sale[], months = 6): MonthPoint[] => {
     const ms = sales.filter((s) => s.createdAt.slice(0, 7) === ym);
     return {
       month: `${String(m).padStart(2, "0")}.${String(y).slice(2)}`,
-      qazanc: Math.round(sumBy(ms, (s) => s.profit)),
+      qazanc: Math.round(sumBy(ms, (s) => s.profit ?? 0)),
     };
   });
 };

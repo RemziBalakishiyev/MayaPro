@@ -41,6 +41,10 @@ export interface DashboardDto {
   todayProfit: number;
   todayExpenses: number;
   todaySalesCount: number;
+  /** Qazancı naməlum (sərbəst, mayasız) bugünkü satışların sayı. */
+  unknownProfitSalesCount?: number;
+  /** Həmin satışların ümumi satış məbləği. */
+  unknownProfitAmount?: number;
   totalCustomerDebt: number;
   totalSupplierDebt: number;
   expectedCash: number;
@@ -129,7 +133,7 @@ async function mockSummary(period: Period): Promise<SummaryData> {
       (s) => s.totalAmount,
     );
   const salesTotal = sumBy(ps, (s) => s.totalAmount);
-  const profit = sumBy(ps, (s) => s.profit);
+  const profit = sumBy(ps, (s) => s.profit ?? 0);
   const exp = sumBy(pe, (e) => e.amount);
   return {
     period,

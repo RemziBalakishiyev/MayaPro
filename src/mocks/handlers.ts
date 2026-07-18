@@ -4,6 +4,7 @@ import { calcRealCost } from "@/features/products/lib";
 import { categoryToExpenseKey } from "@/features/expenses/lib";
 import { uid, todayISO, fmtMoney } from "@/lib/format";
 import { useAuthStore } from "@/features/auth/store";
+import type { CreateSaleInput } from "@/features/sales/types";
 import type {
   Product,
   Sale,
@@ -112,17 +113,6 @@ export const categoryHandlers = {
   },
 };
 
-/** Yeni satış üçün giriş. */
-export interface CreateSaleInput {
-  productId: string;
-  quantity: number;
-  salePrice: number;
-  discount: number;
-  paymentType: PaymentType;
-  customerId: string | null;
-  note?: string;
-}
-
 export const saleHandlers = {
   list: () => db.sales.list(),
 
@@ -130,27 +120,41 @@ export const saleHandlers = {
    * Satış biznes zənciri:
    * 1) stok yoxlaması, 2) stok azalır,
    * 3) Nisyədirsə müştəri borcu artır, 4) satış yazılır, 5) activity log.
+   *
+   * Sərbəst (manual) satış: katalog malı yoxdur — stok yoxlanmır/azalmır,
+   * maya bilinmirsə qazanc null ("naməlum") olur.
    */
   async createSale(input: CreateSaleInput): Promise<Sale> {
-    const product = await db.products.get(input.productId);
-    if (!product) throw new Error("Mal tapılmadı");
-
     const qty = Math.max(1, Math.floor(input.quantity));
-    if (qty > product.quantity) {
-      throw new Error("Stokda kifayət qədər mal yoxdur");
-    }
-
     const employeeId = useAuthStore.getState().user?.id ?? "emp_1";
     const subtotal = input.salePrice * qty;
     const discount = Math.max(0, input.discount);
     const net = Math.max(0, subtotal - discount);
-    const profit = net - product.realCostPerUnit * qty;
     const isCredit = input.paymentType === "Nisyə";
+    const isManual = !!input.isManual || input.productId == null;
+
+    // Katalog malı — sərbəst satışda null
+    const product = isManual
+      ? null
+      : await db.products.get(input.productId as string);
+    if (!isManual && !product) throw new Error("Mal tapılmadı");
+    if (product && qty > product.quantity) {
+      throw new Error("Stokda kifayət qədər mal yoxdur");
+    }
+
+    // Maya: katalogda snapshot; manualda bilinirsə dolu, bilinmirsə null
+    const costPerUnit = isManual
+      ? (input.costPerUnit ?? null)
+      : (product?.realCostPerUnit ?? 0);
+    const profit = costPerUnit == null ? null : net - costPerUnit * qty;
+    const productName = isManual
+      ? (input.productName?.trim() || "Sərbəst satış")
+      : (product as Product).name;
 
     const sale: Sale = {
       id: uid("sal"),
-      productId: product.id,
-      productName: product.name,
+      productId: product?.id ?? null,
+      productName,
       quantity: qty,
       salePrice: input.salePrice,
       subtotal,
@@ -158,17 +162,20 @@ export const saleHandlers = {
       totalAmount: net,
       paymentType: input.paymentType,
       customerId: isCredit ? input.customerId : null,
-      costPerUnit: product.realCostPerUnit,
+      costPerUnit,
       profit,
+      isManual,
       createdAt: todayISO(),
       employeeId,
     };
 
-    // 2) Stok azalır
-    await db.products.update(product.id, {
-      quantity: Math.max(0, product.quantity - qty),
-      updatedAt: todayISO(),
-    });
+    // 2) Stok azalır (yalnız katalog malında)
+    if (product) {
+      await db.products.update(product.id, {
+        quantity: Math.max(0, product.quantity - qty),
+        updatedAt: todayISO(),
+      });
+    }
 
     // 3) Nisyə → müştəri borcu yekun (endirimdən sonrakı) məbləğ qədər artır
     if (isCredit && sale.customerId) {
@@ -188,12 +195,12 @@ export const saleHandlers = {
     // 5) Activity log (endirim varsa ayrıca qeyd)
     await logActivity(
       isCredit ? "Nisyə satış etdi" : "Satış etdi",
-      `${product.name} × ${qty} — ${fmtMoney(net)}`,
+      `${productName} × ${qty} — ${fmtMoney(net)}`,
     );
     if (discount > 0) {
       await logActivity(
         "Endirim etdi",
-        `${product.name} — ${fmtMoney(discount)} endirim`,
+        `${productName} — ${fmtMoney(discount)} endirim`,
       );
     }
 
