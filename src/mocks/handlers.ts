@@ -1,7 +1,6 @@
 /** Biznes məntiqli mock əməliyyatlar. */
 import { db } from "./db";
-import { calcRealCost } from "@/features/products/lib";
-import { categoryToExpenseKey } from "@/features/expenses/lib";
+import { calcRealCost, mergeExpenseLines } from "@/features/products/lib";
 import { uid, todayISO, fmtMoney } from "@/lib/format";
 import type { PagedResult } from "@/lib/paging";
 import { useAuthStore } from "@/features/auth/store";
@@ -370,8 +369,8 @@ export const expenseHandlers = {
 
   /**
    * Xərc yazılır. ƏSAS QAYDA: xərc bir mala bağlıdırsa (productId),
-   * uyğun kateqoriya breakdown-una əlavə olunur və real maya YENİDƏN
-   * hesablanır — beləcə malın real mayası artır.
+   * kateqoriya adı malın expenses massivinə sətir kimi düşür və real maya
+   * yenidən hesablanır.
    */
   async createExpense(input: NewExpense): Promise<Expense> {
     const expense: Expense = {
@@ -388,11 +387,10 @@ export const expenseHandlers = {
     if (expense.productId) {
       const p = await db.products.get(expense.productId);
       if (p) {
-        const key = categoryToExpenseKey(expense.category);
-        const expenses = {
-          ...p.expenses,
-          [key]: (Number(p.expenses[key]) || 0) + expense.amount,
-        };
+        const expenses = mergeExpenseLines([
+          ...(p.expenses ?? []),
+          { name: expense.category, amount: expense.amount },
+        ]);
         const realCostPerUnit = calcRealCost(
           p.purchasePrice,
           p.initialQuantity,

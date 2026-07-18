@@ -38,15 +38,6 @@ export const Route = createFileRoute("/_app/mallar_/$id")({
   component: ProductDetailPage,
 });
 
-/** Partiya xərci sətirləri — açar → görünən ad. */
-const EXPENSE_ROWS: { key: keyof import("@/types").ExpenseBreakdown; label: string }[] = [
-  { key: "yol", label: "Yol" },
-  { key: "fehle", label: "Fəhlə" },
-  { key: "yer", label: "Anbar / Yer" },
-  { key: "paket", label: "Paket / Qutu" },
-  { key: "diger", label: "Digər" },
-];
-
 function InfoRow({
   icon: Icon,
   label,
@@ -399,13 +390,11 @@ function ProductDetailPage() {
               <p className="text-sm text-stone-400">Partiya xərci qeyd olunmayıb.</p>
             ) : (
               <dl className="space-y-2.5 text-sm">
-                {EXPENSE_ROWS.filter(
-                  (r) => Number(product.expenses[r.key]) > 0,
-                ).map((r) => (
-                  <div key={r.key} className="flex justify-between">
-                    <dt className="text-stone-500">{r.label}</dt>
-                    <dd className="font-semibold tabular-nums text-stone-800">
-                      {fmtMoney(product.expenses[r.key])}
+                {(product.expenses ?? []).map((e, i) => (
+                  <div key={`${e.name}-${i}`} className="flex justify-between gap-3">
+                    <dt className="min-w-0 truncate text-stone-500">{e.name}</dt>
+                    <dd className="shrink-0 font-semibold tabular-nums text-stone-800">
+                      {fmtMoney(e.amount)}
                     </dd>
                   </div>
                 ))}

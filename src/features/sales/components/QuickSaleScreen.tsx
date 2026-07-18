@@ -25,7 +25,6 @@ import { useProducts } from "@/features/products/queries";
 import { attrText, calcRealCost, firstAttrValue } from "@/features/products/lib";
 import {
   ExpenseRows,
-  rowsToBreakdown,
   type ExpenseRowValue,
 } from "@/components/ui/ExpenseRows";
 import { useCustomers } from "@/features/customers/queries";
@@ -135,15 +134,11 @@ export function QuickSaleScreen() {
   const q = Math.max(1, Number(qty) || 1);
   const sp = Number(price) || 0;
   const disc = Number(discount) || 0;
-  // Sərbəst: maya = alış + xərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
-  const manualExpenses = useMemo(
-    () => rowsToBreakdown(expenseRows),
-    [expenseRows],
-  );
+  // Sərbəst: maya = alış + Σxərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
   const realCost: number | null = isManual
     ? manualPurchase.trim() === ""
       ? null
-      : calcRealCost(Number(manualPurchase) || 0, q, manualExpenses)
+      : calcRealCost(Number(manualPurchase) || 0, q, expenseRows)
     : (product?.realCostPerUnit ?? 0);
   const net = netTotal(sp, q, disc);
   const profit: number | null =

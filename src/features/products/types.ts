@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-/** Partiya xərcləri — form daxili dinamik sətir (çıxışda breakdown-a yığılır). */
+/** Partiya xərci sətri — forma və API eyni forma. */
 export const expenseRowSchema = z.object({
-  kind: z.enum(["yol", "fehle", "yer", "paket", "diger"]),
+  name: z.string().default(""),
   amount: z.coerce.number().min(0, "Mənfi ola bilməz").default(0),
 });
 
@@ -33,7 +33,7 @@ export const productSchema = z.object({
   shelf: z.string().default(""),
   box: z.string().default(""),
   note: z.string().default(""),
-  expenseRows: z.array(expenseRowSchema).default([]),
+  expenses: z.array(expenseRowSchema).default([]),
 });
 
 /** Form dəyərlərinin tipi. */

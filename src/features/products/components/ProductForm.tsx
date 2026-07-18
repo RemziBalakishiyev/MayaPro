@@ -26,12 +26,13 @@ import { useSettingsStore } from "@/features/settings/store";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/components/ui/toast-store";
+import { ExpenseRows } from "@/components/ui/ExpenseRows";
 import {
-  ExpenseRows,
-  breakdownToRows,
-  rowsToBreakdown,
-} from "@/components/ui/ExpenseRows";
-import { calcRealCost, profitPerUnit, profitPercent } from "../lib";
+  calcRealCost,
+  mergeExpenseLines,
+  profitPerUnit,
+  profitPercent,
+} from "../lib";
 import { productSchema, type ProductFormValues } from "../types";
 import { useCreateProduct, useUpdateProduct } from "../queries";
 import type { NewProduct } from "../api";
@@ -63,7 +64,7 @@ const emptyValues: ProductFormValues = {
   shelf: "",
   box: "",
   note: "",
-  expenseRows: [],
+  expenses: [],
 };
 
 const toFormValues = (p: Product | null): ProductFormValues => {
@@ -85,7 +86,10 @@ const toFormValues = (p: Product | null): ProductFormValues => {
     shelf: p.shelf,
     box: p.box,
     note: p.note,
-    expenseRows: breakdownToRows(p.expenses),
+    expenses: (p.expenses ?? []).map((e) => ({
+      name: e.name,
+      amount: e.amount,
+    })),
   };
 };
 
@@ -194,7 +198,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const qty = Number(w.quantity) || 0;
   const pp = Number(w.purchasePrice) || 0;
   const sp = Number(w.salePrice) || 0;
-  const expenses = rowsToBreakdown(w.expenseRows ?? []);
+  const expenses = w.expenses ?? [];
   const realCost = calcRealCost(pp, qty, expenses);
   const perUnit = profitPerUnit(sp, realCost);
   const percent = profitPercent(sp, realCost);
@@ -210,11 +214,10 @@ export function ProductForm({ open, onClose, initial }: Props) {
     const attributes = data.attributes
       .map((a) => ({ name: a.name.trim(), value: a.value.trim() }))
       .filter((a) => a.name || a.value);
-    const { expenseRows, ...rest } = data;
     const payload: NewProduct = {
-      ...rest,
+      ...data,
       attributes,
-      expenses: rowsToBreakdown(expenseRows),
+      expenses: mergeExpenseLines(data.expenses),
       location: buildLocation(data) || initial?.location || "",
     };
     try {
@@ -482,9 +485,9 @@ export function ProductForm({ open, onClose, initial }: Props) {
 
           <ExpenseRows
             key={initial?.id ?? "new"}
-            value={w.expenseRows ?? []}
+            value={w.expenses ?? []}
             onChange={(rows) =>
-              setValue("expenseRows", rows, { shouldDirty: true })
+              setValue("expenses", rows, { shouldDirty: true })
             }
           />
         </Section>

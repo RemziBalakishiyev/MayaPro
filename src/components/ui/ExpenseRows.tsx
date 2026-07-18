@@ -1,79 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
-import type { ExpenseBreakdown } from "@/types";
+import type { ProductExpenseLine } from "@/types";
 
-/** Backend breakdown açarları. */
-export type ExpenseKind = keyof ExpenseBreakdown;
+/** Forma / API ilə eyni forma: { name, amount }. */
+export type ExpenseRowValue = ProductExpenseLine;
 
-/** Forma daxili dinamik xərc sətri. */
-export interface ExpenseRowValue {
-  kind: ExpenseKind;
-  amount: number;
-}
-
-export const EMPTY_EXPENSES: ExpenseBreakdown = {
-  yol: 0,
-  fehle: 0,
-  yer: 0,
-  paket: 0,
-  diger: 0,
-};
-
-export const EXPENSE_KIND_OPTIONS: { value: ExpenseKind; label: string }[] = [
-  { value: "yol", label: "Yol pulu" },
-  { value: "fehle", label: "Fəhlə pulu" },
-  { value: "yer", label: "Yer/Anbar xərci" },
-  { value: "paket", label: "Paket/Qutu" },
-  { value: "diger", label: "Digər" },
-];
-
-/** Sətirlər → breakdown (eyni növ cəmlənir). Backend dəyişmir. */
-export const rowsToBreakdown = (rows: ExpenseRowValue[]): ExpenseBreakdown => {
-  const out: ExpenseBreakdown = { ...EMPTY_EXPENSES };
-  for (const r of rows) {
-    const n = Number(r.amount) || 0;
-    if (n > 0 && r.kind in out) out[r.kind] += n;
-  }
-  return out;
-};
-
-/** Breakdown → sətirlər (yalnız sıfırdan fərqli; redaktə açılışı). */
-export const breakdownToRows = (b: ExpenseBreakdown): ExpenseRowValue[] => {
-  const rows: ExpenseRowValue[] = [];
-  for (const { value } of EXPENSE_KIND_OPTIONS) {
-    const n = Number(b[value]) || 0;
-    if (n > 0) rows.push({ kind: value, amount: n });
-  }
-  return rows;
-};
+/** Combobox təklifləri (istəyə bağlı seçim — sərbəst mətn də olar). */
+export const EXPENSE_NAME_SUGGESTIONS = [
+  "Yol pulu",
+  "Fəhlə pulu",
+  "Yer/Anbar xərci",
+  "Paket/Qutu",
+  "Gömrük",
+  "Digər",
+] as const;
 
 /** Sətirlərin məbləğ cəmi. */
 export const rowsTotal = (rows: ExpenseRowValue[]): number =>
-  rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  (rows ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
 
 interface Props {
   value: ExpenseRowValue[];
   onChange: (rows: ExpenseRowValue[]) => void;
 }
 
-/** Dinamik partiya xərcləri accordion — ProductForm və sərbəst satışda eyni. */
+/** Dinamik partiya xərcləri — combobox ad + məbləğ. */
 export function ExpenseRows({ value, onChange }: Props) {
+  const listId = useId();
   const [open, setOpen] = useState(() => value.length > 0);
   const total = rowsTotal(value);
   const hasRows = value.length > 0;
 
-  // Form reset/redaktə ilə sətirlər gələndə accordion açılsın (əl ilə bağlamağı pozmur).
   useEffect(() => {
     if (hasRows) setOpen(true);
   }, [hasRows]);
 
   const addRow = () => {
-    onChange([...value, { kind: "yol", amount: 0 }]);
+    onChange([...value, { name: "", amount: 0 }]);
     setOpen(true);
   };
 
@@ -109,6 +76,12 @@ export function ExpenseRows({ value, onChange }: Props) {
 
       {open && (
         <div className="space-y-2 px-3 pb-3">
+          <datalist id={listId}>
+            {EXPENSE_NAME_SUGGESTIONS.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+
           {value.length === 0 ? (
             <p className="text-xs text-stone-400">
               Yol, fəhlə kimi partiya xərcləri — istəyə bağlı
@@ -116,19 +89,13 @@ export function ExpenseRows({ value, onChange }: Props) {
           ) : (
             value.map((row, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <Select
-                  value={row.kind}
-                  onChange={(e) =>
-                    updateRow(idx, { kind: e.target.value as ExpenseKind })
-                  }
+                <Input
+                  list={listId}
+                  value={row.name}
+                  onChange={(e) => updateRow(idx, { name: e.target.value })}
+                  placeholder="Xərc adı (məs. Yol pulu)"
                   className="min-w-0 flex-1"
-                >
-                  {EXPENSE_KIND_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+                />
                 <Input
                   type="number"
                   min="0"
