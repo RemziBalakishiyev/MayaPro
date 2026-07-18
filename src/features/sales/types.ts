@@ -1,4 +1,16 @@
 import { z } from "zod";
+import type { PaymentType } from "@/types";
+
+/** GET /api/sales sorğu parametrləri. */
+export interface SalesListParams {
+  take?: number;
+  skip?: number;
+  /** ISO tarix (gün): createdAt >= from */
+  from?: string;
+  /** ISO tarix (gün): createdAt <= to */
+  to?: string;
+  paymentType?: PaymentType;
+}
 
 /**
  * Satış yaratma payload-u üçün Zod sxemi (bir mənbə, tip z.infer ilə çıxarılır).
@@ -11,6 +23,8 @@ export const createSaleSchema = z
     productId: z.string().nullable(),
     /** Sərbəst satışda əl ilə yazılan mal adı. */
     productName: z.string().optional(),
+    /** Kateqoriya; sərbəstdə istəyə bağlı, katalogda maldan göndərilə bilər. */
+    category: z.string().nullable().optional(),
     quantity: z.coerce.number().int("Tam ədəd olmalıdır").min(1, "Say ən azı 1 olmalıdır"),
     salePrice: z.coerce.number().gt(0, "Qiymət mütləqdir"),
     discount: z.coerce.number().min(0, "Mənfi ola bilməz").default(0),

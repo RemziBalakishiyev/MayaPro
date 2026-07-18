@@ -3,8 +3,9 @@ import { db } from "./db";
 import { calcRealCost } from "@/features/products/lib";
 import { categoryToExpenseKey } from "@/features/expenses/lib";
 import { uid, todayISO, fmtMoney } from "@/lib/format";
+import type { PagedResult } from "@/lib/paging";
 import { useAuthStore } from "@/features/auth/store";
-import type { CreateSaleInput } from "@/features/sales/types";
+import type { CreateSaleInput, SalesListParams } from "@/features/sales/types";
 import type {
   Product,
   Sale,
@@ -114,7 +115,32 @@ export const categoryHandlers = {
 };
 
 export const saleHandlers = {
-  list: () => db.sales.list(),
+  async list(params: SalesListParams = {}): Promise<PagedResult<Sale>> {
+    const take = Math.max(1, params.take ?? 50);
+    const skip = Math.max(0, params.skip ?? 0);
+    let all = await db.sales.list();
+
+    // Ən yenisi əvvəldə
+    all = [...all].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
+
+    if (params.from) {
+      const from = params.from.slice(0, 10);
+      all = all.filter((s) => s.createdAt.slice(0, 10) >= from);
+    }
+    if (params.to) {
+      const to = params.to.slice(0, 10);
+      all = all.filter((s) => s.createdAt.slice(0, 10) <= to);
+    }
+    if (params.paymentType) {
+      all = all.filter((s) => s.paymentType === params.paymentType);
+    }
+
+    const totalCount = all.length;
+    const items = all.slice(skip, skip + take);
+    return { items, totalCount };
+  },
 
   /**
    * Satış biznes zənciri:
@@ -126,7 +152,8 @@ export const saleHandlers = {
    */
   async createSale(input: CreateSaleInput): Promise<Sale> {
     const qty = Math.max(1, Math.floor(input.quantity));
-    const employeeId = useAuthStore.getState().user?.id ?? "emp_1";
+    const user = useAuthStore.getState().user;
+    const employeeId = user?.id ?? "emp_1";
     const subtotal = input.salePrice * qty;
     const discount = Math.max(0, input.discount);
     const net = Math.max(0, subtotal - discount);
@@ -150,11 +177,15 @@ export const saleHandlers = {
     const productName = isManual
       ? (input.productName?.trim() || "Sərbəst satış")
       : (product as Product).name;
+    const category = isManual
+      ? (input.category?.trim() || null)
+      : (input.category?.trim() || product?.category || null);
 
     const sale: Sale = {
       id: uid("sal"),
       productId: product?.id ?? null,
       productName,
+      category,
       quantity: qty,
       salePrice: input.salePrice,
       subtotal,
@@ -165,7 +196,8 @@ export const saleHandlers = {
       costPerUnit,
       profit,
       isManual,
-      createdAt: todayISO(),
+      soldByName: user?.name ?? null,
+      createdAt: new Date().toISOString(),
       employeeId,
     };
 

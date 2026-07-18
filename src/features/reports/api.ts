@@ -79,6 +79,8 @@ export interface DashboardDto {
     id: string;
     date: string;
     productName: string;
+    /** Kateqoriya snapshot (varsa). */
+    category?: string | null;
     quantity: number;
     totalAmount: number;
     paymentType: string;
@@ -196,10 +198,10 @@ export const reportsApi = {
       };
     }
 
-    const [products, sales, customers, suppliers, expenses, employees, closings] =
+    const [products, salesPage, customers, suppliers, expenses, employees, closings] =
       await Promise.all([
         productsApi.list(),
-        salesApi.list(),
+        salesApi.list({ take: 10000, skip: 0 }),
         customersApi.list(),
         suppliersApi.list(),
         expensesApi.list(),
@@ -208,7 +210,7 @@ export const reportsApi = {
       ]);
     return {
       products,
-      sales,
+      sales: salesPage.items,
       customers,
       suppliers,
       expenses,

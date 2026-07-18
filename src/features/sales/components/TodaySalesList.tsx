@@ -1,65 +1,91 @@
 import { ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney } from "@/lib/format";
 import type { Sale } from "@/types";
 
 interface Props {
   sales: Sale[];
+  /** Yığcam boş vəziyyət (sağ panel xülasəsi). */
+  compact?: boolean;
 }
 
-/** Bugünkü satışlar siyahısı. */
-export function TodaySalesList({ sales }: Props) {
+/** Vaxt etiketi — yalnız tam ISO datetime olduqda (tarix-only seed üçün boş). */
+const saleTime = (iso: string): string => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+  return fmtDate(iso, "HH:mm");
+};
+
+/** Bugünkü satışlar siyahısı — 2 sətirli kompakt kart. */
+export function TodaySalesList({ sales, compact }: Props) {
   if (sales.length === 0) {
     return (
       <EmptyState
         icon={ShoppingCart}
-        title="Bu gün hələ satış yoxdur"
-        hint="İlk satışı formdan edin."
+        title={compact ? "Hələ satış yoxdur" : "Bu gün hələ satış yoxdur"}
+        hint={compact ? undefined : "İlk satışı formdan edin."}
       />
     );
   }
 
   return (
     <div className="divide-y divide-stone-100">
-      {sales.map((s) => (
-        <div
-          key={s.id}
-          className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0"
-        >
-          <span className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="min-w-0 truncate text-sm font-semibold text-stone-800">
-              {s.productName} × {s.quantity}
-            </span>
-            {s.isManual && (
+      {sales.map((s) => {
+        const time = saleTime(s.createdAt);
+        return (
+          <div key={s.id} className="py-2.5 first:pt-0 last:pb-0">
+            <div className="flex items-baseline gap-2">
+              <p className="min-w-0 basis-[60%] flex-1 truncate text-sm font-bold text-stone-900">
+                {s.productName}
+                {s.category ? (
+                  <span className="ml-1.5 font-normal text-stone-400">
+                    {s.category}
+                  </span>
+                ) : null}
+              </p>
+              <span className="shrink-0 text-sm font-bold tabular-nums text-stone-900">
+                {fmtMoney(s.totalAmount)}
+              </span>
+            </div>
+
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-xs tabular-nums text-stone-400">
+                {s.quantity} × {fmtMoney(s.salePrice)}
+              </span>
               <Badge
-                tone="Sərbəst"
-                className="shrink-0 px-1.5 py-0.5 text-[11px]"
+                tone={s.paymentType}
+                className="px-1.5 py-0.5 text-[11px]"
               >
-                Sərbəst
+                {s.paymentType}
               </Badge>
-            )}
-          </span>
-          <Badge tone={s.paymentType}>{s.paymentType}</Badge>
-          <span className="w-24 text-right text-sm font-bold tabular-nums">
-            {fmtMoney(s.totalAmount)}
-          </span>
-          {s.profit == null ? (
-            <span className="w-24 text-right text-xs font-semibold tabular-nums text-stone-400">
-              —
-            </span>
-          ) : (
-            <span
-              className={`w-24 text-right text-xs font-semibold tabular-nums ${
-                s.profit < 0 ? "text-red-600" : "text-emerald-700"
-              }`}
-            >
-              {s.profit >= 0 ? "+" : ""}
-              {fmtMoney(s.profit)}
-            </span>
-          )}
-        </div>
-      ))}
+              {s.profit == null ? (
+                <span className="text-xs font-semibold tabular-nums text-stone-400">
+                  —
+                </span>
+              ) : (
+                <span
+                  className={`text-xs font-semibold tabular-nums ${
+                    s.profit < 0 ? "text-red-600" : "text-emerald-700"
+                  }`}
+                >
+                  {s.profit >= 0 ? "+" : ""}
+                  {fmtMoney(s.profit)}
+                </span>
+              )}
+              {s.isManual && (
+                <Badge tone="Sərbəst" className="px-1.5 py-0.5 text-[11px]">
+                  Sərbəst
+                </Badge>
+              )}
+              {time && (
+                <span className="ml-auto text-[11px] tabular-nums text-stone-400">
+                  {time}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -194,6 +194,7 @@ export const assembleDashboardStats = (
       ({
         id: rs.id,
         productName: rs.productName,
+        category: rs.category ?? null,
         quantity: rs.quantity,
         totalAmount: rs.totalAmount,
         paymentType: rs.paymentType as PaymentType,

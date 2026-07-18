@@ -21,9 +21,11 @@ import { useProducts } from "@/features/products/queries";
 import { attrText, firstAttrValue } from "@/features/products/lib";
 import { useCustomers } from "@/features/customers/queries";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
+import { CategoryField } from "@/features/categories/components/CategoryField";
 import { netTotal, saleProfit, isLossSale } from "../lib";
 import { useCreateSale, useSales, useTodaySales } from "../queries";
 import { TodaySalesList } from "./TodaySalesList";
+import { SalesJournal } from "./SalesJournal";
 import { LossConfirmModal } from "./LossConfirmModal";
 import type { PaymentType, Product } from "@/types";
 
@@ -78,6 +80,7 @@ export function QuickSaleScreen() {
   // ——— Sərbəst (manual) satış ———
   const [isManual, setIsManual] = useState(false);
   const [manualName, setManualName] = useState("");
+  const [manualCategory, setManualCategory] = useState("");
   const [manualCost, setManualCost] = useState("");
 
   // ——— Yalnız təqdimat state ———
@@ -143,6 +146,7 @@ export function QuickSaleScreen() {
     setProductId("");
     setIsManual(false);
     setManualName("");
+    setManualCategory("");
     setManualCost("");
     setQty("1");
     setPrice("");
@@ -157,11 +161,15 @@ export function QuickSaleScreen() {
   const complete = async () => {
     if (!isManual && !product) return;
     const displayName = isManual ? manualName.trim() : product!.name;
+    const category = isManual
+      ? manualCategory.trim() || null
+      : product!.category || null;
     const captured = { name: displayName, amount: net };
     try {
       await createSale.mutateAsync({
         productId: isManual ? null : product!.id,
         productName: isManual ? displayName : undefined,
+        category,
         isManual,
         quantity: q,
         salePrice: sp,
@@ -186,6 +194,7 @@ export function QuickSaleScreen() {
     if (p.quantity <= 0) return;
     setIsManual(false);
     setManualName("");
+    setManualCategory("");
     setManualCost("");
     setProductId(p.id);
     setQty("1");
@@ -197,6 +206,7 @@ export function QuickSaleScreen() {
   const startManual = (name: string) => {
     setIsManual(true);
     setManualName(name);
+    setManualCategory("");
     setManualCost("");
     setProductId("");
     setQty("1");
@@ -210,6 +220,7 @@ export function QuickSaleScreen() {
     setProductId("");
     setIsManual(false);
     setManualName("");
+    setManualCategory("");
     setManualCost("");
     setQty("1");
     setPrice("");
@@ -221,34 +232,32 @@ export function QuickSaleScreen() {
     setQty((prev) => String(Math.min(max, Math.max(1, (Number(prev) || 1) + delta))));
   };
 
-  // Seçim ekranı üçün mallar: axtarış nəticəsi, yoxdursa tez-tez satılanlar
-  const topProductIds = useMemo(() => {
+  // Tez satılanlar çipləri (6–8 mal)
+  const frequentProducts = useMemo(() => {
     const cnt: Record<string, number> = {};
     allSales.forEach((s) => {
-      if (!s.productId) return; // sərbəst satış — katalog malı yoxdur
+      if (!s.productId) return;
       cnt[s.productId] = (cnt[s.productId] ?? 0) + s.quantity;
     });
-    return Object.entries(cnt)
+    const ranked = Object.entries(cnt)
       .sort((a, b) => b[1] - a[1])
-      .map(([id]) => id);
-  }, [allSales]);
-
-  const shownProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (query) {
-      return products.filter((p) =>
-        `${p.name} ${p.barcode} ${p.category} ${attrText(p)}`
-          .toLowerCase()
-          .includes(query),
-      );
-    }
-    const frequent = topProductIds
-      .map((id) => products.find((p) => p.id === id))
+      .map(([id]) => products.find((p) => p.id === id))
       .filter((p): p is Product => !!p && p.quantity > 0)
-      .slice(0, 10);
-    return frequent.length > 0 ? frequent : inStock.slice(0, 10);
+      .slice(0, 8);
+    return ranked.length > 0 ? ranked : inStock.slice(0, 8);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, products, topProductIds]);
+  }, [allSales, products]);
+
+  // Axtarış nəticəsi — yalnız yazılanda kart grid-i üçün
+  const searchProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return [];
+    return products.filter((p) =>
+      `${p.name} ${p.barcode} ${p.category} ${attrText(p)}`
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [search, products]);
 
   const filteredCustomers = useMemo(() => {
     const query = cusQuery.trim().toLowerCase();
@@ -325,21 +334,16 @@ export function QuickSaleScreen() {
               </button>
             </div>
 
-            {!search.trim() && (
-              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-stone-400">
-                Tez-tez satılanlar
-              </p>
-            )}
-
-            {shownProducts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center">
-                <p className="text-base font-bold text-stone-600">
-                  {search.trim() ? `«${search.trim()}» tapılmadı` : "Mal tapılmadı"}
-                </p>
-                <p className="mt-1 text-sm text-stone-500">
-                  Başqa ad yoxlayın və ya sərbəst satışla daxil edin.
-                </p>
-                {search.trim() && (
+            {search.trim() ? (
+              /* ——— AXTARIŞ: mal kartları ——— */
+              searchProducts.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center">
+                  <p className="text-base font-bold text-stone-600">
+                    «{search.trim()}» tapılmadı
+                  </p>
+                  <p className="mt-1 text-sm text-stone-500">
+                    Başqa ad yoxlayın və ya sərbəst satışla daxil edin.
+                  </p>
                   <Button
                     size="lg"
                     className="mx-auto mt-4 justify-center"
@@ -348,26 +352,25 @@ export function QuickSaleScreen() {
                   >
                     «{search.trim()}» — Sərbəst satışla daxil et
                   </Button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-                {shownProducts.map((p) => {
-                  const out = p.quantity <= 0;
-                  const low = p.quantity <= p.minStock;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => selectProduct(p)}
-                      disabled={out}
-                      className={cn(
-                        "flex flex-col justify-between gap-3 rounded-2xl border bg-white p-4 text-left shadow-card transition active:scale-[0.98]",
-                        out
-                          ? "cursor-not-allowed border-stone-200 opacity-60"
-                          : "border-stone-200 hover:border-emerald-400 hover:shadow-md",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                  {searchProducts.map((p) => {
+                    const out = p.quantity <= 0;
+                    const low = p.quantity <= p.minStock;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => selectProduct(p)}
+                        disabled={out}
+                        className={cn(
+                          "flex flex-col justify-between gap-3 rounded-2xl border bg-white p-4 text-left shadow-card transition active:scale-[0.98]",
+                          out
+                            ? "cursor-not-allowed border-stone-200 opacity-60"
+                            : "border-stone-200 hover:border-emerald-400 hover:shadow-md",
+                        )}
+                      >
                         <div className="min-w-0">
                           <p className="line-clamp-2 text-base font-bold text-stone-900">
                             {p.name}
@@ -378,27 +381,51 @@ export function QuickSaleScreen() {
                             </p>
                           )}
                         </div>
-                      </div>
-                      <div className="flex items-end justify-between gap-2">
-                        <span className="text-xl font-bold tabular-nums text-emerald-700">
-                          {fmtMoney(p.salePrice)}
-                        </span>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-xs font-bold",
-                            out
-                              ? "bg-red-100 text-red-700"
-                              : low
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-stone-100 text-stone-500",
-                          )}
+                        <div className="flex items-end justify-between gap-2">
+                          <span className="text-xl font-bold tabular-nums text-emerald-700">
+                            {fmtMoney(p.salePrice)}
+                          </span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-xs font-bold",
+                              out
+                                ? "bg-red-100 text-red-700"
+                                : low
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-stone-100 text-stone-500",
+                            )}
+                          >
+                            {out ? "Bitib" : `${p.quantity} əd.`}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              /* ——— BOŞ AXTARIŞ: çiplər + satış jurnalı ——— */
+              <div className="space-y-5">
+                {frequentProducts.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-stone-400">
+                      Tez satılanlar
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {frequentProducts.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => selectProduct(p)}
+                          className="shrink-0 rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-stone-700 shadow-card ring-1 ring-stone-200 transition hover:border-emerald-400 hover:ring-emerald-300 active:bg-emerald-50"
                         >
-                          {out ? "Bitib" : `${p.quantity} əd.`}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <SalesJournal />
               </div>
             )}
           </div>
@@ -426,6 +453,16 @@ export function QuickSaleScreen() {
                   placeholder="Mal adı (məcburi)"
                   className="h-14 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
                 />
+                <div className="mt-3">
+                  <p className="mb-1.5 text-sm font-semibold text-stone-600">
+                    Kateqoriya{" "}
+                    <span className="font-normal text-stone-400">(istəyə bağlı)</span>
+                  </p>
+                  <CategoryField
+                    value={manualCategory}
+                    onChange={setManualCategory}
+                  />
+                </div>
               </div>
             ) : (
               /* Seçilmiş mal */
@@ -517,7 +554,7 @@ export function QuickSaleScreen() {
             {isManual && (
               <div>
                 <p className="mb-2 text-sm font-semibold text-stone-600">
-                  Maya (bilirsənsə, 1 əd.)
+                  Xərc / Maya (bilirsənsə)
                 </p>
                 <input
                   value={manualCost}
@@ -653,13 +690,16 @@ export function QuickSaleScreen() {
           </div>
         )}
         <div className="rounded-2xl border border-stone-200 bg-white shadow-card">
-          <div className="border-b border-stone-100 px-5 py-4">
-            <h3 className="text-base font-bold text-stone-800">
-              Bugünkü satışlar ({todaySales.length})
+          <div className="border-b border-stone-100 px-5 py-3">
+            <h3 className="text-sm font-bold text-stone-800">
+              Bugünkü satışlar
             </h3>
+            <p className="mt-0.5 text-xs tabular-nums text-stone-500">
+              {todaySales.length} satış · {fmtMoney(todayTotal)}
+            </p>
           </div>
-          <div className="max-h-[50vh] overflow-y-auto p-5">
-            <TodaySalesList sales={todaySales} />
+          <div className="p-4">
+            <TodaySalesList sales={todaySales.slice(0, 3)} compact />
           </div>
         </div>
       </div>
@@ -681,9 +721,9 @@ export function QuickSaleScreen() {
       <Drawer
         open={todayOpen}
         onClose={() => setTodayOpen(false)}
-        title={`Bugünkü satışlar (${todaySales.length})`}
+        title={`Bugün: ${todaySales.length} satış · ${fmtMoney(todayTotal)}`}
       >
-        <TodaySalesList sales={todaySales} />
+        <TodaySalesList sales={todaySales.slice(0, 3)} compact />
       </Drawer>
 
       <NewCustomerModal

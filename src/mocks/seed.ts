@@ -402,6 +402,7 @@ const buildSales = (
         id: uid("sal"),
         productId: p.id,
         productName: p.name,
+        category: p.category || null,
         quantity: q,
         salePrice: price,
         subtotal,
@@ -429,13 +430,16 @@ const buildSales = (
     { pi: 4, q: 1, pay: "Nisyə", cus: "cus_1", emp: "emp_2" },
     { pi: 9, q: 4, pay: "Nağd", emp: "emp_3" },
   ];
-  today.forEach(({ pi, q, pay, cus, emp }) => {
+  today.forEach(({ pi, q, pay, cus, emp }, i) => {
     const p = products[pi];
     const subtotal = p.salePrice * q;
+    const t = new Date();
+    t.setHours(9 + i, (i * 17) % 60, 0, 0);
     sales.push({
       id: uid("sal"),
       productId: p.id,
       productName: p.name,
+      category: p.category || null,
       quantity: q,
       salePrice: p.salePrice,
       subtotal,
@@ -444,16 +448,19 @@ const buildSales = (
       paymentType: pay,
       customerId: cus || null,
       profit: (p.salePrice - p.realCostPerUnit) * q,
-      createdAt: todayISO(),
+      createdAt: t.toISOString(),
       employeeId: emp,
     });
   });
 
   // Sərbəst (katalogdankənar) satışlar — biri mayasız (qazanc naməlum), biri maya ilə
+  const manualNoon = new Date();
+  manualNoon.setHours(12, 15, 0, 0);
   sales.push({
     id: uid("sal"),
     productId: null,
     productName: "Əl ilə: USB kabel",
+    category: "Aksesuar",
     quantity: 1,
     salePrice: 5,
     subtotal: 5,
@@ -464,13 +471,16 @@ const buildSales = (
     costPerUnit: null,
     profit: null,
     isManual: true,
-    createdAt: todayISO(),
+    createdAt: manualNoon.toISOString(),
     employeeId: "emp_3",
   });
+  const manualAfternoon = new Date();
+  manualAfternoon.setHours(14, 40, 0, 0);
   sales.push({
     id: uid("sal"),
     productId: null,
     productName: "Əl ilə: telefon qabı",
+    category: "Aksesuar",
     quantity: 2,
     salePrice: 15,
     subtotal: 30,
@@ -481,7 +491,7 @@ const buildSales = (
     costPerUnit: 8,
     profit: (15 - 8) * 2,
     isManual: true,
-    createdAt: todayISO(),
+    createdAt: manualAfternoon.toISOString(),
     employeeId: "emp_2",
   });
 

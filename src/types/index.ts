@@ -76,6 +76,8 @@ export interface Sale {
   /** Katalog malı satışında dolu; sərbəst (manual) satışda null. */
   productId: string | null;
   productName: string;
+  /** Kateqoriya snapshot; katalogda maldan, sərbəstdə istəyə bağlı. */
+  category?: string | null;
   quantity: number;
   salePrice: number;
   /** Endirimdən əvvəlki cəm (salePrice × quantity) */
@@ -91,6 +93,8 @@ export interface Sale {
   profit: number | null;
   /** Sərbəst (katalogdankənar) satış bayrağı. */
   isManual?: boolean;
+  /** Satıcı adı (backend soldByName snapshot). */
+  soldByName?: string | null;
   createdAt: string;
   employeeId: string;
 }

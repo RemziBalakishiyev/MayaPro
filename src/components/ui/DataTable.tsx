@@ -30,6 +30,8 @@ export interface DataTableProps<TData> {
   emptyState?: { title: string; description?: string };
   /** Səhifədəki sətir sayı (defolt 10) */
   pageSize?: number;
+  /** Server pagination / xarici "Daha çox" üçün daxili səhifələməni gizlət. */
+  hidePagination?: boolean;
   /**
    * Mobil kart görünüşü. Verilərsə, kiçik ekranda (md-dən aşağı) cədvəl əvəzinə
    * hər sətir bu funksiyanın qaytardığı kart kimi göstərilir; md-dən yuxarı cədvəl.
@@ -43,6 +45,7 @@ export function DataTable<TData>({
   isLoading,
   emptyState,
   pageSize = 10,
+  hidePagination = false,
   mobileCard,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -54,8 +57,12 @@ export function DataTable<TData>({
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
+    ...(hidePagination
+      ? {}
+      : {
+          getPaginationRowModel: getPaginationRowModel(),
+          initialState: { pagination: { pageSize } },
+        }),
   });
 
   if (isLoading) {
@@ -75,6 +82,7 @@ export function DataTable<TData>({
     );
   }
 
+  const rows = table.getRowModel().rows;
   const { pageIndex, pageSize: size } = table.getState().pagination;
   const total = data.length;
   const from = pageIndex * size + 1;
@@ -85,7 +93,7 @@ export function DataTable<TData>({
       {/* Mobil: kart görünüşü (md-dən aşağı) */}
       {mobileCard && (
         <div className="space-y-3 md:hidden">
-          {table.getRowModel().rows.map((row) => (
+          {rows.map((row) => (
             <div key={row.id}>{mobileCard(row.original)}</div>
           ))}
         </div>
@@ -145,7 +153,7 @@ export function DataTable<TData>({
             ))}
           </thead>
           <tbody className="divide-y divide-stone-100">
-            {table.getRowModel().rows.map((row) => (
+            {rows.map((row) => (
               <tr key={row.id} className="transition-colors hover:bg-stone-50">
                 {row.getVisibleCells().map((cell) => (
                   <td
@@ -165,27 +173,29 @@ export function DataTable<TData>({
         </table>
       </div>
 
-      <div className="flex items-center justify-between px-1 text-sm text-stone-500">
-        <span className="tabular-nums">
-          {from}-dən {to}-yə, cəmi {total}
-        </span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Əvvəlki
-          </button>
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Növbəti
-          </button>
+      {!hidePagination && (
+        <div className="flex items-center justify-between px-1 text-sm text-stone-500">
+          <span className="tabular-nums">
+            {from}-dən {to}-yə, cəmi {total}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Əvvəlki
+            </button>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Növbəti
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -181,7 +181,16 @@ function DashboardPage() {
                 <div key={s.id} className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-stone-800">
-                      {s.productName} × {s.quantity}
+                      {s.productName}
+                      {s.category ? (
+                        <span className="ml-1.5 font-normal text-stone-400">
+                          {s.category}
+                        </span>
+                      ) : null}
+                      <span className="font-normal text-stone-500">
+                        {" "}
+                        × {s.quantity}
+                      </span>
                     </p>
                     <p className="truncate text-[11px] text-stone-400">
                       {fmtDate(s.createdAt)}
