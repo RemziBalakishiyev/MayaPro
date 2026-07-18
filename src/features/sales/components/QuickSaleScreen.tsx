@@ -1,24 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
   Check,
+  ClipboardList,
+  Coins,
   CreditCard,
   HandCoins,
-  Minus,
+  Package,
   PackagePlus,
   Plus,
   Search,
   ShoppingCart,
   Wallet,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
-import { attrText, firstAttrValue } from "@/features/products/lib";
+import { attrText, calcRealCost, firstAttrValue } from "@/features/products/lib";
+import {
+  BatchExpensesAccordion,
+  EMPTY_EXPENSES,
+} from "@/features/products/components/BatchExpensesAccordion";
 import { useCustomers } from "@/features/customers/queries";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { CategoryField } from "@/features/categories/components/CategoryField";
@@ -26,8 +34,9 @@ import { netTotal, saleProfit, isLossSale } from "../lib";
 import { useCreateSale, useSales, useTodaySales } from "../queries";
 import { TodaySalesList } from "./TodaySalesList";
 import { SalesJournal } from "./SalesJournal";
+import { QtyStepper } from "./QtyStepper";
 import { LossConfirmModal } from "./LossConfirmModal";
-import type { PaymentType, Product } from "@/types";
+import type { ExpenseBreakdown, PaymentType, Product } from "@/types";
 
 const PAY_TYPES: {
   key: PaymentType;
@@ -81,7 +90,10 @@ export function QuickSaleScreen() {
   const [isManual, setIsManual] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualCategory, setManualCategory] = useState("");
-  const [manualCost, setManualCost] = useState("");
+  const [manualPurchase, setManualPurchase] = useState("");
+  const [manualExpenses, setManualExpenses] = useState<ExpenseBreakdown>(() => ({
+    ...EMPTY_EXPENSES,
+  }));
 
   // ——— Yalnız təqdimat state ———
   const [search, setSearch] = useState("");
@@ -124,11 +136,11 @@ export function QuickSaleScreen() {
   const q = Math.max(1, Number(qty) || 1);
   const sp = Number(price) || 0;
   const disc = Number(discount) || 0;
-  // Maya: katalogda hər zaman dolu; sərbəstdə boşdursa null ("naməlum" qazanc)
+  // Sərbəst: maya = alış + xərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
   const realCost: number | null = isManual
-    ? manualCost.trim() === ""
+    ? manualPurchase.trim() === ""
       ? null
-      : Number(manualCost) || 0
+      : calcRealCost(Number(manualPurchase) || 0, q, manualExpenses)
     : (product?.realCostPerUnit ?? 0);
   const net = netTotal(sp, q, disc);
   const profit: number | null =
@@ -147,7 +159,8 @@ export function QuickSaleScreen() {
     setIsManual(false);
     setManualName("");
     setManualCategory("");
-    setManualCost("");
+    setManualPurchase("");
+    setManualExpenses({ ...EMPTY_EXPENSES });
     setQty("1");
     setPrice("");
     setDiscount("");
@@ -195,7 +208,8 @@ export function QuickSaleScreen() {
     setIsManual(false);
     setManualName("");
     setManualCategory("");
-    setManualCost("");
+    setManualPurchase("");
+    setManualExpenses({ ...EMPTY_EXPENSES });
     setProductId(p.id);
     setQty("1");
     setDiscount("");
@@ -207,7 +221,8 @@ export function QuickSaleScreen() {
     setIsManual(true);
     setManualName(name);
     setManualCategory("");
-    setManualCost("");
+    setManualPurchase("");
+    setManualExpenses({ ...EMPTY_EXPENSES });
     setProductId("");
     setQty("1");
     setPrice("");
@@ -221,7 +236,8 @@ export function QuickSaleScreen() {
     setIsManual(false);
     setManualName("");
     setManualCategory("");
-    setManualCost("");
+    setManualPurchase("");
+    setManualExpenses({ ...EMPTY_EXPENSES });
     setQty("1");
     setPrice("");
     setDiscount("");
@@ -433,245 +449,245 @@ export function QuickSaleScreen() {
           /* ——— SATIŞ DETALLARI ——— */
           <div className="space-y-4">
             {isManual ? (
-              /* Sərbəst satış — mal adı böyük input */
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
+              /* Sərbəst satış — 3 kart */
+              <>
+                <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">
                     <PackagePlus size={14} /> Sərbəst satış
                   </span>
                   <button
+                    type="button"
                     onClick={changeProduct}
                     className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-semibold text-stone-700 ring-1 ring-stone-300 active:bg-stone-100"
                   >
                     <ArrowLeft size={16} /> Dəyiş
                   </button>
                 </div>
-                <input
-                  value={manualName}
-                  onChange={(e) => setManualName(e.target.value)}
-                  autoFocus
-                  placeholder="Mal adı (məcburi)"
-                  className="h-14 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-                />
-                <div className="mt-3">
-                  <p className="mb-1.5 text-sm font-semibold text-stone-600">
-                    Kateqoriya{" "}
-                    <span className="font-normal text-stone-400">(istəyə bağlı)</span>
-                  </p>
-                  <CategoryField
-                    value={manualCategory}
-                    onChange={setManualCategory}
-                  />
-                </div>
-              </div>
-            ) : (
-              /* Seçilmiş mal */
-              <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-lg font-bold text-stone-900">
-                    {product!.name}
-                  </p>
-                  <p className="text-sm text-stone-500">
-                    {fmtMoney(product!.salePrice)} · stok: {product!.quantity} əd.
-                  </p>
-                </div>
-                <button
-                  onClick={changeProduct}
-                  className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-base font-semibold text-stone-700 ring-1 ring-stone-300 active:bg-stone-100"
-                >
-                  <ArrowLeft size={18} /> Dəyiş
-                </button>
-              </div>
-            )}
 
-            {/* Say — nəhəng stepper */}
-            <div>
-              <p className="mb-2 text-sm font-semibold text-stone-600">Say</p>
-              <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-2">
-                <button
-                  onClick={() => step(-1)}
-                  disabled={q <= 1}
-                  aria-label="Azalt"
-                  className="flex h-16 w-16 items-center justify-center rounded-xl bg-stone-100 text-stone-700 active:bg-stone-200 disabled:opacity-40"
+                <SaleSection
+                  icon={Package}
+                  title="Mal haqqında"
+                  desc="Ad və kateqoriya"
                 >
-                  <Minus size={28} />
-                </button>
-                <input
-                  value={qty}
-                  onChange={(e) => setQty(e.target.value.replace(/[^\d]/g, ""))}
-                  inputMode="numeric"
-                  className="w-20 bg-transparent text-center text-4xl font-bold tabular-nums text-stone-900 outline-none"
-                />
-                <button
-                  onClick={() => step(1)}
-                  disabled={!isManual && !!product && q >= product.quantity}
-                  aria-label="Artır"
-                  className="flex h-16 w-16 items-center justify-center rounded-xl bg-emerald-600 text-white active:bg-emerald-700 disabled:opacity-40"
-                >
-                  <Plus size={28} />
-                </button>
-              </div>
-              {notEnoughStock && product && (
-                <p className="mt-1.5 text-sm font-semibold text-red-600">
-                  Stokda yalnız {product.quantity} əd. var.
-                </p>
-              )}
-            </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-stone-700">
+                      Mal adı <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={manualName}
+                      onChange={(e) => setManualName(e.target.value)}
+                      autoFocus
+                      placeholder="Mal adı (məcburi)"
+                      className="h-14 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium text-stone-700">
+                      Kateqoriya{" "}
+                      <span className="font-normal text-stone-400">
+                        (istəyə bağlı)
+                      </span>
+                    </p>
+                    <CategoryField
+                      value={manualCategory}
+                      onChange={setManualCategory}
+                    />
+                  </div>
+                </SaleSection>
 
-            {/* Qiymət və endirim */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="mb-2 text-sm font-semibold text-stone-600">
-                  Qiymət (1 əd.)
-                </p>
-                <input
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  inputMode="decimal"
-                  className={cn(
-                    "h-14 w-full rounded-xl border bg-white px-4 text-xl font-bold tabular-nums outline-none focus:ring-4",
-                    belowCost
-                      ? "border-red-400 text-red-600 focus:border-red-500 focus:ring-red-500/20"
-                      : "border-stone-300 text-stone-900 focus:border-emerald-500 focus:ring-emerald-500/20",
+                <SaleSection
+                  icon={Coins}
+                  title="Qiymət və say"
+                  desc="Alış, satış və miqdar"
+                >
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-stone-700">
+                        Alış qiyməti
+                      </label>
+                      <input
+                        value={manualPurchase}
+                        onChange={(e) => setManualPurchase(e.target.value)}
+                        inputMode="decimal"
+                        placeholder="—"
+                        className="h-12 w-full rounded-xl border border-stone-300 bg-white px-2 text-base font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 sm:px-3"
+                      />
+                      <p className="mt-1 text-xs text-stone-500">aldığın qiymət</p>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-stone-700">
+                        Satış qiyməti <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        inputMode="decimal"
+                        className={cn(
+                          "h-12 w-full rounded-xl border bg-white px-2 text-base font-bold tabular-nums outline-none focus:ring-4 sm:px-3",
+                          belowCost
+                            ? "border-red-400 text-red-600 focus:border-red-500 focus:ring-red-500/20"
+                            : "border-stone-300 text-stone-900 focus:border-emerald-500 focus:ring-emerald-500/20",
+                        )}
+                      />
+                      <p className="mt-1 text-xs text-stone-500">satdığın qiymət</p>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-stone-700">
+                        Miqdar
+                      </label>
+                      <QtyStepper
+                        value={qty}
+                        onChange={setQty}
+                        onStep={step}
+                        className="max-w-none"
+                      />
+                      <p className="mt-1 text-xs text-stone-500">neçə ədəd</p>
+                    </div>
+                  </div>
+                  {realCost != null && (
+                    <p className="text-xs font-semibold text-stone-500">
+                      Maya (1 əd.):{" "}
+                      <span className="tabular-nums text-stone-800">
+                        {fmtMoney(realCost)}
+                      </span>
+                    </p>
                   )}
-                />
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-semibold text-stone-600">
-                  Endirim (ümumi)
-                </p>
-                <input
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="0"
-                  className="h-14 w-full rounded-xl border border-stone-300 bg-white px-4 text-xl font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-                />
-              </div>
-            </div>
+                </SaleSection>
 
-            {/* Maya — yalnız sərbəst satışda, istəyə bağlı */}
-            {isManual && (
-              <div>
-                <p className="mb-2 text-sm font-semibold text-stone-600">
-                  Xərc / Maya (bilirsənsə)
-                </p>
-                <input
-                  value={manualCost}
-                  onChange={(e) => setManualCost(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="—"
-                  className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                <SaleSection
+                  icon={ClipboardList}
+                  title="Xərc və ödəniş"
+                  desc="Partiya xərcləri, endirim və ödəniş"
+                >
+                  <BatchExpensesAccordion
+                    value={manualExpenses}
+                    onChange={setManualExpenses}
+                  />
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium text-stone-700">
+                      Endirim (ümumi)
+                    </p>
+                    <input
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0"
+                      className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                  <PaymentBlock
+                    payType={payType}
+                    setPayType={setPayType}
+                    cusQuery={cusQuery}
+                    setCusQuery={setCusQuery}
+                    filteredCustomers={filteredCustomers}
+                    customerId={customerId}
+                    setCustomerId={setCustomerId}
+                    onNewCustomer={() => setNewCusOpen(true)}
+                  />
+                  <input
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Qeyd (istəyə bağlı)"
+                    className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                  />
+                </SaleSection>
+              </>
+            ) : (
+              /* Katalog malı — seçim + yığcam stepper */
+              <>
+                <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-lg font-bold text-stone-900">
+                      {product!.name}
+                    </p>
+                    <p className="text-sm text-stone-500">
+                      {fmtMoney(product!.salePrice)} · stok: {product!.quantity}{" "}
+                      əd.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={changeProduct}
+                    className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-base font-semibold text-stone-700 ring-1 ring-stone-300 active:bg-stone-100"
+                  >
+                    <ArrowLeft size={18} /> Dəyiş
+                  </button>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-stone-600">Say</p>
+                  <QtyStepper
+                    value={qty}
+                    onChange={setQty}
+                    onStep={step}
+                    max={product?.quantity ?? Infinity}
+                    size="lg"
+                  />
+                  {notEnoughStock && product && (
+                    <p className="mt-1.5 text-sm font-semibold text-red-600">
+                      Stokda yalnız {product.quantity} əd. var.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-stone-600">
+                      Qiymət (1 əd.)
+                    </p>
+                    <input
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      inputMode="decimal"
+                      className={cn(
+                        "h-14 w-full rounded-xl border bg-white px-4 text-xl font-bold tabular-nums outline-none focus:ring-4",
+                        belowCost
+                          ? "border-red-400 text-red-600 focus:border-red-500 focus:ring-red-500/20"
+                          : "border-stone-300 text-stone-900 focus:border-emerald-500 focus:ring-emerald-500/20",
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-stone-600">
+                      Endirim (ümumi)
+                    </p>
+                    <input
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      inputMode="decimal"
+                      placeholder="0"
+                      className="h-14 w-full rounded-xl border border-stone-300 bg-white px-4 text-xl font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                </div>
+
+                <PaymentBlock
+                  payType={payType}
+                  setPayType={setPayType}
+                  cusQuery={cusQuery}
+                  setCusQuery={setCusQuery}
+                  filteredCustomers={filteredCustomers}
+                  customerId={customerId}
+                  setCustomerId={setCustomerId}
+                  onNewCustomer={() => setNewCusOpen(true)}
                 />
-                {manualCost.trim() === "" && (
-                  <p className="mt-1.5 text-xs text-stone-500">
-                    Boş qalsa bu satışın qazancı hesabatlarda «naməlum» görünəcək.
-                  </p>
-                )}
-              </div>
+
+                <input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Qeyd (istəyə bağlı)"
+                  className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                />
+              </>
             )}
 
-            {belowCost && (
+            {belowCost && realCost != null && (
               <div className="flex items-center gap-2.5 rounded-xl bg-red-50 px-4 py-3.5 text-base font-bold text-red-700 ring-1 ring-red-200">
                 <AlertTriangle size={22} className="shrink-0" />
                 Bu qiymətə satsan ziyana düşürsən! Minimum: {fmtMoney(realCost)}
               </div>
             )}
-
-            {/* Ödəniş növü — 3 nəhəng düymə */}
-            <div>
-              <p className="mb-2 text-sm font-semibold text-stone-600">
-                Ödəniş növü
-              </p>
-              <div className="grid grid-cols-3 gap-2.5">
-                {PAY_TYPES.map(({ key, label, Icon, on, off }) => (
-                  <button
-                    key={key}
-                    onClick={() => setPayType(key)}
-                    className={cn(
-                      "flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl border-2 text-base font-bold transition",
-                      payType === key ? on : off,
-                    )}
-                  >
-                    <Icon size={24} />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Nisyə → müştəri seçimi */}
-            {payType === "Nisyə" && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3">
-                <div className="relative mb-2">
-                  <Search
-                    size={18}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-                  />
-                  <input
-                    value={cusQuery}
-                    onChange={(e) => setCusQuery(e.target.value)}
-                    placeholder="Müştəri axtar..."
-                    className="h-12 w-full rounded-xl border border-stone-300 bg-white pl-10 pr-3 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-                  />
-                </div>
-                <div className="max-h-52 space-y-1.5 overflow-y-auto">
-                  {filteredCustomers.length === 0 ? (
-                    <p className="px-2 py-3 text-center text-sm text-stone-500">
-                      Müştəri tapılmadı
-                    </p>
-                  ) : (
-                    filteredCustomers.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => setCustomerId(c.id)}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-2 rounded-xl border-2 bg-white px-3 py-3 text-left transition",
-                          customerId === c.id
-                            ? "border-emerald-500 bg-emerald-50"
-                            : "border-stone-200",
-                        )}
-                      >
-                        <span className="min-w-0 flex-1 truncate text-base font-semibold text-stone-800">
-                          {c.name}
-                        </span>
-                        <span
-                          className={cn(
-                            "shrink-0 text-sm font-bold tabular-nums",
-                            c.remainingDebt > 0
-                              ? "text-red-600"
-                              : "text-emerald-700",
-                          )}
-                        >
-                          {c.remainingDebt > 0
-                            ? `borc: ${fmtMoney(c.remainingDebt)}`
-                            : "borcsuz"}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="mt-2 w-full justify-center"
-                  icon={<Plus size={18} />}
-                  onClick={() => setNewCusOpen(true)}
-                >
-                  Yeni müştəri
-                </Button>
-              </div>
-            )}
-
-            {/* Qeyd */}
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Qeyd (istəyə bağlı)"
-              className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-            />
-
-            {/* Desktop cəmi paneli (sağ sütun yoxdursa da görünsün deyə mobil sticky ayrıca) */}
           </div>
         )}
       </div>
@@ -682,6 +698,7 @@ export function QuickSaleScreen() {
           <div className="sticky top-20 rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
             <TotalContent
               net={net}
+              realCost={realCost}
               profit={profit}
               canSubmit={canSubmit}
               pending={createSale.isPending}
@@ -709,6 +726,7 @@ export function QuickSaleScreen() {
         <div className="fixed inset-x-0 bottom-[72px] z-30 border-t border-stone-200 bg-white p-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] lg:hidden">
           <TotalContent
             net={net}
+            realCost={realCost}
             profit={profit}
             canSubmit={canSubmit}
             pending={createSale.isPending}
@@ -744,15 +762,151 @@ export function QuickSaleScreen() {
   );
 }
 
-/** Cəmi + qazanc + "Satışı tamamla" — mobil sticky və desktop paneldə eyni. */
+/** ProductForm üslublu bölmə kartı. */
+function SaleSection({
+  icon: Icon,
+  title,
+  desc,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+      <div className="mb-3 flex items-start gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+          <Icon size={16} />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-stone-900">{title}</h3>
+          <p className="text-xs text-stone-500">{desc}</p>
+        </div>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+/** Ödəniş növü + nisyə müştəri seçimi. */
+function PaymentBlock({
+  payType,
+  setPayType,
+  cusQuery,
+  setCusQuery,
+  filteredCustomers,
+  customerId,
+  setCustomerId,
+  onNewCustomer,
+}: {
+  payType: PaymentType;
+  setPayType: (v: PaymentType) => void;
+  cusQuery: string;
+  setCusQuery: (v: string) => void;
+  filteredCustomers: { id: string; name: string; remainingDebt: number }[];
+  customerId: string;
+  setCustomerId: (v: string) => void;
+  onNewCustomer: () => void;
+}) {
+  return (
+    <>
+      <div>
+        <p className="mb-2 text-sm font-semibold text-stone-600">Ödəniş növü</p>
+        <div className="grid grid-cols-3 gap-2.5">
+          {PAY_TYPES.map(({ key, label, Icon, on, off }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setPayType(key)}
+              className={cn(
+                "flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl border-2 text-base font-bold transition",
+                payType === key ? on : off,
+              )}
+            >
+              <Icon size={24} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {payType === "Nisyə" && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3">
+          <div className="relative mb-2">
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+            />
+            <input
+              value={cusQuery}
+              onChange={(e) => setCusQuery(e.target.value)}
+              placeholder="Müştəri axtar..."
+              className="h-12 w-full rounded-xl border border-stone-300 bg-white pl-10 pr-3 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+            />
+          </div>
+          <div className="max-h-52 space-y-1.5 overflow-y-auto">
+            {filteredCustomers.length === 0 ? (
+              <p className="px-2 py-3 text-center text-sm text-stone-500">
+                Müştəri tapılmadı
+              </p>
+            ) : (
+              filteredCustomers.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCustomerId(c.id)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-2 rounded-xl border-2 bg-white px-3 py-3 text-left transition",
+                    customerId === c.id
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-stone-200",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate text-base font-semibold text-stone-800">
+                    {c.name}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 text-sm font-bold tabular-nums",
+                      c.remainingDebt > 0 ? "text-red-600" : "text-emerald-700",
+                    )}
+                  >
+                    {c.remainingDebt > 0
+                      ? `borc: ${fmtMoney(c.remainingDebt)}`
+                      : "borcsuz"}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+          <Button
+            variant="secondary"
+            size="lg"
+            className="mt-2 w-full justify-center"
+            icon={<Plus size={18} />}
+            onClick={onNewCustomer}
+          >
+            Yeni müştəri
+          </Button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Cəmi + maya + qazanc + "Satışı tamamla". */
 function TotalContent({
   net,
+  realCost,
   profit,
   canSubmit,
   pending,
   onSubmit,
 }: {
   net: number;
+  realCost: number | null;
   profit: number | null;
   canSubmit: boolean;
   pending: boolean;
@@ -760,7 +914,7 @@ function TotalContent({
 }) {
   return (
     <div>
-      <div className="mb-2 flex items-end justify-between">
+      <div className="mb-3 space-y-1.5">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
             Cəmi
@@ -769,23 +923,31 @@ function TotalContent({
             {fmtMoney(net)}
           </p>
         </div>
-        {profit == null ? (
-          <p className="text-sm font-bold tabular-nums text-stone-400">
-            Qazanc: naməlum
-          </p>
-        ) : (
-          <p
-            className={cn(
-              "text-sm font-bold tabular-nums",
-              profit < 0 ? "text-red-600" : "text-emerald-700",
-            )}
-          >
-            Qazanc: {profit >= 0 ? "+" : ""}
-            {fmtMoney(profit)}
-          </p>
-        )}
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="text-stone-500">Maya</span>
+          <span className="font-semibold tabular-nums text-stone-700">
+            {realCost == null ? "naməlum" : fmtMoney(realCost)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="text-stone-500">Qazanc</span>
+          {profit == null ? (
+            <span className="font-bold tabular-nums text-stone-400">naməlum</span>
+          ) : (
+            <span
+              className={cn(
+                "font-bold tabular-nums",
+                profit < 0 ? "text-red-600" : "text-emerald-700",
+              )}
+            >
+              {profit >= 0 ? "+" : ""}
+              {fmtMoney(profit)}
+            </span>
+          )}
+        </div>
       </div>
       <button
+        type="button"
         onClick={onSubmit}
         disabled={!canSubmit || pending}
         className="flex h-[60px] w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 text-lg font-bold text-white transition active:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"

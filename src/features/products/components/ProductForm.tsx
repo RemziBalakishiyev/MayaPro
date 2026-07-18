@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
   Check,
-  ChevronDown,
   ClipboardList,
   Coins,
   MapPin,
@@ -27,9 +26,10 @@ import { useSettingsStore } from "@/features/settings/store";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/components/ui/toast-store";
-import { calcRealCost, profitPerUnit, profitPercent, totalExpenses } from "../lib";
+import { calcRealCost, profitPerUnit, profitPercent } from "../lib";
 import { productSchema, type ProductFormValues } from "../types";
 import { useCreateProduct, useUpdateProduct } from "../queries";
+import { BatchExpensesAccordion } from "./BatchExpensesAccordion";
 import type { NewProduct } from "../api";
 import type { Product } from "@/types";
 
@@ -156,7 +156,6 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const createMut = useCreateProduct();
   const updateMut = useUpdateProduct();
   const suppliers = useSuppliers();
-  const [expensesOpen, setExpensesOpen] = useState(false);
 
   const {
     register,
@@ -184,7 +183,6 @@ export function ProductForm({ open, onClose, initial }: Props) {
         ? toFormValues(initial)
         : { ...emptyValues, minStock: defaultMinStock },
     );
-    setExpensesOpen(false);
   }, [open, initial, reset, defaultMinStock]);
 
   // Canlı hesablama
@@ -192,7 +190,6 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const qty = Number(w.quantity) || 0;
   const pp = Number(w.purchasePrice) || 0;
   const sp = Number(w.salePrice) || 0;
-  const totalExp = totalExpenses(w.expenses);
   const realCost = calcRealCost(pp, qty, w.expenses);
   const perUnit = profitPerUnit(sp, realCost);
   const percent = profitPercent(sp, realCost);
@@ -476,46 +473,12 @@ export function ProductForm({ open, onClose, initial }: Props) {
             <Textarea {...register("note")} />
           </Field>
 
-          <div className="rounded-xl border border-stone-200 bg-white">
-            <button
-              type="button"
-              onClick={() => setExpensesOpen((o) => !o)}
-              className="flex w-full items-center justify-between p-3 text-left"
-            >
-              <span className="text-xs font-bold uppercase tracking-wide text-stone-500">
-                Partiya xərcləri
-                {totalExp > 0 && (
-                  <span className="ml-1 text-emerald-700"> · {fmtMoney(totalExp)}</span>
-                )}
-              </span>
-              <ChevronDown
-                size={18}
-                className={cn(
-                  "text-stone-400 transition-transform",
-                  expensesOpen && "rotate-180",
-                )}
-              />
-            </button>
-            {expensesOpen && (
-              <div className="grid grid-cols-2 gap-3 px-3 pb-3">
-                <Field label="Yol pulu">
-                  <Input type="number" min="0" {...register("expenses.yol")} />
-                </Field>
-                <Field label="Fəhlə pulu">
-                  <Input type="number" min="0" {...register("expenses.fehle")} />
-                </Field>
-                <Field label="Yer/anbar xərci">
-                  <Input type="number" min="0" {...register("expenses.yer")} />
-                </Field>
-                <Field label="Paket/qutu xərci">
-                  <Input type="number" min="0" {...register("expenses.paket")} />
-                </Field>
-                <Field label="Digər xərc">
-                  <Input type="number" min="0" {...register("expenses.diger")} />
-                </Field>
-              </div>
-            )}
-          </div>
+          <BatchExpensesAccordion
+            value={w.expenses}
+            onChange={(expenses) =>
+              setValue("expenses", expenses, { shouldDirty: true })
+            }
+          />
         </Section>
       </form>
     </Drawer>
