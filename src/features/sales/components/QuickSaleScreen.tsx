@@ -24,9 +24,10 @@ import { fmtMoney } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
 import { attrText, calcRealCost, firstAttrValue } from "@/features/products/lib";
 import {
-  BatchExpensesAccordion,
-  EMPTY_EXPENSES,
-} from "@/features/products/components/BatchExpensesAccordion";
+  ExpenseRows,
+  rowsToBreakdown,
+  type ExpenseRowValue,
+} from "@/components/ui/ExpenseRows";
 import { useCustomers } from "@/features/customers/queries";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { CategoryField } from "@/features/categories/components/CategoryField";
@@ -36,7 +37,7 @@ import { TodaySalesList } from "./TodaySalesList";
 import { SalesJournal } from "./SalesJournal";
 import { QtyStepper } from "./QtyStepper";
 import { LossConfirmModal } from "./LossConfirmModal";
-import type { ExpenseBreakdown, PaymentType, Product } from "@/types";
+import type { PaymentType, Product } from "@/types";
 
 const PAY_TYPES: {
   key: PaymentType;
@@ -91,9 +92,7 @@ export function QuickSaleScreen() {
   const [manualName, setManualName] = useState("");
   const [manualCategory, setManualCategory] = useState("");
   const [manualPurchase, setManualPurchase] = useState("");
-  const [manualExpenses, setManualExpenses] = useState<ExpenseBreakdown>(() => ({
-    ...EMPTY_EXPENSES,
-  }));
+  const [expenseRows, setExpenseRows] = useState<ExpenseRowValue[]>([]);
 
   // ——— Yalnız təqdimat state ———
   const [search, setSearch] = useState("");
@@ -137,6 +136,10 @@ export function QuickSaleScreen() {
   const sp = Number(price) || 0;
   const disc = Number(discount) || 0;
   // Sərbəst: maya = alış + xərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
+  const manualExpenses = useMemo(
+    () => rowsToBreakdown(expenseRows),
+    [expenseRows],
+  );
   const realCost: number | null = isManual
     ? manualPurchase.trim() === ""
       ? null
@@ -160,7 +163,7 @@ export function QuickSaleScreen() {
     setManualName("");
     setManualCategory("");
     setManualPurchase("");
-    setManualExpenses({ ...EMPTY_EXPENSES });
+    setExpenseRows([]);
     setQty("1");
     setPrice("");
     setDiscount("");
@@ -209,7 +212,7 @@ export function QuickSaleScreen() {
     setManualName("");
     setManualCategory("");
     setManualPurchase("");
-    setManualExpenses({ ...EMPTY_EXPENSES });
+    setExpenseRows([]);
     setProductId(p.id);
     setQty("1");
     setDiscount("");
@@ -222,7 +225,7 @@ export function QuickSaleScreen() {
     setManualName(name);
     setManualCategory("");
     setManualPurchase("");
-    setManualExpenses({ ...EMPTY_EXPENSES });
+    setExpenseRows([]);
     setProductId("");
     setQty("1");
     setPrice("");
@@ -237,7 +240,7 @@ export function QuickSaleScreen() {
     setManualName("");
     setManualCategory("");
     setManualPurchase("");
-    setManualExpenses({ ...EMPTY_EXPENSES });
+    setExpenseRows([]);
     setQty("1");
     setPrice("");
     setDiscount("");
@@ -559,9 +562,10 @@ export function QuickSaleScreen() {
                   title="Xərc və ödəniş"
                   desc="Partiya xərcləri, endirim və ödəniş"
                 >
-                  <BatchExpensesAccordion
-                    value={manualExpenses}
-                    onChange={setManualExpenses}
+                  <ExpenseRows
+                    key={isManual ? "manual" : "off"}
+                    value={expenseRows}
+                    onChange={setExpenseRows}
                   />
                   <div>
                     <p className="mb-1.5 text-sm font-medium text-stone-700">

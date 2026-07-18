@@ -26,10 +26,14 @@ import { useSettingsStore } from "@/features/settings/store";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/components/ui/toast-store";
+import {
+  ExpenseRows,
+  breakdownToRows,
+  rowsToBreakdown,
+} from "@/components/ui/ExpenseRows";
 import { calcRealCost, profitPerUnit, profitPercent } from "../lib";
 import { productSchema, type ProductFormValues } from "../types";
 import { useCreateProduct, useUpdateProduct } from "../queries";
-import { BatchExpensesAccordion } from "./BatchExpensesAccordion";
 import type { NewProduct } from "../api";
 import type { Product } from "@/types";
 
@@ -59,7 +63,7 @@ const emptyValues: ProductFormValues = {
   shelf: "",
   box: "",
   note: "",
-  expenses: { yol: 0, fehle: 0, yer: 0, paket: 0, diger: 0 },
+  expenseRows: [],
 };
 
 const toFormValues = (p: Product | null): ProductFormValues => {
@@ -81,7 +85,7 @@ const toFormValues = (p: Product | null): ProductFormValues => {
     shelf: p.shelf,
     box: p.box,
     note: p.note,
-    expenses: { ...p.expenses },
+    expenseRows: breakdownToRows(p.expenses),
   };
 };
 
@@ -190,7 +194,8 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const qty = Number(w.quantity) || 0;
   const pp = Number(w.purchasePrice) || 0;
   const sp = Number(w.salePrice) || 0;
-  const realCost = calcRealCost(pp, qty, w.expenses);
+  const expenses = rowsToBreakdown(w.expenseRows ?? []);
+  const realCost = calcRealCost(pp, qty, expenses);
   const perUnit = profitPerUnit(sp, realCost);
   const percent = profitPercent(sp, realCost);
   const loss = sp > 0 && realCost > 0 && sp < realCost;
@@ -205,9 +210,11 @@ export function ProductForm({ open, onClose, initial }: Props) {
     const attributes = data.attributes
       .map((a) => ({ name: a.name.trim(), value: a.value.trim() }))
       .filter((a) => a.name || a.value);
+    const { expenseRows, ...rest } = data;
     const payload: NewProduct = {
-      ...data,
+      ...rest,
       attributes,
+      expenses: rowsToBreakdown(expenseRows),
       location: buildLocation(data) || initial?.location || "",
     };
     try {
@@ -473,10 +480,11 @@ export function ProductForm({ open, onClose, initial }: Props) {
             <Textarea {...register("note")} />
           </Field>
 
-          <BatchExpensesAccordion
-            value={w.expenses}
-            onChange={(expenses) =>
-              setValue("expenses", expenses, { shouldDirty: true })
+          <ExpenseRows
+            key={initial?.id ?? "new"}
+            value={w.expenseRows ?? []}
+            onChange={(rows) =>
+              setValue("expenseRows", rows, { shouldDirty: true })
             }
           />
         </Section>

@@ -1,23 +1,18 @@
 import { z } from "zod";
 
-/** Partiya xərcləri — form sahələri (boş sətir 0-a çevrilir). */
-const money = z.coerce.number().min(0, "Mənfi ola bilməz").default(0);
-
-export const expensesSchema = z.object({
-  yol: money,
-  fehle: money,
-  yer: money,
-  paket: money,
-  diger: money,
+/** Partiya xərcləri — form daxili dinamik sətir (çıxışda breakdown-a yığılır). */
+export const expenseRowSchema = z.object({
+  kind: z.enum(["yol", "fehle", "yer", "paket", "diger"]),
+  amount: z.coerce.number().min(0, "Mənfi ola bilməz").default(0),
 });
 
-/** Mal formu üçün Zod sxemi (bir mənbə, tip z.infer ilə çıxarılır). */
 /** Dinamik xüsusiyyət sətri (ad + dəyər). */
 export const attributeSchema = z.object({
   name: z.string().default(""),
   value: z.string().default(""),
 });
 
+/** Mal formu üçün Zod sxemi (bir mənbə, tip z.infer ilə çıxarılır). */
 export const productSchema = z.object({
   name: z.string().min(1, "Mal adı mütləqdir"),
   image: z.string().default(""),
@@ -38,7 +33,7 @@ export const productSchema = z.object({
   shelf: z.string().default(""),
   box: z.string().default(""),
   note: z.string().default(""),
-  expenses: expensesSchema,
+  expenseRows: z.array(expenseRowSchema).default([]),
 });
 
 /** Form dəyərlərinin tipi. */
