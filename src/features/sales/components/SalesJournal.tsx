@@ -1,17 +1,22 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
+import { FileText, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { Select } from "@/components/ui/Select";
+import { useToast } from "@/components/ui/toast-store";
+import { USE_MOCK } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
+import { downloadFile } from "@/lib/download";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import {
   PERIOD_LABELS,
   type Period,
 } from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
+import { periodToRange } from "../lib";
 import { useSalesJournal } from "../queries";
 import type { PaymentType, Sale } from "@/types";
 
@@ -32,10 +37,12 @@ const saleTime = (iso: string): string => {
 
 /** Satış jurnalı — filterlər + server pagination + DataTable. */
 export function SalesJournal() {
+  const toast = useToast();
   const navigate = routeApi.useNavigate();
   const { period, pay } = routeApi.useSearch();
   const { data: employees = [] } = useEmployees();
   const journal = useSalesJournal(period, pay);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const sellerName = useMemo(() => {
     const map = new Map(employees.map((e) => [e.id, e.name]));
@@ -161,6 +168,28 @@ export function SalesJournal() {
     [sellerName],
   );
 
+  const exportPdf = async () => {
+    if (USE_MOCK) {
+      toast.info("Export real backend rejimində işləyir");
+      return;
+    }
+    const { from, to } = periodToRange(period);
+    const qs = new URLSearchParams();
+    if (from) qs.set("from", from);
+    if (to) qs.set("to", to);
+    const query = qs.toString();
+    const path = `/api/exports/sales.pdf${query ? `?${query}` : ""}`;
+
+    setExportingPdf(true);
+    try {
+      await downloadFile(path, "sales.pdf");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PDF endirilmədi");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -203,6 +232,21 @@ export function SalesJournal() {
             <option value="Kart">Kart</option>
             <option value="Nisyə">Nisyə</option>
           </Select>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={
+              exportingPdf ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <FileText size={14} />
+              )
+            }
+            onClick={() => void exportPdf()}
+            disabled={exportingPdf}
+          >
+            PDF hesabat
+          </Button>
         </div>
       </div>
 

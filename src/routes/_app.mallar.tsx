@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, Upload, Download, Printer } from "lucide-react";
+import { Plus, Upload, Download, Printer, Loader2 } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
+import { USE_MOCK } from "@/lib/api-client";
+import { downloadFile } from "@/lib/download";
 import { fmtMoney } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
 import { useCategories } from "@/features/categories/queries";
@@ -46,6 +48,7 @@ function MallarPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [stockModal, setStockModal] = useState<{
     product: Product;
     mode: StockMode;
@@ -101,6 +104,21 @@ function MallarPage() {
 
   const uiOnly = () => toast.info("Bu funksiya backend ilə əlavə olunacaq");
 
+  const exportExcel = async () => {
+    if (USE_MOCK) {
+      toast.info("Export real backend rejimində işləyir");
+      return;
+    }
+    setExporting(true);
+    try {
+      await downloadFile("/api/exports/products.xlsx", "products.xlsx");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Excel endirilmədi");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div>
       <PageHead
@@ -119,8 +137,15 @@ function MallarPage() {
             <Button
               variant="secondary"
               size="sm"
-              icon={<Download size={14} />}
-              onClick={uiOnly}
+              icon={
+                exporting ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Download size={14} />
+                )
+              }
+              onClick={() => void exportExcel()}
+              disabled={exporting}
             >
               Excel export
             </Button>

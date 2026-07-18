@@ -92,6 +92,49 @@ async function request<T>(
   return data as T;
 }
 
+/**
+ * Binary cavab (Excel/PDF export) — JSON parse etmir.
+ * Content-Disposition header-i filename üçün saxlanılır.
+ */
+async function requestBlob(
+  path: string,
+): Promise<{ blob: Blob; contentDisposition: string | null }> {
+  const token = useAuthStore.getState().token;
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, { method: "GET", headers });
+
+  if (res.status === 401) {
+    useAuthStore.getState().logout();
+    if (unauthorizedHandler) unauthorizedHandler();
+    else if (typeof window !== "undefined") window.location.assign("/login");
+    throw new ApiError(
+      "Sessiya bitib. Yenidən daxil olun.",
+      "Auth.Unauthorized",
+      401,
+    );
+  }
+
+  if (!res.ok) {
+    let message = "Serverlə əlaqədə xəta baş verdi.";
+    let code = "General.Error";
+    try {
+      const err = (await res.json()) as { code?: string; message?: string };
+      if (err.message) message = err.message;
+      if (err.code) code = err.code;
+    } catch {
+      /* binary / boş body */
+    }
+    throw new ApiError(message, code, res.status);
+  }
+
+  return {
+    blob: await res.blob(),
+    contentDisposition: res.headers.get("Content-Disposition"),
+  };
+}
+
 export const apiClient = {
   get: <T>(path: string): Promise<T> => request<T>("GET", path),
   post: <T>(path: string, body?: unknown): Promise<T> =>
@@ -99,4 +142,8 @@ export const apiClient = {
   put: <T>(path: string, body?: unknown): Promise<T> =>
     request<T>("PUT", path, body),
   del: <T>(path: string): Promise<T> => request<T>("DELETE", path),
+  getBlob: (
+    path: string,
+  ): Promise<{ blob: Blob; contentDisposition: string | null }> =>
+    requestBlob(path),
 };
