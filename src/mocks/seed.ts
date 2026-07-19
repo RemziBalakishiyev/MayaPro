@@ -17,7 +17,7 @@ import type {
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 6;
+export const SEED_VERSION = 7;
 
 export interface SeedDatabase {
   products: Product[];
@@ -415,7 +415,9 @@ const buildSales = (
         totalAmount: subtotal,
         paymentType: pay,
         customerId: pay === "Nisyə" ? customers[(d + k) % 3].id : null,
+        costPerUnit: p.realCostPerUnit,
         profit: (price - p.realCostPerUnit) * q,
+        expenseItems: [],
         createdAt: daysAgoISO(d),
         employeeId: employees[(d + k) % 3].id,
       });
@@ -452,13 +454,15 @@ const buildSales = (
       totalAmount: subtotal,
       paymentType: pay,
       customerId: cus || null,
+      costPerUnit: p.realCostPerUnit,
       profit: (p.salePrice - p.realCostPerUnit) * q,
+      expenseItems: [],
       createdAt: t.toISOString(),
       employeeId: emp,
     });
   });
 
-  // Sərbəst (katalogdankənar) satışlar — biri mayasız (qazanc naməlum), biri maya ilə
+  // Sərbəst (katalogdankənar) satışlar — biri mayasız (qazanc naməlum), biri maya + xərc ilə
   const manualNoon = new Date();
   manualNoon.setHours(12, 15, 0, 0);
   sales.push({
@@ -476,6 +480,7 @@ const buildSales = (
     costPerUnit: null,
     profit: null,
     isManual: true,
+    expenseItems: [],
     createdAt: manualNoon.toISOString(),
     employeeId: "emp_3",
   });
@@ -496,6 +501,10 @@ const buildSales = (
     costPerUnit: 8,
     profit: (15 - 8) * 2,
     isManual: true,
+    expenseItems: [
+      { name: "Yol pulu", amount: 4 },
+      { name: "Paket/Qutu", amount: 2 },
+    ],
     createdAt: manualAfternoon.toISOString(),
     employeeId: "emp_2",
   });

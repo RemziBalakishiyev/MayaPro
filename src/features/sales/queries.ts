@@ -1,28 +1,32 @@
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { salesApi } from "./api";
 import {
   createSaleSchema,
   type CreateSaleInput,
   type SalesListParams,
 } from "./types";
-import { todayISO } from "@/lib/format";
 import type { PaymentType } from "@/types";
 import type { Period } from "@/features/reports/lib";
 import { periodToRange } from "./lib";
 
-export const PAGE_SIZE = 50;
+/** Jurnal cədvəlində səhifə başına sətir. */
+export const JOURNAL_PAGE_SIZE = 10;
+
+export interface SalesJournalFilters {
+  period: Period;
+  paymentType?: PaymentType;
+  q?: string;
+  minProfit?: number;
+  maxProfit?: number;
+  minQty?: number;
+  maxQty?: number;
+}
 
 export const saleKeys = {
   all: ["sales"] as const,
   list: (p: SalesListParams) => ["sales", "list", p] as const,
-  journal: (period: Period, pay?: PaymentType) =>
-    ["sales", "journal", period, pay ?? ""] as const,
-  today: (d: string) => ["sales", "today", d] as const,
+  journal: (f: SalesJournalFilters) => ["sales", "journal", f] as const,
+  detail: (id: string) => ["sales", "detail", id] as const,
 };
 
 /** Tam siyahı (köhnə istehlakçılar: müştəri, mal detalları, tez satılanlar). */
@@ -35,43 +39,38 @@ export const useSales = () =>
     },
   });
 
-/** Yalnız bugünkü satışlar (ən yenisi əvvəldə). */
-export const useTodaySales = () => {
-  const t = todayISO();
+/** Satış jurnalı — filterli siyahı (DataTable 10-luq pagination). */
+export const useSalesJournal = (filters: SalesJournalFilters) => {
+  const range = periodToRange(filters.period);
+  const query = filters.q?.trim() || undefined;
+  const params: SalesListParams = {
+    ...range,
+    paymentType: filters.paymentType,
+    q: query,
+    minProfit: filters.minProfit,
+    maxProfit: filters.maxProfit,
+    minQty: filters.minQty,
+    maxQty: filters.maxQty,
+    take: 5000,
+    skip: 0,
+  };
+
   return useQuery({
-    queryKey: saleKeys.today(t),
+    queryKey: saleKeys.journal({ ...filters, q: query }),
     queryFn: async () => {
-      const page = await salesApi.list({
-        from: t,
-        to: t,
-        take: 500,
-        skip: 0,
-      });
+      const page = await salesApi.list(params);
       return page.items;
     },
   });
 };
 
-/** Satış jurnalı — server pagination + "Daha çox yüklə". */
-export const useSalesJournal = (period: Period, paymentType?: PaymentType) => {
-  const range = periodToRange(period);
-  const base: SalesListParams = {
-    ...range,
-    paymentType,
-    take: PAGE_SIZE,
-  };
-
-  return useInfiniteQuery({
-    queryKey: saleKeys.journal(period, paymentType),
-    queryFn: ({ pageParam }) =>
-      salesApi.list({ ...base, skip: pageParam as number }),
-    initialPageParam: 0,
-    getNextPageParam: (last, pages) => {
-      const loaded = pages.reduce((n, p) => n + p.items.length, 0);
-      return loaded < last.totalCount ? loaded : undefined;
-    },
+/** Tək satış detalı — drawer üçün (GET /api/sales/{id}). */
+export const useSaleDetail = (id: string | null) =>
+  useQuery({
+    queryKey: saleKeys.detail(id ?? ""),
+    queryFn: () => salesApi.get(id as string),
+    enabled: !!id,
   });
-};
 
 export const useCreateSale = () => {
   const qc = useQueryClient();

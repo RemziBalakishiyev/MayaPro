@@ -193,6 +193,7 @@ export function QuickSaleScreen() {
         paymentType: payType,
         customerId: payType === "Nisyə" ? customerId : null,
         costPerUnit: isManual ? realCost : undefined,
+        expenseItems: isManual && namedExpenses.length > 0 ? namedExpenses : undefined,
         note: note.trim() || undefined,
       });
       setSuccess(captured);

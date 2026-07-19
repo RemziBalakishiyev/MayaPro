@@ -8,6 +8,7 @@ import type { CreateSaleInput, SalesListParams } from "@/features/sales/types";
 import type {
   Product,
   Sale,
+  SaleDetail,
   PaymentType,
   CustomerPayment,
   Supplier,
@@ -114,6 +115,30 @@ export const categoryHandlers = {
 };
 
 export const saleHandlers = {
+  async getById(id: string): Promise<SaleDetail> {
+    const sale = await db.sales.get(id);
+    if (!sale) throw new Error("Satış tapılmadı");
+
+    let customerName: string | null = null;
+    if (sale.customerId) {
+      const c = await db.customers.get(sale.customerId);
+      customerName = c?.name ?? null;
+    }
+
+    let currentProductName: string | null = null;
+    if (sale.productId) {
+      const p = await db.products.get(sale.productId);
+      currentProductName = p?.name ?? null;
+    }
+
+    return {
+      ...sale,
+      expenseItems: sale.expenseItems ?? [],
+      customerName,
+      currentProductName,
+    };
+  },
+
   async list(params: SalesListParams = {}): Promise<PagedResult<Sale>> {
     const take = Math.max(1, params.take ?? 50);
     const skip = Math.max(0, params.skip ?? 0);
@@ -135,9 +160,35 @@ export const saleHandlers = {
     if (params.paymentType) {
       all = all.filter((s) => s.paymentType === params.paymentType);
     }
+    if (params.q?.trim()) {
+      const q = params.q.trim().toLowerCase();
+      all = all.filter(
+        (s) =>
+          s.productName.toLowerCase().includes(q) ||
+          (s.category ?? "").toLowerCase().includes(q) ||
+          (s.soldByName ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (params.minProfit != null) {
+      const min = params.minProfit;
+      all = all.filter((s) => s.profit != null && s.profit >= min);
+    }
+    if (params.maxProfit != null) {
+      const max = params.maxProfit;
+      all = all.filter((s) => s.profit != null && s.profit <= max);
+    }
+    if (params.minQty != null) {
+      all = all.filter((s) => s.quantity >= params.minQty!);
+    }
+    if (params.maxQty != null) {
+      all = all.filter((s) => s.quantity <= params.maxQty!);
+    }
 
     const totalCount = all.length;
-    const items = all.slice(skip, skip + take);
+    const items = all.slice(skip, skip + take).map((s) => ({
+      ...s,
+      expenseItems: s.expenseItems ?? [],
+    }));
     return { items, totalCount };
   },
 
@@ -179,6 +230,10 @@ export const saleHandlers = {
     const category = isManual
       ? (input.category?.trim() || null)
       : (input.category?.trim() || product?.category || null);
+    // Xərc sətirləri yalnız sənədləşmə — maya/qazanc yenidən hesablanmır
+    const expenseItems = isManual
+      ? mergeExpenseLines(input.expenseItems ?? [])
+      : [];
 
     const sale: Sale = {
       id: uid("sal"),
@@ -195,6 +250,7 @@ export const saleHandlers = {
       costPerUnit,
       profit,
       isManual,
+      expenseItems,
       soldByName: user?.name ?? null,
       createdAt: new Date().toISOString(),
       employeeId,

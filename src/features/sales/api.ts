@@ -5,16 +5,22 @@ import { saleHandlers } from "@/mocks/handlers";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
 import type { PagedResult } from "@/lib/paging";
 import type { CreateSaleInput, SalesListParams } from "@/features/sales/types";
-import type { Sale } from "@/types";
+import type { Sale, SaleDetail, SaleExpenseItem } from "@/types";
 
 export type { SalesListParams };
 
 /** Backend SaleDto → frontend Sale (null sahələr normallaşdırılır). */
-interface SaleDto extends Omit<Sale, "customerId" | "employeeId" | "isManual"> {
+interface SaleDto extends Omit<Sale, "customerId" | "employeeId" | "isManual" | "expenseItems"> {
   customerId: string | null;
   employeeId: string | null;
   isManual?: boolean;
   soldByName?: string | null;
+  expenseItems?: SaleExpenseItem[] | null;
+}
+
+interface SaleDetailDto extends SaleDto {
+  customerName?: string | null;
+  currentProductName?: string | null;
 }
 
 interface PagedSaleDto {
@@ -24,6 +30,12 @@ interface PagedSaleDto {
   TotalCount?: number;
 }
 
+const toExpenseItems = (raw: SaleExpenseItem[] | null | undefined): SaleExpenseItem[] =>
+  (raw ?? []).map((e) => ({
+    name: e.name,
+    amount: Number(e.amount) || 0,
+  }));
+
 const toSale = (d: SaleDto): Sale => ({
   ...d,
   customerId: d.customerId ?? null,
@@ -31,6 +43,13 @@ const toSale = (d: SaleDto): Sale => ({
   isManual: d.isManual ?? false,
   soldByName: d.soldByName ?? null,
   category: d.category ?? null,
+  expenseItems: toExpenseItems(d.expenseItems),
+});
+
+const toSaleDetail = (d: SaleDetailDto): SaleDetail => ({
+  ...toSale(d),
+  customerName: d.customerName ?? null,
+  currentProductName: d.currentProductName ?? null,
 });
 
 const toPaged = (raw: PagedSaleDto | SaleDto[]): PagedResult<Sale> => {
@@ -50,6 +69,11 @@ const buildQuery = (params: SalesListParams = {}): string => {
   if (params.from) q.set("from", params.from);
   if (params.to) q.set("to", params.to);
   if (params.paymentType) q.set("paymentType", params.paymentType);
+  if (params.q?.trim()) q.set("q", params.q.trim());
+  if (params.minProfit != null) q.set("minProfit", String(params.minProfit));
+  if (params.maxProfit != null) q.set("maxProfit", String(params.maxProfit));
+  if (params.minQty != null) q.set("minQty", String(params.minQty));
+  if (params.maxQty != null) q.set("maxQty", String(params.maxQty));
   const s = q.toString();
   return s ? `?${s}` : "";
 };
@@ -61,6 +85,11 @@ export const salesApi = {
       : apiClient
           .get<PagedSaleDto | SaleDto[]>(`/api/sales${buildQuery(params)}`)
           .then(toPaged),
+
+  get: (id: string): Promise<SaleDetail> =>
+    USE_MOCK
+      ? saleHandlers.getById(id)
+      : apiClient.get<SaleDetailDto>(`/api/sales/${id}`).then(toSaleDetail),
 
   create: (input: CreateSaleInput) =>
     USE_MOCK

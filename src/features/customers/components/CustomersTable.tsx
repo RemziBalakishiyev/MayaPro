@@ -13,9 +13,25 @@ interface Props {
   isLoading?: boolean;
   onView: (customer: Customer) => void;
   onPay: (customer: Customer) => void;
+  emptyState?: { title: string; description?: string };
 }
 
-export function CustomersTable({ customers, isLoading, onView, onPay }: Props) {
+/** Son alış / son ödənişdən ən yenisi. */
+function lastActivityDate(c: Customer): string {
+  const a = c.lastPurchaseDate || "";
+  const b = c.lastPaymentDate || "";
+  if (!a) return b;
+  if (!b) return a;
+  return a > b ? a : b;
+}
+
+export function CustomersTable({
+  customers,
+  isLoading,
+  onView,
+  onPay,
+  emptyState,
+}: Props) {
   const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
   const columns = useMemo<ColumnDef<Customer, unknown>[]>(
     () => [
@@ -52,7 +68,8 @@ export function CustomersTable({ customers, isLoading, onView, onPay }: Props) {
         },
       },
       {
-        accessorKey: "lastPurchaseDate",
+        id: "lastActivity",
+        accessorFn: (c) => lastActivityDate(c),
         header: "Son əməliyyat",
         cell: ({ getValue }) => fmtDate((getValue() as string) || ""),
       },
@@ -115,10 +132,12 @@ export function CustomersTable({ customers, isLoading, onView, onPay }: Props) {
       columns={columns}
       data={customers}
       isLoading={isLoading}
-      emptyState={{
-        title: "Hələ müştəri yoxdur",
-        description: "Yuxarıdakı «Yeni müştəri» düyməsi ilə əlavə edin.",
-      }}
+      emptyState={
+        emptyState ?? {
+          title: "Hələ müştəri yoxdur",
+          description: "Yuxarıdakı «Yeni müştəri» düyməsi ilə əlavə edin.",
+        }
+      }
       mobileCard={(c) => {
         const debt = c.remainingDebt;
         return (

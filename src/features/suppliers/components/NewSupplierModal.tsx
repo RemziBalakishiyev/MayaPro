@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
@@ -46,11 +47,7 @@ export function NewSupplierModal({ open, onClose }: Props) {
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Telefon">
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+994xxxxxxxxx"
-          />
+          <PhoneInput value={phone} onChange={setPhone} />
         </Field>
         <Field label="Qeyd">
           <Textarea

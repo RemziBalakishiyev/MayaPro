@@ -32,6 +32,10 @@ export interface DataTableProps<TData> {
   pageSize?: number;
   /** Server pagination / xarici "Daha çox" üçün daxili səhifələməni gizlət. */
   hidePagination?: boolean;
+  /** Xarici kart içində: border/shadow/radius yox, sıx hüceyrə padding. */
+  embedded?: boolean;
+  /** Sətir / mobil kart klik — detal drawer üçün. */
+  onRowClick?: (row: TData) => void;
   /**
    * Mobil kart görünüşü. Verilərsə, kiçik ekranda (md-dən aşağı) cədvəl əvəzinə
    * hər sətir bu funksiyanın qaytardığı kart kimi göstərilir; md-dən yuxarı cədvəl.
@@ -46,6 +50,8 @@ export function DataTable<TData>({
   emptyState,
   pageSize = 10,
   hidePagination = false,
+  embedded = false,
+  onRowClick,
   mobileCard,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -94,7 +100,27 @@ export function DataTable<TData>({
       {mobileCard && (
         <div className="space-y-3 md:hidden">
           {rows.map((row) => (
-            <div key={row.id}>{mobileCard(row.original)}</div>
+            <div
+              key={row.id}
+              role={onRowClick ? "button" : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onClick={
+                onRowClick ? () => onRowClick(row.original) : undefined
+              }
+              onKeyDown={
+                onRowClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onRowClick(row.original);
+                      }
+                    }
+                  : undefined
+              }
+              className={cn(onRowClick && "cursor-pointer")}
+            >
+              {mobileCard(row.original)}
+            </div>
           ))}
         </div>
       )}
@@ -102,7 +128,10 @@ export function DataTable<TData>({
       {/* Desktop/planşet: cədvəl. mobileCard varsa yalnız md-dən yuxarı görünür. */}
       <div
         className={cn(
-          "overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-card",
+          "overflow-x-auto bg-white",
+          embedded
+            ? "rounded-none border-0 shadow-none"
+            : "rounded-2xl border border-stone-200 shadow-card",
           mobileCard && "hidden md:block",
         )}
       >
@@ -117,7 +146,8 @@ export function DataTable<TData>({
                     <th
                       key={header.id}
                       className={cn(
-                        "whitespace-nowrap px-3 py-3.5 text-left text-sm font-bold text-stone-500",
+                        "whitespace-nowrap px-3 text-left text-sm font-bold text-stone-500",
+                        embedded ? "py-2.5" : "py-3.5",
                         (header.column.columnDef.meta as { className?: string })
                           ?.className,
                       )}
@@ -154,12 +184,22 @@ export function DataTable<TData>({
           </thead>
           <tbody className="divide-y divide-stone-100">
             {rows.map((row) => (
-              <tr key={row.id} className="transition-colors hover:bg-stone-50">
+              <tr
+                key={row.id}
+                onClick={
+                  onRowClick ? () => onRowClick(row.original) : undefined
+                }
+                className={cn(
+                  "transition-colors hover:bg-stone-50",
+                  onRowClick && "cursor-pointer",
+                )}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
                     className={cn(
-                      "whitespace-nowrap px-3 py-4 text-base text-stone-700",
+                      "whitespace-nowrap px-3 text-base text-stone-700",
+                      embedded ? "py-3" : "py-4",
                       (cell.column.columnDef.meta as { className?: string })
                         ?.className,
                     )}

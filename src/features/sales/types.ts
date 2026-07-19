@@ -10,7 +10,18 @@ export interface SalesListParams {
   /** ISO tarix (gün): createdAt <= to */
   to?: string;
   paymentType?: PaymentType;
+  /** Mal adı, kateqoriya, satıcı üzrə axtarış. */
+  q?: string;
+  minProfit?: number;
+  maxProfit?: number;
+  minQty?: number;
+  maxQty?: number;
 }
+
+const expenseItemSchema = z.object({
+  name: z.string().trim().min(1),
+  amount: z.coerce.number().gt(0),
+});
 
 /**
  * Satış yaratma payload-u üçün Zod sxemi (bir mənbə, tip z.infer ilə çıxarılır).
@@ -32,6 +43,8 @@ export const createSaleSchema = z
     customerId: z.string().nullable(),
     /** Sərbəst satışda maya; bilinmirsə null ("naməlum" qazanc). */
     costPerUnit: z.coerce.number().min(0, "Mənfi ola bilməz").nullable().optional(),
+    /** Sərbəst satış xərc sətirləri (sənədləşmə; maya hesablamasına təsir etmir). */
+    expenseItems: z.array(expenseItemSchema).optional(),
     /** Sərbəst (katalogdankənar) satış bayrağı. */
     isManual: z.boolean().optional(),
     note: z.string().optional(),

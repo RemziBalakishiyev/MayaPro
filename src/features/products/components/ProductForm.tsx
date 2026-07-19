@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,7 +26,10 @@ import { useSettingsStore } from "@/features/settings/store";
 import { fmtMoney } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useToast } from "@/components/ui/toast-store";
-import { ExpenseRows } from "@/components/ui/ExpenseRows";
+import {
+  ExpenseRows,
+  incompleteExpenseIndexes,
+} from "@/components/ui/ExpenseRows";
 import {
   calcRealCost,
   mergeExpenseLines,
@@ -164,6 +167,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const createMut = useCreateProduct();
   const updateMut = useUpdateProduct();
   const suppliers = useSuppliers();
+  const [expenseError, setExpenseError] = useState("");
 
   const {
     register,
@@ -191,6 +195,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
         ? toFormValues(initial)
         : { ...emptyValues, minStock: defaultMinStock },
     );
+    setExpenseError("");
   }, [open, initial, reset, defaultMinStock]);
 
   // Canlı hesablama
@@ -198,7 +203,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const qty = Number(w.quantity) || 0;
   const pp = Number(w.purchasePrice) || 0;
   const sp = Number(w.salePrice) || 0;
-  const expenses = w.expenses ?? [];
+  const expenses = mergeExpenseLines(w.expenses ?? []);
   const realCost = calcRealCost(pp, qty, expenses);
   const perUnit = profitPerUnit(sp, realCost);
   const percent = profitPercent(sp, realCost);
@@ -210,6 +215,11 @@ export function ProductForm({ open, onClose, initial }: Props) {
       .join(" / ");
 
   const onValid = async (data: ProductFormValues) => {
+    if (incompleteExpenseIndexes(data.expenses).length > 0) {
+      setExpenseError("Məbləği olan xərc sətirində ad yazılmalıdır");
+      return;
+    }
+    setExpenseError("");
     // Boş xüsusiyyət sətirlərini at (ad və dəyər hər ikisi boşdursa).
     const attributes = data.attributes
       .map((a) => ({ name: a.name.trim(), value: a.value.trim() }))
@@ -486,9 +496,11 @@ export function ProductForm({ open, onClose, initial }: Props) {
           <ExpenseRows
             key={initial?.id ?? "new"}
             value={w.expenses ?? []}
-            onChange={(rows) =>
-              setValue("expenses", rows, { shouldDirty: true })
-            }
+            error={expenseError}
+            onChange={(rows) => {
+              setExpenseError("");
+              setValue("expenses", rows, { shouldDirty: true });
+            }}
           />
         </Section>
       </form>

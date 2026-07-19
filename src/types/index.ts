@@ -68,6 +68,9 @@ export interface Product {
   updatedAt: string;
 }
 
+/** Sərbəst satış xərc sətri — sənədləşmə üçün (maya hesablamasına təsir etmir). */
+export type SaleExpenseItem = ProductExpenseLine;
+
 export interface Sale {
   id: string;
   /** Katalog malı satışında dolu; sərbəst (manual) satışda null. */
@@ -90,10 +93,19 @@ export interface Sale {
   profit: number | null;
   /** Sərbəst (katalogdankənar) satış bayrağı. */
   isManual?: boolean;
+  /** Sərbəst satışda mayanı izah edən xərc sətirləri; normal satışda boş. */
+  expenseItems?: SaleExpenseItem[];
   /** Satıcı adı (backend soldByName snapshot). */
   soldByName?: string | null;
   createdAt: string;
   employeeId: string;
+}
+
+/** GET /api/sales/{id} — satış detalı + nisyə müştəri adı. */
+export interface SaleDetail extends Sale {
+  customerName?: string | null;
+  /** Kataloq satışında malın cari adı; sərbəstdə / silinibsə null. */
+  currentProductName?: string | null;
 }
 
 export interface Customer {
