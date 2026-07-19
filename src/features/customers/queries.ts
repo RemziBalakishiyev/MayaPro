@@ -4,6 +4,7 @@ import { customersApi, type NewCustomer } from "./api";
 export const customerKeys = {
   all: ["customers"] as const,
   payments: (id: string) => ["customers", id, "payments"] as const,
+  history: (id: string) => ["customers", id, "history"] as const,
 };
 
 export const useCustomers = () =>
@@ -19,11 +20,23 @@ export const useCustomerPayments = (customerId: string | undefined) =>
     enabled: !!customerId,
   });
 
+export const useCustomerHistory = (customerId: string | undefined) =>
+  useQuery({
+    queryKey: customerKeys.history(customerId ?? ""),
+    queryFn: () => customersApi.listHistory(customerId as string),
+    enabled: !!customerId,
+  });
+
 export const useCreateCustomer = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: NewCustomer) => customersApi.create(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: customerKeys.all }),
+    onSuccess: (customer) => {
+      qc.invalidateQueries({ queryKey: customerKeys.all });
+      if (customer?.id) {
+        qc.invalidateQueries({ queryKey: customerKeys.history(customer.id) });
+      }
+    },
   });
 };
 
@@ -42,6 +55,7 @@ export const useAddCustomerPayment = () => {
     onSuccess: (_data, { customerId }) => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       qc.invalidateQueries({ queryKey: customerKeys.payments(customerId) });
+      qc.invalidateQueries({ queryKey: customerKeys.history(customerId) });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
     },

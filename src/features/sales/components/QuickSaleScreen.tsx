@@ -12,12 +12,11 @@ import {
   PackagePlus,
   Plus,
   Search,
-  ShoppingCart,
   Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Drawer } from "@/components/ui/Drawer";
+import { CustomerPicker } from "@/components/ui/CustomerPicker";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -25,18 +24,19 @@ import { useProducts } from "@/features/products/queries";
 import { attrText, calcRealCost, firstAttrValue } from "@/features/products/lib";
 import {
   ExpenseRows,
+  incompleteExpenseIndexes,
   type ExpenseRowValue,
 } from "@/components/ui/ExpenseRows";
 import { useCustomers } from "@/features/customers/queries";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { CategoryField } from "@/features/categories/components/CategoryField";
+import { mergeExpenseLines } from "@/features/products/lib";
 import { netTotal, saleProfit, isLossSale } from "../lib";
-import { useCreateSale, useSales, useTodaySales } from "../queries";
-import { TodaySalesList } from "./TodaySalesList";
+import { useCreateSale } from "../queries";
 import { SalesJournal } from "./SalesJournal";
 import { QtyStepper } from "./QtyStepper";
 import { LossConfirmModal } from "./LossConfirmModal";
-import type { PaymentType, Product } from "@/types";
+import type { Customer, PaymentType, Product } from "@/types";
 
 const PAY_TYPES: {
   key: PaymentType;
@@ -72,8 +72,6 @@ export function QuickSaleScreen() {
   const toast = useToast();
   const { data: products = [] } = useProducts();
   const { data: customers = [] } = useCustomers();
-  const { data: allSales = [] } = useSales();
-  const { data: todaySales = [] } = useTodaySales();
   const createSale = useCreateSale();
 
   // ——— Biznes state (dəyişməz) ———
@@ -92,19 +90,18 @@ export function QuickSaleScreen() {
   const [manualCategory, setManualCategory] = useState("");
   const [manualPurchase, setManualPurchase] = useState("");
   const [expenseRows, setExpenseRows] = useState<ExpenseRowValue[]>([]);
+  const [expenseError, setExpenseError] = useState("");
 
   // ——— Yalnız təqdimat state ———
   const [search, setSearch] = useState("");
-  const [cusQuery, setCusQuery] = useState("");
   const [newCusOpen, setNewCusOpen] = useState(false);
-  const [todayOpen, setTodayOpen] = useState(false);
+  const [newCusName, setNewCusName] = useState("");
   const [success, setSuccess] = useState<{ name: string; amount: number } | null>(
     null,
   );
   const searchRef = useRef<HTMLInputElement>(null);
 
   const product = products.find((p) => p.id === productId);
-  const inStock = products.filter((p) => p.quantity > 0);
   // Detallar ekranı: katalog malı seçilib VƏ YA sərbəst satış rejimi
   const showDetails = !!product || isManual;
 
@@ -135,10 +132,14 @@ export function QuickSaleScreen() {
   const sp = Number(price) || 0;
   const disc = Number(discount) || 0;
   // Sərbəst: maya = alış + Σxərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
+  const namedExpenses = useMemo(
+    () => mergeExpenseLines(expenseRows),
+    [expenseRows],
+  );
   const realCost: number | null = isManual
     ? manualPurchase.trim() === ""
       ? null
-      : calcRealCost(Number(manualPurchase) || 0, q, expenseRows)
+      : calcRealCost(Number(manualPurchase) || 0, q, namedExpenses)
     : (product?.realCostPerUnit ?? 0);
   const net = netTotal(sp, q, disc);
   const profit: number | null =
@@ -159,6 +160,7 @@ export function QuickSaleScreen() {
     setManualCategory("");
     setManualPurchase("");
     setExpenseRows([]);
+    setExpenseError("");
     setQty("1");
     setPrice("");
     setDiscount("");
@@ -166,11 +168,14 @@ export function QuickSaleScreen() {
     setCustomerId("");
     setNote("");
     setSearch("");
-    setCusQuery("");
   };
 
   const complete = async () => {
     if (!isManual && !product) return;
+    if (isManual && incompleteExpenseIndexes(expenseRows).length > 0) {
+      setExpenseError("Məbləği olan xərc sətirində ad yazılmalıdır");
+      return;
+    }
     const displayName = isManual ? manualName.trim() : product!.name;
     const category = isManual
       ? manualCategory.trim() || null
@@ -197,6 +202,10 @@ export function QuickSaleScreen() {
   };
 
   const trySubmit = () => {
+    if (isManual && incompleteExpenseIndexes(expenseRows).length > 0) {
+      setExpenseError("Məbləği olan xərc sətirində ad yazılmalıdır");
+      return;
+    }
     if (profit != null && profit < 0) setConfirmOpen(true);
     else complete();
   };
@@ -246,22 +255,6 @@ export function QuickSaleScreen() {
     setQty((prev) => String(Math.min(max, Math.max(1, (Number(prev) || 1) + delta))));
   };
 
-  // Tez satılanlar çipləri (6–8 mal)
-  const frequentProducts = useMemo(() => {
-    const cnt: Record<string, number> = {};
-    allSales.forEach((s) => {
-      if (!s.productId) return;
-      cnt[s.productId] = (cnt[s.productId] ?? 0) + s.quantity;
-    });
-    const ranked = Object.entries(cnt)
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => products.find((p) => p.id === id))
-      .filter((p): p is Product => !!p && p.quantity > 0)
-      .slice(0, 8);
-    return ranked.length > 0 ? ranked : inStock.slice(0, 8);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allSales, products]);
-
   // Axtarış nəticəsi — yalnız yazılanda kart grid-i üçün
   const searchProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -273,16 +266,10 @@ export function QuickSaleScreen() {
     );
   }, [search, products]);
 
-  const filteredCustomers = useMemo(() => {
-    const query = cusQuery.trim().toLowerCase();
-    if (!query) return customers;
-    return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(query) || (c.phone || "").includes(query),
-    );
-  }, [cusQuery, customers]);
-
-  const todayTotal = todaySales.reduce((s, x) => s + x.totalAmount, 0);
+  const openNewCustomer = (prefillName = "") => {
+    setNewCusName(prefillName);
+    setNewCusOpen(true);
+  };
 
   // ——— Uğur ekranı ———
   if (success) {
@@ -302,33 +289,26 @@ export function QuickSaleScreen() {
     );
   }
 
-  const todayChip = (
-    <button
-      onClick={() => setTodayOpen(true)}
-      className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-stone-700 shadow-card ring-1 ring-stone-200 active:bg-stone-50 lg:hidden"
-    >
-      <ShoppingCart size={16} className="text-emerald-700" />
-      Bu gün: {todaySales.length} satış · {fmtMoney(todayTotal)}
-    </button>
-  );
-
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
+    <div
+      className={cn(
+        showDetails && "lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6",
+      )}
+    >
       {/* SOL: seçim və ya detallar */}
       <div className="pb-28 lg:pb-0">
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4">
           <h1 className="text-2xl font-bold text-stone-900 lg:text-3xl">Satış</h1>
-          {todayChip}
         </div>
 
         {!showDetails ? (
           /* ——— MAL SEÇİMİ ——— */
           <div>
-            <div className="mb-4 flex gap-2.5">
-              <div className="relative flex-1">
+            <div className="mb-5 flex gap-2.5 rounded-2xl bg-stone-50/80 p-1.5 ring-1 ring-stone-200 focus-within:ring-2 focus-within:ring-emerald-500/40">
+              <div className="relative min-w-0 flex-1">
                 <Search
-                  size={22}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"
+                  size={20}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
                 />
                 <input
                   ref={searchRef}
@@ -336,14 +316,15 @@ export function QuickSaleScreen() {
                   onChange={(e) => setSearch(e.target.value)}
                   autoFocus
                   placeholder="Mal adı və ya barkod..."
-                  className="h-[52px] w-full rounded-2xl border border-stone-300 bg-white pl-12 pr-4 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                  className="h-11 w-full rounded-xl border-0 bg-transparent pl-11 pr-3 text-base text-stone-900 outline-none placeholder:text-stone-400"
                 />
               </div>
               <button
+                type="button"
                 onClick={() => startManual("")}
-                className="flex h-[52px] shrink-0 items-center gap-2 rounded-2xl border-2 border-emerald-600 bg-white px-4 text-base font-bold text-emerald-700 shadow-card transition active:scale-[0.98] active:bg-emerald-50 sm:px-5"
+                className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-emerald-700 px-3.5 text-sm font-bold text-white transition active:scale-[0.98] active:bg-emerald-800 sm:px-4"
               >
-                <PackagePlus size={22} />
+                <PackagePlus size={20} />
                 <span className="hidden sm:inline">Sərbəst satış</span>
               </button>
             </div>
@@ -418,29 +399,8 @@ export function QuickSaleScreen() {
                 </div>
               )
             ) : (
-              /* ——— BOŞ AXTARIŞ: çiplər + satış jurnalı ——— */
-              <div className="space-y-5">
-                {frequentProducts.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-stone-400">
-                      Tez satılanlar
-                    </p>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {frequentProducts.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => selectProduct(p)}
-                          className="shrink-0 rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-stone-700 shadow-card ring-1 ring-stone-200 transition hover:border-emerald-400 hover:ring-emerald-300 active:bg-emerald-50"
-                        >
-                          {p.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <SalesJournal />
-              </div>
+              /* ——— BOŞ AXTARIŞ: satış jurnalı ——— */
+              <SalesJournal />
             )}
           </div>
         ) : (
@@ -560,7 +520,11 @@ export function QuickSaleScreen() {
                   <ExpenseRows
                     key={isManual ? "manual" : "off"}
                     value={expenseRows}
-                    onChange={setExpenseRows}
+                    error={expenseError}
+                    onChange={(rows) => {
+                      setExpenseError("");
+                      setExpenseRows(rows);
+                    }}
                   />
                   <div>
                     <p className="mb-1.5 text-sm font-medium text-stone-700">
@@ -577,12 +541,10 @@ export function QuickSaleScreen() {
                   <PaymentBlock
                     payType={payType}
                     setPayType={setPayType}
-                    cusQuery={cusQuery}
-                    setCusQuery={setCusQuery}
-                    filteredCustomers={filteredCustomers}
+                    customers={customers}
                     customerId={customerId}
                     setCustomerId={setCustomerId}
-                    onNewCustomer={() => setNewCusOpen(true)}
+                    onNewCustomer={openNewCustomer}
                   />
                   <input
                     value={note}
@@ -664,12 +626,10 @@ export function QuickSaleScreen() {
                 <PaymentBlock
                   payType={payType}
                   setPayType={setPayType}
-                  cusQuery={cusQuery}
-                  setCusQuery={setCusQuery}
-                  filteredCustomers={filteredCustomers}
+                  customers={customers}
                   customerId={customerId}
                   setCustomerId={setCustomerId}
-                  onNewCustomer={() => setNewCusOpen(true)}
+                  onNewCustomer={openNewCustomer}
                 />
 
                 <input
@@ -691,9 +651,9 @@ export function QuickSaleScreen() {
         )}
       </div>
 
-      {/* SAĞ (desktop): cəmi + bugünkü satışlar */}
-      <div className="hidden lg:flex lg:flex-col lg:gap-4">
-        {showDetails && (
+      {/* SAĞ (desktop): satış cəmi — yalnız detallarda */}
+      {showDetails && (
+        <div className="hidden lg:block">
           <div className="sticky top-20 rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
             <TotalContent
               net={net}
@@ -704,21 +664,8 @@ export function QuickSaleScreen() {
               onSubmit={trySubmit}
             />
           </div>
-        )}
-        <div className="rounded-2xl border border-stone-200 bg-white shadow-card">
-          <div className="border-b border-stone-100 px-5 py-3">
-            <h3 className="text-sm font-bold text-stone-800">
-              Bugünkü satışlar
-            </h3>
-            <p className="mt-0.5 text-xs tabular-nums text-stone-500">
-              {todaySales.length} satış · {fmtMoney(todayTotal)}
-            </p>
-          </div>
-          <div className="p-4">
-            <TodaySalesList sales={todaySales.slice(0, 3)} compact />
-          </div>
         </div>
-      </div>
+      )}
 
       {/* MOBİL: sabit aşağı cəmi paneli (yalnız detallarda) */}
       {showDetails && (
@@ -734,18 +681,13 @@ export function QuickSaleScreen() {
         </div>
       )}
 
-      {/* Bugünkü satışlar drawer (mobil) */}
-      <Drawer
-        open={todayOpen}
-        onClose={() => setTodayOpen(false)}
-        title={`Bugün: ${todaySales.length} satış · ${fmtMoney(todayTotal)}`}
-      >
-        <TodaySalesList sales={todaySales.slice(0, 3)} compact />
-      </Drawer>
-
       <NewCustomerModal
         open={newCusOpen}
-        onClose={() => setNewCusOpen(false)}
+        onClose={() => {
+          setNewCusOpen(false);
+          setNewCusName("");
+        }}
+        initialName={newCusName}
         onCreated={(customer) => {
           setPayType("Nisyə");
           setCustomerId(customer.id);
@@ -793,21 +735,17 @@ function SaleSection({
 function PaymentBlock({
   payType,
   setPayType,
-  cusQuery,
-  setCusQuery,
-  filteredCustomers,
+  customers,
   customerId,
   setCustomerId,
   onNewCustomer,
 }: {
   payType: PaymentType;
   setPayType: (v: PaymentType) => void;
-  cusQuery: string;
-  setCusQuery: (v: string) => void;
-  filteredCustomers: { id: string; name: string; remainingDebt: number }[];
+  customers: Customer[];
   customerId: string;
   setCustomerId: (v: string) => void;
-  onNewCustomer: () => void;
+  onNewCustomer: (prefillName?: string) => void;
 }) {
   return (
     <>
@@ -833,59 +771,19 @@ function PaymentBlock({
 
       {payType === "Nisyə" && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3">
-          <div className="relative mb-2">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-            />
-            <input
-              value={cusQuery}
-              onChange={(e) => setCusQuery(e.target.value)}
-              placeholder="Müştəri axtar..."
-              className="h-12 w-full rounded-xl border border-stone-300 bg-white pl-10 pr-3 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-            />
-          </div>
-          <div className="max-h-52 space-y-1.5 overflow-y-auto">
-            {filteredCustomers.length === 0 ? (
-              <p className="px-2 py-3 text-center text-sm text-stone-500">
-                Müştəri tapılmadı
-              </p>
-            ) : (
-              filteredCustomers.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCustomerId(c.id)}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-2 rounded-xl border-2 bg-white px-3 py-3 text-left transition",
-                    customerId === c.id
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-stone-200",
-                  )}
-                >
-                  <span className="min-w-0 flex-1 truncate text-base font-semibold text-stone-800">
-                    {c.name}
-                  </span>
-                  <span
-                    className={cn(
-                      "shrink-0 text-sm font-bold tabular-nums",
-                      c.remainingDebt > 0 ? "text-red-600" : "text-emerald-700",
-                    )}
-                  >
-                    {c.remainingDebt > 0
-                      ? `borc: ${fmtMoney(c.remainingDebt)}`
-                      : "borcsuz"}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
+          <p className="mb-2 text-sm font-semibold text-stone-600">Müştəri</p>
+          <CustomerPicker
+            customers={customers}
+            value={customerId}
+            onChange={setCustomerId}
+            onCreateNew={onNewCustomer}
+          />
           <Button
             variant="secondary"
             size="lg"
             className="mt-2 w-full justify-center"
             icon={<Plus size={18} />}
-            onClick={onNewCustomer}
+            onClick={() => onNewCustomer()}
           >
             Yeni müştəri
           </Button>

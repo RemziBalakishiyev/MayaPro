@@ -17,7 +17,7 @@ import type {
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 5;
+export const SEED_VERSION = 6;
 
 export interface SeedDatabase {
   products: Product[];
@@ -336,7 +336,12 @@ const buildCustomers = (): Customer[] =>
       lastPurchaseDate: daysAgoISO(28),
       lastPaymentDate: daysAgoISO(28),
     },
-  ].map((c) => ({ ...c, remainingDebt: c.totalDebt - c.paidAmount }));
+  ].map((c) => ({
+    ...c,
+    remainingDebt: c.totalDebt - c.paidAmount,
+    initialDebt: 0,
+    createdAt: daysAgoISO(60),
+  }));
 
 const buildEmployees = (): Employee[] => [
   {

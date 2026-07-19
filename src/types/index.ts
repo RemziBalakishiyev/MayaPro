@@ -103,8 +103,21 @@ export interface Customer {
   totalDebt: number;
   paidAmount: number;
   remainingDebt: number;
+  /** Sistemə keçid zamanı yazılan ilkin (açılış) borcu. Təmiz başlayan müştəridə 0 */
+  initialDebt: number;
   lastPurchaseDate: string;
   lastPaymentDate: string;
+  /** Mock tarixçə / sıralama üçün; real API-də də mövcuddur */
+  createdAt?: string;
+}
+
+/** GET /api/customers/{id}/history — tam borc tarixçəsi */
+export interface CustomerHistoryEntry {
+  date: string;
+  type: "initialDebt" | "sale" | "payment";
+  amount: number;
+  /** Satışda mal adı (× miqdar); ilkin borc / ödənişdə qeyd mətni */
+  note: string | null;
 }
 
 export interface Supplier {
