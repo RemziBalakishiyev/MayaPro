@@ -4,7 +4,9 @@ import { z } from "zod";
 import { ChevronDown, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { inputCls } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { phoneDigits } from "@/lib/phone";
@@ -13,11 +15,16 @@ import {
   PERIOD_LABELS,
   type Period,
 } from "@/features/reports/lib";
-import { useCustomers } from "@/features/customers/queries";
+import { useCan } from "@/features/auth/store";
+import {
+  useCustomers,
+  useDeleteCustomer,
+} from "@/features/customers/queries";
 import { CustomersTable } from "@/features/customers/components/CustomersTable";
 import { CustomerDrawer } from "@/features/customers/components/CustomerDrawer";
 import { PaymentModal } from "@/features/customers/components/PaymentModal";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
+import { EditCustomerModal } from "@/features/customers/components/EditCustomerModal";
 import type { Customer } from "@/types";
 
 const optNum = z.preprocess((v) => {
@@ -68,11 +75,17 @@ function lastActivityDate(c: Customer): string {
 function BorclarPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
+  const toast = useToast();
   const { data: customers = [], isLoading } = useCustomers();
+  const canEdit = useCan()("customers.write");
+  const canDelete = useCan()("customers.delete");
+  const deleteMut = useDeleteCustomer();
 
   const [selected, setSelected] = useState<Customer | null>(null);
   const [payFor, setPayFor] = useState<Customer | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [editFor, setEditFor] = useState<Customer | null>(null);
+  const [deleteFor, setDeleteFor] = useState<Customer | null>(null);
 
   // Satış detalından ?customerId=… ilə gələndə drawer aç
   useEffect(() => {
@@ -182,6 +195,18 @@ function BorclarPage() {
     hasFilters && filtered.length !== customers.length
       ? `${filtered.length} / ${customers.length} müştəri · Qalıq: ${fmtMoney(filteredDebt)} (ümumi ${fmtMoney(totalDebt)})`
       : `${customers.length} müştəri · Ümumi qalıq borc: ${fmtMoney(totalDebt)}`;
+
+  const handleDelete = async () => {
+    if (!deleteFor) return;
+    try {
+      await deleteMut.mutateAsync(deleteFor.id);
+      toast.success("Müştəri silindi");
+      if (selected?.id === deleteFor.id) setSelected(null);
+      setDeleteFor(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Müştəri silinmədi");
+    }
+  };
 
   return (
     <div>
@@ -434,8 +459,12 @@ function BorclarPage() {
       <CustomersTable
         customers={filtered}
         isLoading={isLoading}
+        canEdit={canEdit}
+        canDelete={canDelete}
         onView={setSelected}
         onPay={setPayFor}
+        onEdit={setEditFor}
+        onDelete={setDeleteFor}
         emptyState={
           hasFilters
             ? {
@@ -464,6 +493,24 @@ function BorclarPage() {
         customer={livePayFor}
       />
       <NewCustomerModal open={newOpen} onClose={() => setNewOpen(false)} />
+      <EditCustomerModal
+        open={!!editFor}
+        onClose={() => setEditFor(null)}
+        customer={
+          editFor
+            ? (customers.find((c) => c.id === editFor.id) ?? editFor)
+            : null
+        }
+      />
+      <ConfirmModal
+        open={!!deleteFor}
+        onClose={() => setDeleteFor(null)}
+        onConfirm={() => void handleDelete()}
+        title="Müştərini sil"
+        message={`${deleteFor?.name ?? "Bu müştəri"} silinəcək. Bu əməliyyat geri alına bilməz.`}
+        confirmText="Sil"
+        danger
+      />
     </div>
   );
 }

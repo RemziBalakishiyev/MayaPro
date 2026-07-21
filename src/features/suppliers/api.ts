@@ -36,6 +36,7 @@ const toSupplier = (d: SupplierDto): Supplier => ({
   id: d.id,
   name: d.name,
   phone: d.phone ?? "",
+  note: d.note ?? "",
   totalDebt: d.debt + d.paidAmount,
   paidAmount: d.paidAmount,
   remainingDebt: d.debt,
@@ -75,6 +76,22 @@ export const suppliersApi = {
             note: input.note,
           })
           .then(toSupplier),
+
+  update: (id: string, input: NewSupplier) =>
+    USE_MOCK
+      ? supplierHandlers.update(id, input)
+      : apiClient
+          .put<SupplierDto>(`/api/suppliers/${id}`, {
+            name: input.name.trim(),
+            phone: input.phone.trim() || null,
+            note: input.note?.trim() || null,
+          })
+          .then(toSupplier),
+
+  remove: (id: string) =>
+    USE_MOCK
+      ? supplierHandlers.remove(id)
+      : apiClient.del<void>(`/api/suppliers/${id}`),
 
   addDebt: (supplierId: string, amount: number) =>
     USE_MOCK

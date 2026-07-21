@@ -19,6 +19,12 @@ export interface NewCustomer {
   initialDebt?: number;
 }
 
+export interface UpdateCustomer {
+  name: string;
+  phone: string;
+  note?: string;
+}
+
 interface CustomerDto {
   id: string;
   name: string;
@@ -55,6 +61,7 @@ const toCustomer = (d: CustomerDto): Customer => ({
   id: d.id,
   name: d.name,
   phone: d.phone ?? "",
+  note: d.note ?? "",
   totalDebt: d.debt + d.paidAmount,
   paidAmount: d.paidAmount,
   remainingDebt: d.debt,
@@ -88,6 +95,7 @@ async function mockCreate(input: NewCustomer): Promise<Customer> {
     id: uid("cus"),
     name: input.name.trim(),
     phone: input.phone.trim(),
+    note: input.note?.trim() || "",
     totalDebt: debt,
     paidAmount: 0,
     remainingDebt: debt,
@@ -97,6 +105,28 @@ async function mockCreate(input: NewCustomer): Promise<Customer> {
     createdAt,
   };
   return db.customers.create(customer);
+}
+
+async function mockUpdate(
+  id: string,
+  input: UpdateCustomer,
+): Promise<Customer> {
+  const c = await db.customers.get(id);
+  if (!c) throw new Error("Müştəri tapılmadı");
+  return db.customers.update(id, {
+    name: input.name.trim(),
+    phone: input.phone.trim(),
+    note: input.note?.trim() || "",
+  });
+}
+
+async function mockRemove(id: string): Promise<void> {
+  const c = await db.customers.get(id);
+  if (!c) throw new Error("Müştəri tapılmadı");
+  if (c.remainingDebt > 0) {
+    throw new Error("Borcu olan müştəri silinə bilməz");
+  }
+  await db.customers.remove(id);
 }
 
 async function mockListPayments(customerId: string): Promise<CustomerPayment[]> {
@@ -169,6 +199,22 @@ export const customersApi = {
             initialDebt: Math.max(0, Number(input.initialDebt) || 0),
           })
           .then(toCustomer),
+
+  update: (id: string, input: UpdateCustomer) =>
+    USE_MOCK
+      ? mockUpdate(id, input)
+      : apiClient
+          .put<CustomerDto>(`/api/customers/${id}`, {
+            name: input.name.trim(),
+            phone: input.phone.trim() || null,
+            note: input.note?.trim() || null,
+          })
+          .then(toCustomer),
+
+  remove: (id: string) =>
+    USE_MOCK
+      ? mockRemove(id)
+      : apiClient.del<void>(`/api/customers/${id}`),
 
   listPayments: (customerId: string) =>
     USE_MOCK

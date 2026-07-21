@@ -49,6 +49,25 @@ export const expensesApi = {
             note: input.note,
           })
           .then(toExpense),
+
+  update: (id: string, input: NewExpense) =>
+    USE_MOCK
+      ? expenseHandlers.updateExpense(id, input)
+      : apiClient
+          .put<ExpenseDto>(`/api/expenses/${id}`, {
+            title: input.title,
+            category: input.category,
+            amount: input.amount,
+            date: input.date,
+            productId: input.productId,
+            note: input.note,
+          })
+          .then(toExpense),
+
+  remove: (id: string) =>
+    USE_MOCK
+      ? expenseHandlers.deleteExpense(id)
+      : apiClient.del<void>(`/api/expenses/${id}`),
 };
 
 export type { NewExpense };

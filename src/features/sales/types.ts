@@ -64,3 +64,7 @@ export const createSaleSchema = z
 
 /** Yeni satış üçün giriş (mock və real POST /api/sales eyni payload). */
 export type CreateSaleInput = z.infer<typeof createSaleSchema>;
+
+/** Satış düzəlişi — eyni sahələr (PUT /api/sales/{id}). */
+export const updateSaleSchema = createSaleSchema;
+export type UpdateSaleInput = CreateSaleInput;

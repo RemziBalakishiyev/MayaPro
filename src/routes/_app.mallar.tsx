@@ -4,11 +4,12 @@ import { z } from "zod";
 import { Plus, Upload, Download, Printer, Loader2 } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/toast-store";
 import { USE_MOCK } from "@/lib/api-client";
 import { downloadFile } from "@/lib/download";
 import { fmtMoney } from "@/lib/format";
-import { useProducts } from "@/features/products/queries";
+import { useProducts, useDeleteProduct } from "@/features/products/queries";
 import { useCategories } from "@/features/categories/queries";
 import { useCan } from "@/features/auth/store";
 import { productStatus, attrText } from "@/features/products/lib";
@@ -45,9 +46,11 @@ function MallarPage() {
   const { data: products = [], isLoading } = useProducts();
   const { data: categoryList = [] } = useCategories();
   const canWrite = useCan()("products.write");
+  const deleteMut = useDeleteProduct();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [deleteFor, setDeleteFor] = useState<Product | null>(null);
   const [exporting, setExporting] = useState(false);
   const [stockModal, setStockModal] = useState<{
     product: Product;
@@ -100,6 +103,17 @@ function MallarPage() {
   const openNew = () => {
     setEditing(null);
     setFormOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteFor) return;
+    try {
+      await deleteMut.mutateAsync(deleteFor.id);
+      toast.success("Mal silindi");
+      setDeleteFor(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Mal silinmədi");
+    }
   };
 
   const uiOnly = () => toast.info("Bu funksiya backend ilə əlavə olunacaq");
@@ -182,6 +196,7 @@ function MallarPage() {
           setFormOpen(true);
         }}
         onAdjust={(product, mode) => setStockModal({ product, mode })}
+        onDelete={setDeleteFor}
       />
 
       <ProductForm
@@ -194,6 +209,19 @@ function MallarPage() {
         onClose={() => setStockModal(null)}
         product={stockModal?.product ?? null}
         mode={stockModal?.mode ?? "add"}
+      />
+      <ConfirmModal
+        open={!!deleteFor}
+        onClose={() => setDeleteFor(null)}
+        onConfirm={() => void handleDelete()}
+        title="Malı sil"
+        message={
+          deleteFor && deleteFor.quantity > 0
+            ? `Bu malın anbarda ${deleteFor.quantity} ədədi var! Satış tarixi qorunacaq, mal siyahıdan silinəcək`
+            : "Satış tarixi qorunacaq, mal siyahıdan silinəcək"
+        }
+        confirmText="Sil"
+        danger
       />
     </div>
   );

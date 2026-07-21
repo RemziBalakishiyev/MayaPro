@@ -13,9 +13,10 @@ export interface AuthUser {
  * Rol icazələri (backend policy-ləri ilə uyğun):
  * - sahib (Owner): hər şey
  * - menecer (Manager): satış, mal, borc, təchizatçı, xərc (OwnerOrManager)
- * - satici (Seller): yalnız satış və müştəri
+ * - satici (Seller): yalnız satış yaratma və müştəri yazma
+ * sales.manage — satış düzəliş/sil (OwnerOrManager)
+ * customers.delete — müştəri silmə (OwnerOnly)
  * Gün sonu (closings.write) və Ayarlar (settings.write) yalnız sahib-dədir
- * (backend OwnerOnly).
  */
 const CAPABILITIES: Record<Role, string[]> = {
   sahib: ["*"],
@@ -24,6 +25,7 @@ const CAPABILITIES: Record<Role, string[]> = {
     "suppliers.write",
     "expenses.write",
     "sales.write",
+    "sales.manage",
     "customers.write",
   ],
   satici: ["sales.write", "customers.write"],

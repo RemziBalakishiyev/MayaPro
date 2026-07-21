@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, Plus, HandCoins } from "lucide-react";
+import { Eye, Plus, HandCoins, Pencil, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import type { Supplier } from "@/types";
@@ -8,17 +8,23 @@ import type { Supplier } from "@/types";
 interface Props {
   suppliers: Supplier[];
   isLoading?: boolean;
+  canWrite?: boolean;
   onView: (supplier: Supplier) => void;
   onAddDebt: (supplier: Supplier) => void;
   onPay: (supplier: Supplier) => void;
+  onEdit?: (supplier: Supplier) => void;
+  onDelete?: (supplier: Supplier) => void;
 }
 
 export function SuppliersTable({
   suppliers,
   isLoading,
+  canWrite = false,
   onView,
   onAddDebt,
   onPay,
+  onEdit,
+  onDelete,
 }: Props) {
   const columns = useMemo<ColumnDef<Supplier, unknown>[]>(
     () => [
@@ -74,6 +80,7 @@ export function SuppliersTable({
         enableSorting: false,
         cell: ({ row }) => {
           const s = row.original;
+          const hasDebt = s.remainingDebt > 0;
           return (
             <div className="flex justify-end gap-1">
               <button
@@ -97,12 +104,35 @@ export function SuppliersTable({
               >
                 <HandCoins size={15} />
               </button>
+              {canWrite && onEdit && (
+                <button
+                  title="Düzəliş"
+                  onClick={() => onEdit(s)}
+                  className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
+                >
+                  <Pencil size={15} />
+                </button>
+              )}
+              {canWrite && onDelete && (
+                <button
+                  title={
+                    hasDebt
+                      ? "Borcu olan təchizatçı silinə bilməz"
+                      : "Sil"
+                  }
+                  disabled={hasDebt}
+                  onClick={() => onDelete(s)}
+                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
             </div>
           );
         },
       },
     ],
-    [onView, onAddDebt, onPay],
+    [onView, onAddDebt, onPay, onEdit, onDelete, canWrite],
   );
 
   return (
@@ -138,7 +168,7 @@ export function SuppliersTable({
                 </p>
               </div>
             </div>
-            <div className="mt-3 flex gap-2 border-t border-stone-100 pt-3">
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
               <button
                 onClick={() => onView(s)}
                 className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
@@ -157,6 +187,30 @@ export function SuppliersTable({
               >
                 <HandCoins size={18} /> Ödəniş
               </button>
+              {canWrite && onEdit && (
+                <button
+                  onClick={() => onEdit(s)}
+                  aria-label="Düzəliş"
+                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200"
+                >
+                  <Pencil size={18} />
+                </button>
+              )}
+              {canWrite && onDelete && (
+                <button
+                  title={
+                    debt > 0
+                      ? "Borcu olan təchizatçı silinə bilməz"
+                      : "Sil"
+                  }
+                  disabled={debt > 0}
+                  onClick={() => onDelete(s)}
+                  aria-label="Sil"
+                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
             </div>
           </div>
         );

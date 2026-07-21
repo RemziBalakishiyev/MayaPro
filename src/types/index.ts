@@ -112,6 +112,8 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
+  /** İstəyə bağlı qeyd (API note) */
+  note?: string;
   totalDebt: number;
   paidAmount: number;
   remainingDebt: number;
@@ -136,6 +138,8 @@ export interface Supplier {
   id: string;
   name: string;
   phone: string;
+  /** İstəyə bağlı qeyd (API note) */
+  note?: string;
   totalDebt: number;
   paidAmount: number;
   remainingDebt: number;

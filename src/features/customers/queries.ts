@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { customersApi, type NewCustomer } from "./api";
+import {
+  customersApi,
+  type NewCustomer,
+  type UpdateCustomer,
+} from "./api";
 
 export const customerKeys = {
   all: ["customers"] as const,
@@ -36,6 +40,33 @@ export const useCreateCustomer = () => {
       if (customer?.id) {
         qc.invalidateQueries({ queryKey: customerKeys.history(customer.id) });
       }
+    },
+  });
+};
+
+export const useUpdateCustomer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateCustomer }) =>
+      customersApi.update(id, input),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: customerKeys.all });
+      qc.invalidateQueries({ queryKey: customerKeys.history(id) });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};
+
+export const useDeleteCustomer = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => customersApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: customerKeys.all });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };

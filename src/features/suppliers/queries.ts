@@ -31,6 +31,30 @@ export const useCreateSupplier = () => {
   });
 };
 
+export const useUpdateSupplier = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: NewSupplier }) =>
+      suppliersApi.update(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: supplierKeys.all });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};
+
+export const useDeleteSupplier = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => suppliersApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: supplierKeys.all });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};
+
 export const useAddSupplierDebt = () => {
   const qc = useQueryClient();
   return useMutation({

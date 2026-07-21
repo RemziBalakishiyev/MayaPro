@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, HandCoins, MessageCircle } from "lucide-react";
+import { Eye, HandCoins, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -11,8 +11,12 @@ import type { Customer } from "@/types";
 interface Props {
   customers: Customer[];
   isLoading?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
   onView: (customer: Customer) => void;
   onPay: (customer: Customer) => void;
+  onEdit?: (customer: Customer) => void;
+  onDelete?: (customer: Customer) => void;
   emptyState?: { title: string; description?: string };
 }
 
@@ -28,8 +32,12 @@ function lastActivityDate(c: Customer): string {
 export function CustomersTable({
   customers,
   isLoading,
+  canEdit = false,
+  canDelete = false,
   onView,
   onPay,
+  onEdit,
+  onDelete,
   emptyState,
 }: Props) {
   const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
@@ -92,6 +100,7 @@ export function CustomersTable({
         enableSorting: false,
         cell: ({ row }) => {
           const c = row.original;
+          const hasDebt = c.remainingDebt > 0;
           return (
             <div className="flex justify-end gap-1">
               <button
@@ -108,7 +117,30 @@ export function CustomersTable({
               >
                 <HandCoins size={15} />
               </button>
-              {c.remainingDebt > 0 && (
+              {canEdit && onEdit && (
+                <button
+                  title="Düzəliş"
+                  onClick={() => onEdit(c)}
+                  className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
+                >
+                  <Pencil size={15} />
+                </button>
+              )}
+              {canDelete && onDelete && (
+                <button
+                  title={
+                    hasDebt
+                      ? "Borcu olan müştəri silinə bilməz"
+                      : "Sil"
+                  }
+                  disabled={hasDebt}
+                  onClick={() => onDelete(c)}
+                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+              {hasDebt && (
                 <a
                   title="WhatsApp xatırlatma"
                   href={waLink(c.phone, c.remainingDebt, waTemplate)}
@@ -124,7 +156,7 @@ export function CustomersTable({
         },
       },
     ],
-    [onView, onPay, waTemplate],
+    [onView, onPay, onEdit, onDelete, canEdit, canDelete, waTemplate],
   );
 
   return (
@@ -165,7 +197,7 @@ export function CustomersTable({
                 {fmtMoney(debt)}
               </span>
             </div>
-            <div className="mt-3 flex gap-2 border-t border-stone-100 pt-3">
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
               <button
                 onClick={() => onView(c)}
                 className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
@@ -178,6 +210,30 @@ export function CustomersTable({
               >
                 <HandCoins size={18} /> Ödəniş
               </button>
+              {canEdit && onEdit && (
+                <button
+                  onClick={() => onEdit(c)}
+                  aria-label="Düzəliş"
+                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200"
+                >
+                  <Pencil size={18} />
+                </button>
+              )}
+              {canDelete && onDelete && (
+                <button
+                  title={
+                    debt > 0
+                      ? "Borcu olan müştəri silinə bilməz"
+                      : "Sil"
+                  }
+                  disabled={debt > 0}
+                  onClick={() => onDelete(c)}
+                  aria-label="Sil"
+                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
               {debt > 0 && (
                 <a
                   href={waLink(c.phone, debt, waTemplate)}

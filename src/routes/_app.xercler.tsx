@@ -4,13 +4,19 @@ import { z } from "zod";
 import { Plus, Receipt } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { StatCard } from "@/components/ui/StatCard";
+import { useToast } from "@/components/ui/toast-store";
 import { fmtMoney, todayISO } from "@/lib/format";
-import { useExpenses } from "@/features/expenses/queries";
+import {
+  useExpenses,
+  useDeleteExpense,
+} from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
 import { useProducts } from "@/features/products/queries";
 import { useCan } from "@/features/auth/store";
+import type { Expense } from "@/types";
 
 const searchSchema = z.object({
   month: z.string().optional(), // "YYYY-MM"
@@ -24,10 +30,14 @@ export const Route = createFileRoute("/_app/xercler")({
 function XerclerPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
+  const toast = useToast();
   const { data: expenses = [], isLoading } = useExpenses();
   const { data: products = [] } = useProducts();
   const canWrite = useCan()("expenses.write");
+  const deleteMut = useDeleteExpense();
   const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Expense | null>(null);
+  const [deleteFor, setDeleteFor] = useState<Expense | null>(null);
 
   const month = search.month ?? todayISO().slice(0, 7);
 
@@ -47,6 +57,17 @@ function XerclerPage() {
       id ? (map.get(id) ?? "—") : "Ümumi xərc";
   }, [products]);
 
+  const handleDelete = async () => {
+    if (!deleteFor) return;
+    try {
+      await deleteMut.mutateAsync(deleteFor.id);
+      toast.success("Xərc silindi");
+      setDeleteFor(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Xərc silinmədi");
+    }
+  };
+
   return (
     <div>
       <PageHead
@@ -54,7 +75,14 @@ function XerclerPage() {
         subtitle="Xərc qeydləri və mala bağlı maya təsiri"
         actions={
           canWrite && (
-            <Button size="md" icon={<Plus size={18} />} onClick={() => setFormOpen(true)}>
+            <Button
+              size="md"
+              icon={<Plus size={18} />}
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
               Yeni xərc
             </Button>
           )
@@ -92,10 +120,36 @@ function XerclerPage() {
       <ExpensesTable
         expenses={filtered}
         isLoading={isLoading}
+        canWrite={canWrite}
         productName={productName}
+        onEdit={(e) => {
+          setEditing(e);
+          setFormOpen(true);
+        }}
+        onDelete={setDeleteFor}
       />
 
-      <ExpenseForm open={formOpen} onClose={() => setFormOpen(false)} />
+      <ExpenseForm
+        open={formOpen}
+        onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
+        }}
+        initial={editing}
+      />
+      <ConfirmModal
+        open={!!deleteFor}
+        onClose={() => setDeleteFor(null)}
+        onConfirm={() => void handleDelete()}
+        title="Xərci sil"
+        message={
+          deleteFor?.productId
+            ? "Malın real mayası yenidən hesablanacaq"
+            : "Bu xərc silinəcək. Bu əməliyyat geri alına bilməz."
+        }
+        confirmText="Sil"
+        danger
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { calcRealCost, mergeExpenseLines } from "@/features/products/lib";
 import { uid, todayISO, fmtMoney } from "@/lib/format";
 import type { PagedResult } from "@/lib/paging";
 import { useAuthStore } from "@/features/auth/store";
-import type { CreateSaleInput, SalesListParams } from "@/features/sales/types";
+import type { CreateSaleInput, SalesListParams, UpdateSaleInput } from "@/features/sales/types";
 import type {
   Product,
   Sale,
@@ -94,6 +94,13 @@ export const productHandlers = {
       `${current.name} ${delta > 0 ? "+" : ""}${delta}${suffix}`,
     );
     return updated;
+  },
+
+  async remove(id: string): Promise<void> {
+    const current = await db.products.get(id);
+    if (!current) throw new Error("Mal tapılmadı");
+    await db.products.remove(id);
+    await logActivity("Mal sildi", current.name);
   },
 };
 
@@ -294,6 +301,70 @@ export const saleHandlers = {
     return sale;
   },
 
+  async updateSale(id: string, input: UpdateSaleInput): Promise<Sale> {
+    const existing = await db.sales.get(id);
+    if (!existing) throw new Error("Satış tapılmadı");
+
+    // Köhnə effektləri geri al
+    if (existing.productId && !existing.isManual) {
+      const p = await db.products.get(existing.productId);
+      if (p) {
+        await db.products.update(p.id, {
+          quantity: p.quantity + existing.quantity,
+          updatedAt: todayISO(),
+        });
+      }
+    }
+    if (existing.paymentType === "Nisyə" && existing.customerId) {
+      const c = await db.customers.get(existing.customerId);
+      if (c) {
+        await db.customers.update(c.id, {
+          totalDebt: Math.max(0, c.totalDebt - existing.totalAmount),
+          remainingDebt: Math.max(0, c.remainingDebt - existing.totalAmount),
+        });
+      }
+    }
+
+    await db.sales.remove(id);
+    const updated = await saleHandlers.createSale(input);
+    // createSale yeni id verir — köhnə id-ni saxla
+    await db.sales.remove(updated.id);
+    const kept: Sale = { ...updated, id, createdAt: existing.createdAt };
+    await db.sales.create(kept);
+    await logActivity("Satış düzəltdi", `${kept.productName} × ${kept.quantity}`);
+    return kept;
+  },
+
+  async deleteSale(id: string): Promise<void> {
+    const existing = await db.sales.get(id);
+    if (!existing) throw new Error("Satış tapılmadı");
+
+    if (existing.productId && !existing.isManual) {
+      const p = await db.products.get(existing.productId);
+      if (p) {
+        await db.products.update(p.id, {
+          quantity: p.quantity + existing.quantity,
+          updatedAt: todayISO(),
+        });
+      }
+    }
+    if (existing.paymentType === "Nisyə" && existing.customerId) {
+      const c = await db.customers.get(existing.customerId);
+      if (c) {
+        await db.customers.update(c.id, {
+          totalDebt: Math.max(0, c.totalDebt - existing.totalAmount),
+          remainingDebt: Math.max(0, c.remainingDebt - existing.totalAmount),
+        });
+      }
+    }
+
+    await db.sales.remove(id);
+    await logActivity(
+      "Satış sildi",
+      `${existing.productName} × ${existing.quantity}`,
+    );
+  },
+
   /** Müştəri ödənişi: borc azalır (0-dan aşağı düşmür) + qeyd + activity. */
   async addCustomerPayment(
     customerId: string,
@@ -357,6 +428,7 @@ export const supplierHandlers = {
       id: uid("sup"),
       name: input.name.trim(),
       phone: input.phone.trim(),
+      note: input.note?.trim() || "",
       totalDebt: 0,
       paidAmount: 0,
       remainingDebt: 0,
@@ -366,6 +438,26 @@ export const supplierHandlers = {
     await db.suppliers.create(supplier);
     await logActivity("Təchizatçı əlavə etdi", supplier.name);
     return supplier;
+  },
+
+  async update(id: string, input: NewSupplier): Promise<Supplier> {
+    const s = await db.suppliers.get(id);
+    if (!s) throw new Error("Təchizatçı tapılmadı");
+    return db.suppliers.update(id, {
+      name: input.name.trim(),
+      phone: input.phone.trim(),
+      note: input.note?.trim() || "",
+    });
+  },
+
+  async remove(id: string): Promise<void> {
+    const s = await db.suppliers.get(id);
+    if (!s) throw new Error("Təchizatçı tapılmadı");
+    if (s.remainingDebt > 0) {
+      throw new Error("Borcu olan təchizatçı silinə bilməz");
+    }
+    await db.suppliers.remove(id);
+    await logActivity("Təchizatçı sildi", s.name);
   },
 
   /** Mal alışı → mənim təchizatçıya borcum artır. */
@@ -466,7 +558,92 @@ export const expenseHandlers = {
     );
     return expense;
   },
+
+  async updateExpense(id: string, input: NewExpense): Promise<Expense> {
+    const existing = await db.expenses.get(id);
+    if (!existing) throw new Error("Xərc tapılmadı");
+
+    // Köhnə mala bağlı xərci geri al
+    if (existing.productId) {
+      await reverseProductExpense(existing);
+    }
+
+    const expense: Expense = {
+      ...existing,
+      title: input.title.trim(),
+      category: input.category,
+      amount: input.amount,
+      productId: input.productId || null,
+      date: input.date,
+      note: input.note ?? "",
+    };
+    await db.expenses.update(id, expense);
+
+    if (expense.productId) {
+      await applyProductExpense(expense);
+    }
+
+    await logActivity(
+      "Xərc düzəltdi",
+      `${expense.title} — ${fmtMoney(expense.amount)}`,
+    );
+    return expense;
+  },
+
+  async deleteExpense(id: string): Promise<void> {
+    const existing = await db.expenses.get(id);
+    if (!existing) throw new Error("Xərc tapılmadı");
+    if (existing.productId) {
+      await reverseProductExpense(existing);
+    }
+    await db.expenses.remove(id);
+    await logActivity(
+      "Xərc sildi",
+      `${existing.title} — ${fmtMoney(existing.amount)}`,
+    );
+  },
 };
+
+async function applyProductExpense(expense: Expense): Promise<void> {
+  if (!expense.productId) return;
+  const p = await db.products.get(expense.productId);
+  if (!p) return;
+  const expenses = mergeExpenseLines([
+    ...(p.expenses ?? []),
+    { name: expense.category, amount: expense.amount },
+  ]);
+  const realCostPerUnit = calcRealCost(
+    p.purchasePrice,
+    p.initialQuantity,
+    expenses,
+  );
+  await db.products.update(p.id, {
+    expenses,
+    realCostPerUnit,
+    updatedAt: todayISO(),
+  });
+}
+
+async function reverseProductExpense(expense: Expense): Promise<void> {
+  if (!expense.productId) return;
+  const p = await db.products.get(expense.productId);
+  if (!p) return;
+  const idx = (p.expenses ?? []).findIndex(
+    (e) => e.name === expense.category && e.amount === expense.amount,
+  );
+  const expenses = [...(p.expenses ?? [])];
+  if (idx >= 0) expenses.splice(idx, 1);
+  const realCostPerUnit = calcRealCost(
+    p.purchasePrice,
+    p.initialQuantity,
+    expenses,
+  );
+  await db.products.update(p.id, {
+    expenses,
+    realCostPerUnit,
+    updatedAt: todayISO(),
+  });
+}
 
 /** Gün sonu bağlanışı girişi — cəmlər serverdə/mock qatında hesablanır. */
 export interface CloseDayInput {

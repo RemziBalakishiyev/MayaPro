@@ -71,3 +71,17 @@ export const useAdjustStock = () => {
     },
   });
 };
+
+export const useDeleteProduct = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => productsApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.all });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};

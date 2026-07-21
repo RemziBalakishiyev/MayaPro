@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { salesApi } from "./api";
 import {
   createSaleSchema,
+  updateSaleSchema,
   type CreateSaleInput,
   type SalesListParams,
+  type UpdateSaleInput,
 } from "./types";
 import type { PaymentType } from "@/types";
 import type { Period } from "@/features/reports/lib";
@@ -27,6 +29,15 @@ export const saleKeys = {
   list: (p: SalesListParams) => ["sales", "list", p] as const,
   journal: (f: SalesJournalFilters) => ["sales", "journal", f] as const,
   detail: (id: string) => ["sales", "detail", id] as const,
+};
+
+const invalidateSaleSideEffects = (qc: ReturnType<typeof useQueryClient>) => {
+  qc.invalidateQueries({ queryKey: saleKeys.all });
+  qc.invalidateQueries({ queryKey: ["products"] });
+  qc.invalidateQueries({ queryKey: ["customers"] });
+  qc.invalidateQueries({ queryKey: ["dashboard"] });
+  qc.invalidateQueries({ queryKey: ["summary"] });
+  qc.invalidateQueries({ queryKey: ["activity"] });
 };
 
 /** Tam siyahı (köhnə istehlakçılar: müştəri, mal detalları, tez satılanlar). */
@@ -77,14 +88,23 @@ export const useCreateSale = () => {
   return useMutation({
     mutationFn: (input: CreateSaleInput) =>
       salesApi.create(createSaleSchema.parse(input)),
-    onSuccess: () => {
-      // Satış → stok azaldı, borc dəyişə bilər, dashboard/jurnal yeniləndi
-      qc.invalidateQueries({ queryKey: saleKeys.all });
-      qc.invalidateQueries({ queryKey: ["products"] });
-      qc.invalidateQueries({ queryKey: ["customers"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-      qc.invalidateQueries({ queryKey: ["summary"] });
-      qc.invalidateQueries({ queryKey: ["activity"] });
-    },
+    onSuccess: () => invalidateSaleSideEffects(qc),
+  });
+};
+
+export const useUpdateSale = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateSaleInput }) =>
+      salesApi.update(id, updateSaleSchema.parse(input)),
+    onSuccess: () => invalidateSaleSideEffects(qc),
+  });
+};
+
+export const useDeleteSale = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => salesApi.remove(id),
+    onSuccess: () => invalidateSaleSideEffects(qc),
   });
 };

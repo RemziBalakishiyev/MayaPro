@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Package, Plus, Minus, Pencil, Eye } from "lucide-react";
+import { Package, Plus, Minus, Pencil, Eye, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -27,6 +27,7 @@ interface Props {
   canEdit?: boolean;
   onEdit: (product: Product) => void;
   onAdjust: (product: Product, mode: StockMode) => void;
+  onDelete?: (product: Product) => void;
 }
 
 export function ProductsTable({
@@ -35,6 +36,7 @@ export function ProductsTable({
   canEdit = true,
   onEdit,
   onAdjust,
+  onDelete,
 }: Props) {
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
     () => [
@@ -213,12 +215,21 @@ export function ProductsTable({
                   <Pencil size={15} />
                 </button>
               )}
+              {canEdit && onDelete && (
+                <button
+                  title="Sil"
+                  onClick={() => onDelete(p)}
+                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
             </div>
           );
         },
       },
     ],
-    [onEdit, onAdjust, canEdit],
+    [onEdit, onAdjust, onDelete, canEdit],
   );
 
   return (
@@ -305,6 +316,15 @@ export function ProductsTable({
                   className="flex h-11 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200"
                 >
                   <Pencil size={18} />
+                </button>
+              )}
+              {canEdit && onDelete && (
+                <button
+                  onClick={() => onDelete(p)}
+                  aria-label="Sil"
+                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100"
+                >
+                  <Trash2 size={18} />
                 </button>
               )}
             </div>

@@ -38,6 +38,11 @@ export const productsApi = {
           delta,
           note: reason,
         }),
+
+  remove: (id: string) =>
+    USE_MOCK
+      ? productHandlers.remove(id)
+      : apiClient.del<void>(`/api/products/${id}`),
 };
 
 export type { NewProduct, ProductUpdate };

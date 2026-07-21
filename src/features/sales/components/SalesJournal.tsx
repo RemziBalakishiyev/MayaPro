@@ -161,8 +161,8 @@ export function SalesJournal() {
         },
       },
       {
-        id: "maya",
-        header: "Maya",
+        id: "xerc",
+        header: "Xərc",
         cell: ({ row }) => {
           const s = row.original;
           const hasExpenses =
@@ -575,7 +575,7 @@ export function SalesJournal() {
                   {s.quantity} × {fmtMoney(s.salePrice)}
                 </span>
                 <span className="text-xs tabular-nums text-stone-400">
-                  Maya:{" "}
+                  Xərc:{" "}
                   {s.costPerUnit != null
                     ? fmtMoney(s.costPerUnit * s.quantity)
                     : "—"}

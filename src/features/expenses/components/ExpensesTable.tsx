@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Pencil, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -8,11 +9,21 @@ import type { Expense } from "@/types";
 interface Props {
   expenses: Expense[];
   isLoading?: boolean;
+  canWrite?: boolean;
   /** productId → mal adı (bağlı mal sütunu üçün) */
   productName: (id: string | null) => string;
+  onEdit?: (expense: Expense) => void;
+  onDelete?: (expense: Expense) => void;
 }
 
-export function ExpensesTable({ expenses, isLoading, productName }: Props) {
+export function ExpensesTable({
+  expenses,
+  isLoading,
+  canWrite = false,
+  productName,
+  onEdit,
+  onDelete,
+}: Props) {
   const columns = useMemo<ColumnDef<Expense, unknown>[]>(
     () => [
       {
@@ -66,8 +77,42 @@ export function ExpensesTable({ expenses, isLoading, productName }: Props) {
           </span>
         ),
       },
+      ...(canWrite
+        ? [
+            {
+              id: "actions",
+              header: "Əməliyyat",
+              enableSorting: false,
+              cell: ({ row }: { row: { original: Expense } }) => {
+                const e = row.original;
+                return (
+                  <div className="flex justify-end gap-1">
+                    {onEdit && (
+                      <button
+                        title="Düzəliş"
+                        onClick={() => onEdit(e)}
+                        className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        title="Sil"
+                        onClick={() => onDelete(e)}
+                        className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                );
+              },
+            } as ColumnDef<Expense, unknown>,
+          ]
+        : []),
     ],
-    [productName],
+    [productName, canWrite, onEdit, onDelete],
   );
 
   return (
@@ -102,6 +147,26 @@ export function ExpensesTable({ expenses, isLoading, productName }: Props) {
           </div>
           {e.note && (
             <p className="mt-2 text-sm text-stone-500">{e.note}</p>
+          )}
+          {canWrite && (
+            <div className="mt-3 flex gap-2 border-t border-stone-100 pt-3">
+              {onEdit && (
+                <button
+                  onClick={() => onEdit(e)}
+                  className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
+                >
+                  <Pencil size={18} /> Düzəliş
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={() => onDelete(e)}
+                  className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-base font-semibold text-red-600 active:bg-red-100"
+                >
+                  <Trash2 size={18} /> Sil
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

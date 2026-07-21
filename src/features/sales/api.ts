@@ -4,7 +4,11 @@
 import { saleHandlers } from "@/mocks/handlers";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
 import type { PagedResult } from "@/lib/paging";
-import type { CreateSaleInput, SalesListParams } from "@/features/sales/types";
+import type {
+  CreateSaleInput,
+  SalesListParams,
+  UpdateSaleInput,
+} from "@/features/sales/types";
 import type { Sale, SaleDetail, SaleExpenseItem } from "@/types";
 
 export type { SalesListParams };
@@ -95,6 +99,16 @@ export const salesApi = {
     USE_MOCK
       ? saleHandlers.createSale(input)
       : apiClient.post<SaleDto>("/api/sales", input).then(toSale),
+
+  update: (id: string, input: UpdateSaleInput) =>
+    USE_MOCK
+      ? saleHandlers.updateSale(id, input)
+      : apiClient.put<SaleDto>(`/api/sales/${id}`, input).then(toSale),
+
+  remove: (id: string) =>
+    USE_MOCK
+      ? saleHandlers.deleteSale(id)
+      : apiClient.del<void>(`/api/sales/${id}`),
 };
 
-export type { CreateSaleInput };
+export type { CreateSaleInput, UpdateSaleInput };
