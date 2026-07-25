@@ -85,9 +85,12 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
   const costTotal =
     sale?.costPerUnit != null ? sale.costPerUnit * sale.quantity : null;
 
+  // Nisyədə müştəri məcburi olduğu üçün adının boş qayıtması → silinmiş müştəri
   const deletedCustomer =
     sale?.paymentType === "Nisyə" &&
     !(sale.customerName && sale.customerName.trim());
+  const linkedCustomerName =
+    sale?.customerId && sale.customerName?.trim() ? sale.customerName : null;
 
   return (
     <Drawer
@@ -190,21 +193,20 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
             <Section title="Ödəniş">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone={sale.paymentType}>{sale.paymentType}</Badge>
-                {sale.paymentType === "Nisyə" &&
-                  (deletedCustomer ? (
-                    <span className="text-sm font-medium text-stone-400">
-                      Silinmiş müştəri
-                    </span>
-                  ) : sale.customerId ? (
-                    <Link
-                      to="/borclar"
-                      search={{ customerId: sale.customerId }}
-                      onClick={onClose}
-                      className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline"
-                    >
-                      {sale.customerName || "Müştəri"}
-                    </Link>
-                  ) : null)}
+                {deletedCustomer ? (
+                  <span className="text-sm font-medium text-stone-400">
+                    Silinmiş müştəri
+                  </span>
+                ) : linkedCustomerName ? (
+                  <Link
+                    to="/musteriler"
+                    search={{ customerId: sale.customerId! }}
+                    onClick={onClose}
+                    className="text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline"
+                  >
+                    {linkedCustomerName}
+                  </Link>
+                ) : null}
               </div>
             </Section>
 

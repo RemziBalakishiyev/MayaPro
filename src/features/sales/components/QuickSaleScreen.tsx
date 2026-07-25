@@ -159,11 +159,13 @@ export function QuickSaleScreen() {
   const belowCost = realCost != null && isLossSale(sp, realCost);
   const notEnoughStock = !isManual && !!product && q > product.quantity;
 
+  // Müştəri hər ödəniş növündə göndərilə bilər; Nisyədə məcburi qalır
   const canSubmit =
     (isManual ? manualName.trim().length > 0 : !!product) &&
     sp > 0 &&
     !notEnoughStock &&
     (payType !== "Nisyə" || !!customerId);
+  const customerRequired = payType === "Nisyə";
 
   const reset = () => {
     setProductId("");
@@ -207,13 +209,15 @@ export function QuickSaleScreen() {
         salePrice: sp,
         discount: 0,
         paymentType: payType,
-        customerId: payType === "Nisyə" ? customerId : null,
+        // Müştəri hər ödəniş növündə göndərilə bilər; boş isə null
+        customerId: customerId || null,
         costPerUnit: isManual ? realCost : undefined,
         expenseItems: isManual && namedExpenses.length > 0 ? namedExpenses : undefined,
         note: note.trim() || undefined,
       });
-      const isCredit = payType === "Nisyə";
-      const cusPhone = isCredit
+      // Müştəri seçilibsə telefon götürülür (nağd/kartda da) → uğur ekranında
+      // WhatsApp göndərmə düyməsi işə düşür.
+      const cusPhone = customerId
         ? (customers.find((c) => c.id === customerId)?.phone ?? "")
         : "";
       setHoldSuccess(false);
@@ -223,7 +227,9 @@ export function QuickSaleScreen() {
         amount: net,
         customerPhone: cusPhone,
         createdAt: created.createdAt ?? todayISO(),
-        isCredit,
+        // WhatsApp düyməsinin şərti: müştəri seçilib + telefonu var
+        // (nağd/kart satışda da müştəri olsa WhatsApp göndərilə bilər)
+        isCredit: !!customerId,
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Satış alınmadı");
@@ -339,7 +345,7 @@ export function QuickSaleScreen() {
               type="button"
               title={
                 !success.isCredit
-                  ? "Yalnız nisyə satışlarda"
+                  ? "Bu satışda müştəri seçilməyib"
                   : !success.customerPhone.trim()
                     ? "Müştəri telefonu yoxdur"
                     : "WhatsApp-la göndər"
@@ -625,6 +631,7 @@ export function QuickSaleScreen() {
                     customerId={customerId}
                     setCustomerId={setCustomerId}
                     onNewCustomer={openNewCustomer}
+                    customerRequired={customerRequired}
                   />
                   <input
                     value={note}
@@ -696,6 +703,7 @@ export function QuickSaleScreen() {
                   customerId={customerId}
                   setCustomerId={setCustomerId}
                   onNewCustomer={openNewCustomer}
+                  customerRequired={customerRequired}
                 />
 
                 <input
@@ -797,7 +805,7 @@ function SaleSection({
   );
 }
 
-/** Ödəniş növü + nisyə müştəri seçimi. */
+/** Ödəniş növü + müştəri seçimi (Nisyədə məcburi, digər növlərdə istəyə bağlı). */
 function PaymentBlock({
   payType,
   setPayType,
@@ -805,6 +813,7 @@ function PaymentBlock({
   customerId,
   setCustomerId,
   onNewCustomer,
+  customerRequired,
 }: {
   payType: PaymentType;
   setPayType: (v: PaymentType) => void;
@@ -812,6 +821,7 @@ function PaymentBlock({
   customerId: string;
   setCustomerId: (v: string) => void;
   onNewCustomer: (prefillName?: string) => void;
+  customerRequired: boolean;
 }) {
   return (
     <>
@@ -835,26 +845,49 @@ function PaymentBlock({
         </div>
       </div>
 
-      {payType === "Nisyə" && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3">
-          <p className="mb-2 text-sm font-semibold text-stone-600">Müştəri</p>
-          <CustomerPicker
-            customers={customers}
-            value={customerId}
-            onChange={setCustomerId}
-            onCreateNew={onNewCustomer}
-          />
-          <Button
-            variant="secondary"
-            size="lg"
-            className="mt-2 w-full justify-center"
-            icon={<Plus size={18} />}
-            onClick={() => onNewCustomer()}
-          >
-            Yeni müştəri
-          </Button>
+      <div
+        className={cn(
+          "rounded-2xl border p-3",
+          customerRequired
+            ? "border-amber-200 bg-amber-50/50"
+            : "border-stone-200 bg-white",
+        )}
+      >
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <p className="text-sm font-semibold text-stone-600">
+            Müştəri
+            {!customerRequired && (
+              <span className="ml-1 font-normal text-stone-400">
+                (istəyə bağlı)
+              </span>
+            )}
+          </p>
+          {!customerRequired && !!customerId && (
+            <button
+              type="button"
+              onClick={() => setCustomerId("")}
+              className="text-xs font-semibold text-stone-500 hover:text-emerald-700"
+            >
+              Sil
+            </button>
+          )}
         </div>
-      )}
+        <CustomerPicker
+          customers={customers}
+          value={customerId}
+          onChange={setCustomerId}
+          onCreateNew={onNewCustomer}
+        />
+        <Button
+          variant="secondary"
+          size="lg"
+          className="mt-2 w-full justify-center"
+          icon={<Plus size={18} />}
+          onClick={() => onNewCustomer()}
+        >
+          Yeni müştəri
+        </Button>
+      </div>
     </>
   );
 }

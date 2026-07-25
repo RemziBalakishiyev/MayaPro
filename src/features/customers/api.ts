@@ -9,7 +9,12 @@ import { db } from "@/mocks/db";
 import { saleHandlers } from "@/mocks/handlers";
 import { uid, todayISO } from "@/lib/format";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
-import type { Customer, CustomerHistoryEntry, CustomerPayment } from "@/types";
+import type {
+  Customer,
+  CustomerHistoryEntry,
+  CustomerPayment,
+  PaymentType,
+} from "@/types";
 
 export interface NewCustomer {
   name: string;
@@ -33,6 +38,9 @@ interface CustomerDto {
   debt: number;
   initialDebt: number;
   paidAmount: number;
+  /** Bütün satışların yekun cəmi (nağd + kart + nisyə). */
+  totalPurchases: number;
+  purchaseCount: number;
   lastPurchaseDate: string | null;
   lastPaymentDate: string | null;
   createdAt: string;
@@ -53,8 +61,10 @@ interface CustomerHistoryEntryDto {
   type: "initialDebt" | "sale" | "payment";
   amount: number;
   note: string | null;
-  /** type === "sale" olduqda nisyə satışın id-si */
+  /** type === "sale" olduqda satışın id-si */
   saleId?: string | null;
+  /** type === "sale" olduqda ödəniş növü — nağd/kart/nisyə */
+  paymentType?: PaymentType | null;
 }
 
 const INITIAL_DEBT_NOTE = "İlkin borc (sistemə keçid)";
@@ -68,6 +78,8 @@ const toCustomer = (d: CustomerDto): Customer => ({
   paidAmount: d.paidAmount,
   remainingDebt: d.debt,
   initialDebt: d.initialDebt ?? 0,
+  totalPurchases: d.totalPurchases ?? 0,
+  purchaseCount: d.purchaseCount ?? 0,
   lastPurchaseDate: d.lastPurchaseDate ?? "",
   lastPaymentDate: d.lastPaymentDate ?? "",
   createdAt: d.createdAt,
@@ -88,6 +100,7 @@ const toHistoryEntry = (d: CustomerHistoryEntryDto): CustomerHistoryEntry => ({
   amount: d.amount,
   note: d.note,
   saleId: d.type === "sale" ? (d.saleId ?? null) : null,
+  paymentType: d.type === "sale" ? (d.paymentType ?? null) : null,
 });
 
 // ——— Mock köməkçiləri ———
@@ -103,6 +116,8 @@ async function mockCreate(input: NewCustomer): Promise<Customer> {
     paidAmount: 0,
     remainingDebt: debt,
     initialDebt: debt,
+    totalPurchases: 0,
+    purchaseCount: 0,
     lastPurchaseDate: "",
     lastPaymentDate: "",
     createdAt,
@@ -126,10 +141,13 @@ async function mockUpdate(
 async function mockRemove(id: string): Promise<void> {
   const c = await db.customers.get(id);
   if (!c) throw new Error("Müştəri tapılmadı");
-  // Borclu olsa belə silinə bilər — bağlı nisyə satışlar/ödənişlər də təmizlənir
+  // Borclu olsa belə silinə bilər —
+  //  · Nisyə satışlar tam silinir (stok geri qayıdır, borc təmizlənir)
+  //  · Nağd/kart satışlar qalır, sadəcə müştəri bağı düşür
   const sales = await db.sales.list();
   for (const s of sales) {
-    if (s.customerId === id && s.paymentType === "Nisyə") {
+    if (s.customerId !== id) continue;
+    if (s.paymentType === "Nisyə") {
       if (s.productId && !s.isManual) {
         const p = await db.products.get(s.productId);
         if (p) {
@@ -140,6 +158,8 @@ async function mockRemove(id: string): Promise<void> {
         }
       }
       await db.sales.remove(s.id);
+    } else {
+      await db.sales.update(s.id, { customerId: null });
     }
   }
   const payments = await db.payments.list();
@@ -180,13 +200,14 @@ async function mockListHistory(
 
   const sales = await db.sales.list();
   for (const s of sales) {
-    if (s.customerId !== customerId || s.paymentType !== "Nisyə") continue;
+    if (s.customerId !== customerId) continue;
     entries.push({
       date: s.createdAt,
       type: "sale",
       amount: s.totalAmount,
       note: `${s.productName} × ${s.quantity}`,
       saleId: s.id,
+      paymentType: s.paymentType,
     });
   }
 
@@ -203,18 +224,44 @@ async function mockListHistory(
   return entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
+/** Mock: müştərinin bütün satışlardan yekunu — cash/card/nisyə birgə. */
+async function mockAggregatePurchases(): Promise<
+  Map<string, { total: number; count: number; last: string }>
+> {
+  const map = new Map<string, { total: number; count: number; last: string }>();
+  const sales = await db.sales.list();
+  for (const s of sales) {
+    if (!s.customerId) continue;
+    const cur = map.get(s.customerId) ?? { total: 0, count: 0, last: "" };
+    cur.total += s.totalAmount;
+    cur.count += 1;
+    if (!cur.last || s.createdAt > cur.last) cur.last = s.createdAt;
+    map.set(s.customerId, cur);
+  }
+  return map;
+}
+
 export const customersApi = {
-  list: () =>
-    USE_MOCK
-      ? db.customers.list().then((rows) =>
-          rows.map((c) => ({
-            ...c,
-            initialDebt: c.initialDebt ?? 0,
-          })),
-        )
-      : apiClient
-          .get<CustomerDto[]>("/api/customers")
-          .then((rows) => rows.map(toCustomer)),
+  list: async () => {
+    if (!USE_MOCK) {
+      const rows = await apiClient.get<CustomerDto[]>("/api/customers");
+      return rows.map(toCustomer);
+    }
+    const [rows, purchases] = await Promise.all([
+      db.customers.list(),
+      mockAggregatePurchases(),
+    ]);
+    return rows.map((c) => {
+      const p = purchases.get(c.id);
+      return {
+        ...c,
+        initialDebt: c.initialDebt ?? 0,
+        totalPurchases: p?.total ?? c.totalPurchases ?? 0,
+        purchaseCount: p?.count ?? c.purchaseCount ?? 0,
+        lastPurchaseDate: p?.last || c.lastPurchaseDate || "",
+      };
+    });
+  },
 
   create: (input: NewCustomer) =>
     USE_MOCK

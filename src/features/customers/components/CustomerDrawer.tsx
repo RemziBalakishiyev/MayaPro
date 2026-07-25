@@ -314,8 +314,15 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                   {history.map((h, i) => {
                     const isPay = h.type === "payment";
                     const isInitial = h.type === "initialDebt";
+                    const isSale = h.type === "sale";
+                    // Yalnız nisyə satış borcu artırır — silmək / qırmızı işarə də ona xasdır
+                    const isDebtRaising =
+                      isInitial || (isSale && h.paymentType === "Nisyə");
                     const canDeleteSale =
-                      canManageCredit && h.type === "sale" && !!h.saleId;
+                      canManageCredit &&
+                      isSale &&
+                      h.paymentType === "Nisyə" &&
+                      !!h.saleId;
                     return (
                       <li
                         key={`${h.type}-${h.saleId ?? ""}-${h.date}-${h.amount}-${i}`}
@@ -331,7 +338,9 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                               ? "bg-emerald-50 text-emerald-600"
                               : isInitial
                                 ? "bg-amber-50 text-amber-600"
-                                : "bg-red-50 text-red-500",
+                                : isDebtRaising
+                                  ? "bg-red-50 text-red-500"
+                                  : "bg-stone-50 text-stone-500",
                           )}
                         >
                           {isPay ? (
@@ -343,9 +352,19 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                           )}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-stone-800">
-                            {historyLabel(h)}
-                          </p>
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <p className="min-w-0 truncate text-sm font-semibold text-stone-800">
+                              {historyLabel(h)}
+                            </p>
+                            {isSale && h.paymentType && (
+                              <Badge
+                                tone={h.paymentType}
+                                className="shrink-0 px-1.5 py-0.5 text-[10px]"
+                              >
+                                {h.paymentType}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-stone-400">
                             {fmtDate(h.date)}
                           </p>
@@ -353,10 +372,14 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                         <span
                           className={cn(
                             "shrink-0 text-sm font-bold tabular-nums",
-                            isPay ? "text-emerald-700" : "text-red-600",
+                            isPay
+                              ? "text-emerald-700"
+                              : isDebtRaising
+                                ? "text-red-600"
+                                : "text-stone-500",
                           )}
                         >
-                          {isPay ? "−" : "+"}
+                          {isPay ? "−" : isDebtRaising ? "+" : ""}
                           {fmtMoney(h.amount)}
                         </span>
                         {canDeleteSale && (

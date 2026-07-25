@@ -15,6 +15,7 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppXerclerRouteImport } from './routes/_app.xercler'
 import { Route as AppTedarukculerRouteImport } from './routes/_app.tedarukculer'
 import { Route as AppSatisRouteImport } from './routes/_app.satis'
+import { Route as AppMusterilerRouteImport } from './routes/_app.musteriler'
 import { Route as AppMallarRouteImport } from './routes/_app.mallar'
 import { Route as AppIscilarRouteImport } from './routes/_app.iscilar'
 import { Route as AppHesabatlarRouteImport } from './routes/_app.hesabatlar'
@@ -50,6 +51,11 @@ const AppTedarukculerRoute = AppTedarukculerRouteImport.update({
 const AppSatisRoute = AppSatisRouteImport.update({
   id: '/satis',
   path: '/satis',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMusterilerRoute = AppMusterilerRouteImport.update({
+  id: '/musteriler',
+  path: '/musteriler',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMallarRoute = AppMallarRouteImport.update({
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/hesabatlar': typeof AppHesabatlarRoute
   '/iscilar': typeof AppIscilarRoute
   '/mallar': typeof AppMallarRoute
+  '/musteriler': typeof AppMusterilerRoute
   '/satis': typeof AppSatisRoute
   '/tedarukculer': typeof AppTedarukculerRoute
   '/xercler': typeof AppXerclerRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/hesabatlar': typeof AppHesabatlarRoute
   '/iscilar': typeof AppIscilarRoute
   '/mallar': typeof AppMallarRoute
+  '/musteriler': typeof AppMusterilerRoute
   '/satis': typeof AppSatisRoute
   '/tedarukculer': typeof AppTedarukculerRoute
   '/xercler': typeof AppXerclerRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/_app/hesabatlar': typeof AppHesabatlarRoute
   '/_app/iscilar': typeof AppIscilarRoute
   '/_app/mallar': typeof AppMallarRoute
+  '/_app/musteriler': typeof AppMusterilerRoute
   '/_app/satis': typeof AppSatisRoute
   '/_app/tedarukculer': typeof AppTedarukculerRoute
   '/_app/xercler': typeof AppXerclerRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/hesabatlar'
     | '/iscilar'
     | '/mallar'
+    | '/musteriler'
     | '/satis'
     | '/tedarukculer'
     | '/xercler'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/hesabatlar'
     | '/iscilar'
     | '/mallar'
+    | '/musteriler'
     | '/satis'
     | '/tedarukculer'
     | '/xercler'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/_app/hesabatlar'
     | '/_app/iscilar'
     | '/_app/mallar'
+    | '/_app/musteriler'
     | '/_app/satis'
     | '/_app/tedarukculer'
     | '/_app/xercler'
@@ -225,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '/satis'
       fullPath: '/satis'
       preLoaderRoute: typeof AppSatisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/musteriler': {
+      id: '/_app/musteriler'
+      path: '/musteriler'
+      fullPath: '/musteriler'
+      preLoaderRoute: typeof AppMusterilerRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/mallar': {
@@ -286,6 +305,7 @@ interface AppRouteChildren {
   AppHesabatlarRoute: typeof AppHesabatlarRoute
   AppIscilarRoute: typeof AppIscilarRoute
   AppMallarRoute: typeof AppMallarRoute
+  AppMusterilerRoute: typeof AppMusterilerRoute
   AppSatisRoute: typeof AppSatisRoute
   AppTedarukculerRoute: typeof AppTedarukculerRoute
   AppXerclerRoute: typeof AppXerclerRoute
@@ -300,6 +320,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHesabatlarRoute: AppHesabatlarRoute,
   AppIscilarRoute: AppIscilarRoute,
   AppMallarRoute: AppMallarRoute,
+  AppMusterilerRoute: AppMusterilerRoute,
   AppSatisRoute: AppSatisRoute,
   AppTedarukculerRoute: AppTedarukculerRoute,
   AppXerclerRoute: AppXerclerRoute,

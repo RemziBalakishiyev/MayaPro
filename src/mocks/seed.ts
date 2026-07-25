@@ -340,6 +340,10 @@ const buildCustomers = (): Customer[] =>
     ...c,
     remainingDebt: c.totalDebt - c.paidAmount,
     initialDebt: 0,
+    // Real dəyər hər siyahı sorğusunda satışlardan hesablanır (customersApi.list);
+    // seed-də sıfırla başlayır ki, boş tip qalmasın.
+    totalPurchases: 0,
+    purchaseCount: 0,
     createdAt: daysAgoISO(60),
   }));
 

@@ -1,73 +1,14 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, HandCoins, MessageCircle, Pencil, Phone, Trash2 } from "lucide-react";
+import { Eye, HandCoins, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
-import { useToast } from "@/components/ui/toast-store";
-import { cn } from "@/lib/cn";
+import { CopyablePhone } from "@/components/ui/CopyablePhone";
 import { fmtMoney, fmtDate } from "@/lib/format";
-import { formatPhoneDisplay, phoneDigits } from "@/lib/phone";
 import { useSettingsStore } from "@/features/settings/store";
 import { waLink } from "../lib";
 import type { Customer } from "@/types";
-
-async function copyPhone(phone: string): Promise<boolean> {
-  const digits = phoneDigits(phone);
-  if (!digits) return false;
-  const text = `+${digits}`;
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function CopyablePhone({
-  phone,
-  className,
-}: {
-  phone: string;
-  className?: string;
-}) {
-  const toast = useToast();
-  const digits = phoneDigits(phone);
-  const display = formatPhoneDisplay(phone) || phone;
-
-  if (!digits) {
-    return <span className={className}>—</span>;
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <a
-        href={`tel:+${digits}`}
-        title="Zəng et"
-        onClick={(e) => e.stopPropagation()}
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50"
-      >
-        <Phone size={13} />
-      </a>
-      <button
-        type="button"
-        title="Kopyalamaq üçün klikləyin"
-        onClick={async (e) => {
-          e.stopPropagation();
-          const ok = await copyPhone(phone);
-          if (ok) toast.success("Nömrə kopyalandı");
-          else toast.error("Nömrə kopyalanmadı");
-        }}
-        className={cn(
-          "text-left tabular-nums underline-offset-2 hover:text-emerald-700 hover:underline",
-          className ?? "text-xs text-stone-600",
-        )}
-      >
-        {display}
-      </button>
-    </span>
-  );
-}
 
 interface Props {
   customers: Customer[];
@@ -79,6 +20,11 @@ interface Props {
   onEdit?: (customer: Customer) => void;
   onDelete?: (customer: Customer) => void;
   emptyState?: { title: string; description?: string };
+  /**
+   * "debtors" — Nisyə Borclar üçün (qalıq borc, status);
+   * "all" — Müştərilər üçün (ümumi alış, alış sayı, qalıq borc);
+   */
+  variant?: "debtors" | "all";
 }
 
 /** Son alış / son ödənişdən ən yenisi. */
@@ -173,10 +119,11 @@ export function CustomersTable({
   onEdit,
   onDelete,
   emptyState,
+  variant = "debtors",
 }: Props) {
   const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
-  const columns = useMemo<ColumnDef<Customer, unknown>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<Customer, unknown>[]>(() => {
+    const base: ColumnDef<Customer, unknown>[] = [
       {
         accessorKey: "name",
         header: "Müştəri",
@@ -193,61 +140,96 @@ export function CustomersTable({
           <CopyablePhone phone={(getValue() as string) || ""} />
         ),
       },
-      {
-        accessorKey: "remainingDebt",
-        header: "Qalıq borc",
-        cell: ({ getValue }) => {
-          const debt = getValue() as number;
+    ];
+
+    const debtCol: ColumnDef<Customer, unknown> = {
+      accessorKey: "remainingDebt",
+      header: "Qalıq borc",
+      cell: ({ getValue }) => {
+        const debt = getValue() as number;
+        if (debt <= 0)
           return (
-            <span
-              className={`font-bold tabular-nums ${
-                debt > 0 ? "text-red-600" : "text-emerald-700"
-              }`}
-            >
-              {fmtMoney(debt)}
-            </span>
+            <span className="tabular-nums text-stone-400">—</span>
           );
-        },
+        return (
+          <span className="font-bold tabular-nums text-red-600">
+            {fmtMoney(debt)}
+          </span>
+        );
       },
+    };
+
+    const purchasesCols: ColumnDef<Customer, unknown>[] = [
       {
-        id: "lastActivity",
-        accessorFn: (c) => lastActivityDate(c),
-        header: "Son əməliyyat",
-        cell: ({ getValue }) => fmtDate((getValue() as string) || ""),
-      },
-      {
-        id: "status",
-        header: "Status",
-        enableSorting: false,
-        cell: ({ row }) => {
-          const debt = row.original.remainingDebt;
-          return (
-            <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
-              {debt > 0 ? "Borclu" : "Ödənilib"}
-            </Badge>
-          );
-        },
-      },
-      {
-        id: "actions",
-        header: "Əməliyyat",
-        enableSorting: false,
-        cell: ({ row }) => (
-          <CustomerRowActions
-            customer={row.original}
-            canEdit={canEdit}
-            canDelete={canDelete}
-            onView={onView}
-            onPay={onPay}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            waTemplate={waTemplate}
-          />
+        accessorKey: "totalPurchases",
+        header: "Ümumi alış",
+        cell: ({ getValue }) => (
+          <span className="font-semibold tabular-nums text-stone-800">
+            {fmtMoney(getValue() as number)}
+          </span>
         ),
       },
-    ],
-    [onView, onPay, onEdit, onDelete, canEdit, canDelete, waTemplate],
-  );
+      {
+        accessorKey: "purchaseCount",
+        header: "Alış sayı",
+        cell: ({ getValue }) => (
+          <span className="tabular-nums text-stone-600">
+            {getValue() as number}
+          </span>
+        ),
+      },
+    ];
+
+    const lastPurchaseCol: ColumnDef<Customer, unknown> = {
+      accessorKey: "lastPurchaseDate",
+      header: "Son alış",
+      cell: ({ getValue }) => fmtDate((getValue() as string) || ""),
+    };
+
+    const lastActivityCol: ColumnDef<Customer, unknown> = {
+      id: "lastActivity",
+      accessorFn: (c) => lastActivityDate(c),
+      header: "Son əməliyyat",
+      cell: ({ getValue }) => fmtDate((getValue() as string) || ""),
+    };
+
+    const statusCol: ColumnDef<Customer, unknown> = {
+      id: "status",
+      header: "Status",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const debt = row.original.remainingDebt;
+        return (
+          <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
+            {debt > 0 ? "Borclu" : "Ödənilib"}
+          </Badge>
+        );
+      },
+    };
+
+    const actionsCol: ColumnDef<Customer, unknown> = {
+      id: "actions",
+      header: "Əməliyyat",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <CustomerRowActions
+          customer={row.original}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          onView={onView}
+          onPay={onPay}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          waTemplate={waTemplate}
+        />
+      ),
+    };
+
+    if (variant === "all") {
+      return [...base, ...purchasesCols, debtCol, lastPurchaseCol, actionsCol];
+    }
+    return [...base, debtCol, lastActivityCol, statusCol, actionsCol];
+  }, [onView, onPay, onEdit, onDelete, canEdit, canDelete, waTemplate, variant]);
 
   return (
     <DataTable

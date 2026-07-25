@@ -37,8 +37,11 @@ const searchSchema = z.object({
   q: z.string().optional(),
   /** Satış detalından deep-link — drawer açılır */
   customerId: z.string().optional(),
-  /** Hamısı = undefined */
-  status: z.enum(["borclu", "odenilib"]).optional(),
+  /**
+   * Default "borclu" — Nisyə Borclar səhifəsi borclu müştərilərə fokuslanır.
+   * URL-də ?status=all yazıla bilər ki, filtri "Hamısı"na keçirsin.
+   */
+  status: z.enum(["borclu", "odenilib", "all"]).default("borclu"),
   /** Köhnə URL: ?borclu=true → status=borclu */
   borclu: z.boolean().optional(),
   minDebt: optNum,
@@ -55,7 +58,7 @@ export const Route = createFileRoute("/_app/borclar")({
 
 const ACTIVITY_PERIODS: Period[] = ["today", "week", "month", "all"];
 
-type DebtStatus = "borclu" | "odenilib";
+type DebtStatus = "borclu" | "odenilib" | "all";
 
 const parseNum = (raw: string): number | undefined => {
   if (raw.trim() === "") return undefined;
@@ -94,11 +97,13 @@ function BorclarPage() {
     if (c) setSelected(c);
   }, [search.customerId, customers]);
 
-  const status: DebtStatus | undefined =
-    search.status ?? (search.borclu ? "borclu" : undefined);
+  // "borclu" default — Nisyə Borclar səhifəsi borclulara fokuslanır.
+  // Köhnə URL ?borclu=true şəklindən də dəstək; default olmadığı halda aktiv filtir sayılır.
+  const status: DebtStatus =
+    search.status ?? (search.borclu ? "borclu" : "borclu");
 
   const activeFilterCount = [
-    !!status,
+    status !== "borclu",
     search.minDebt != null,
     search.maxDebt != null,
     search.activity !== "all",
@@ -117,6 +122,7 @@ function BorclarPage() {
     return customers.filter((c) => {
       if (status === "borclu" && c.remainingDebt <= 0) return false;
       if (status === "odenilib" && c.remainingDebt > 0) return false;
+      // status === "all" → borc statusu üzrə filtir yoxdur
 
       if (search.minDebt != null && c.remainingDebt < search.minDebt)
         return false;
@@ -162,7 +168,7 @@ function BorclarPage() {
       search: {
         q: search.q || undefined,
         customerId: search.customerId,
-        status: undefined,
+        status: "borclu",
         borclu: undefined,
         minDebt: undefined,
         maxDebt: undefined,
@@ -173,7 +179,7 @@ function BorclarPage() {
     });
   };
 
-  const setStatus = (next: DebtStatus | undefined) => {
+  const setStatus = (next: DebtStatus) => {
     navigate({
       search: (prev) => ({
         ...prev,
@@ -212,7 +218,7 @@ function BorclarPage() {
     <div>
       <PageHead
         title="Nisyə Borclar"
-        subtitle={subtitle}
+        subtitle={`Borcu olan müştərilər və ödənişlər · ${subtitle}`}
         actions={
           <Button size="md" icon={<Plus size={18} />} onClick={() => setNewOpen(true)}>
             Yeni müştəri
@@ -275,9 +281,9 @@ function BorclarPage() {
                 >
                   {(
                     [
-                      { key: undefined, label: "Hamısı" },
                       { key: "borclu" as const, label: "Borclu" },
                       { key: "odenilib" as const, label: "Ödənilib" },
+                      { key: "all" as const, label: "Hamısı" },
                     ] as const
                   ).map(({ key, label }) => {
                     const active = status === key;

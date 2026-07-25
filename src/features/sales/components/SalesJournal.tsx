@@ -21,6 +21,7 @@ import { inputCls } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-store";
 import { useCan } from "@/features/auth/store";
+import { useCustomers } from "@/features/customers/queries";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/download";
@@ -67,6 +68,12 @@ export function SalesJournal() {
   const { period, pay, q, minProfit, maxProfit, minQty, maxQty } =
     routeApi.useSearch();
   const { data: employees = [] } = useEmployees();
+  const { data: customersData = [] } = useCustomers();
+  const customerName = useMemo(() => {
+    const map = new Map(customersData.map((c) => [c.id, c.name]));
+    return (s: Sale) =>
+      s.customerId ? (map.get(s.customerId) ?? null) : null;
+  }, [customersData]);
   const { download: downloadInvoice, pendingId: invoicePendingId } =
     useInvoiceDownload();
   const journal = useSalesJournal({
@@ -120,6 +127,7 @@ export function SalesJournal() {
         header: "Mal",
         cell: ({ row }) => {
           const s = row.original;
+          const cus = customerName(s);
           return (
             <div className="min-w-0 max-w-[220px]">
               <p className="truncate font-semibold text-stone-900">
@@ -130,6 +138,11 @@ export function SalesJournal() {
                   {[s.category, s.isManual ? "Sərbəst" : null]
                     .filter(Boolean)
                     .join(" · ")}
+                </p>
+              )}
+              {cus && (
+                <p className="mt-0.5 truncate text-xs font-medium text-emerald-700">
+                  {cus}
                 </p>
               )}
             </div>
@@ -297,7 +310,7 @@ export function SalesJournal() {
         },
       },
     ],
-    [canManage, sellerName, downloadInvoice, invoicePendingId],
+    [canManage, sellerName, downloadInvoice, invoicePendingId, customerName],
   );
 
   const handleDelete = async () => {
@@ -620,6 +633,11 @@ export function SalesJournal() {
                   {[s.category, s.isManual ? "Sərbəst" : null]
                     .filter(Boolean)
                     .join(" · ")}
+                </p>
+              )}
+              {customerName(s) && (
+                <p className="mt-1 truncate text-xs font-medium text-emerald-700">
+                  {customerName(s)}
                 </p>
               )}
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">

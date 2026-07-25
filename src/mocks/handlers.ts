@@ -202,7 +202,8 @@ export const saleHandlers = {
   /**
    * Satış biznes zənciri:
    * 1) stok yoxlaması, 2) stok azalır,
-   * 3) Nisyədirsə müştəri borcu artır, 4) satış yazılır, 5) activity log.
+   * 3) müştəri statistikası (lastPurchaseDate hər ödəniş növündə),
+   *    borc yalnız Nisyədə artır, 4) satış yazılır, 5) activity log.
    *
    * Sərbəst (manual) satış: katalog malı yoxdur — stok yoxlanmır/azalmır,
    * maya bilinmirsə qazanc null ("naməlum") olur.
@@ -253,7 +254,8 @@ export const saleHandlers = {
       discount,
       totalAmount: net,
       paymentType: input.paymentType,
-      customerId: isCredit ? input.customerId : null,
+      // Müştəri bütün ödəniş növlərində göndərilə bilər; Nisyədə məcburidir
+      customerId: input.customerId ?? null,
       costPerUnit,
       profit,
       isManual,
@@ -271,15 +273,17 @@ export const saleHandlers = {
       });
     }
 
-    // 3) Nisyə → müştəri borcu yekun (endirimdən sonrakı) məbləğ qədər artır
-    if (isCredit && sale.customerId) {
+    // 3) Müştəri statistikası: lastPurchaseDate hər ödəniş növündə yenilənir;
+    //    borc YALNIZ nisyədə artır.
+    if (sale.customerId) {
       const c = await db.customers.get(sale.customerId);
       if (c) {
-        await db.customers.update(c.id, {
-          totalDebt: c.totalDebt + net,
-          remainingDebt: c.remainingDebt + net,
-          lastPurchaseDate: todayISO(),
-        });
+        const patch: Partial<typeof c> = { lastPurchaseDate: todayISO() };
+        if (isCredit) {
+          patch.totalDebt = c.totalDebt + net;
+          patch.remainingDebt = c.remainingDebt + net;
+        }
+        await db.customers.update(c.id, patch);
       }
     }
 
