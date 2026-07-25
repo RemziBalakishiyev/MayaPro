@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   BookOpen,
   HandCoins,
+  Loader2,
   MessageCircle,
   Phone,
   ShoppingCart,
@@ -15,12 +16,14 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/toast-store";
+import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { cn } from "@/lib/cn";
 import { ApiError } from "@/lib/api-client";
 import { useCan } from "@/features/auth/store";
 import { useSales } from "@/features/sales/queries";
+import { useInvoiceWhatsApp } from "@/features/sales/useInvoiceWhatsApp";
 import { useSettingsStore } from "@/features/settings/store";
 import { waLink } from "../lib";
 import { useCustomerHistory, useDeleteCustomerCredit } from "../queries";
@@ -44,6 +47,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
   const toast = useToast();
   const canManageCredit = useCan()("sales.manage");
   const deleteCredit = useDeleteCustomerCredit();
+  const { send: sendInvoiceWa, pendingId: waPendingId } = useInvoiceWhatsApp();
   const { data: allSales = [] } = useSales();
   const { data: historyAsc = [] } = useCustomerHistory(customer?.id);
   const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
@@ -235,30 +239,58 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                 <EmptyState icon={ShoppingCart} title="Nisyə alış yoxdur" />
               ) : (
                 <ul className="divide-y divide-stone-100 overflow-hidden rounded-xl border border-stone-200 bg-white">
-                  {cusSales.map((s) => (
-                    <li
-                      key={s.id}
-                      className="flex items-center gap-3 px-3.5 py-3"
-                    >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500">
-                        <ArrowUpRight size={15} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-stone-800">
-                          {s.productName}{" "}
-                          <span className="font-medium text-stone-400">
-                            × {s.quantity}
-                          </span>
-                        </p>
-                        <p className="text-xs text-stone-400">
-                          {fmtDate(s.createdAt)}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-bold tabular-nums text-red-600">
-                        +{fmtMoney(s.totalAmount)}
-                      </span>
-                    </li>
-                  ))}
+                  {cusSales.map((s) => {
+                    const hasPhone = !!customer.phone.replace(/\D/g, "");
+                    const waBusy = waPendingId === s.id;
+                    return (
+                      <li
+                        key={s.id}
+                        className="flex items-center gap-3 px-3.5 py-3"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500">
+                          <ArrowUpRight size={15} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-stone-800">
+                            {s.productName}{" "}
+                            <span className="font-medium text-stone-400">
+                              × {s.quantity}
+                            </span>
+                          </p>
+                          <p className="text-xs text-stone-400">
+                            {fmtDate(s.createdAt)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-bold tabular-nums text-red-600">
+                          +{fmtMoney(s.totalAmount)}
+                        </span>
+                        <button
+                          type="button"
+                          title={
+                            hasPhone
+                              ? "Qaiməni WhatsApp-la göndər"
+                              : "Müştəri telefonu yoxdur"
+                          }
+                          aria-label="Qaiməni WhatsApp-la göndər"
+                          onClick={() =>
+                            void sendInvoiceWa(
+                              s.id,
+                              customer.phone,
+                              s.createdAt,
+                            )
+                          }
+                          disabled={!hasPhone || waBusy}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-stone-300 disabled:hover:bg-transparent"
+                        >
+                          {waBusy ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : (
+                            <WhatsAppIcon size={15} />
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>

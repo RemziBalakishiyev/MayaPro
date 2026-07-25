@@ -20,8 +20,9 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { CustomerPicker } from "@/components/ui/CustomerPicker";
 import { useToast } from "@/components/ui/toast-store";
+import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, todayISO } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
 import { attrText, calcRealCost, firstAttrValue } from "@/features/products/lib";
 import {
@@ -36,6 +37,7 @@ import { mergeExpenseLines } from "@/features/products/lib";
 import { netTotal, saleProfit, isLossSale } from "../lib";
 import { useCreateSale } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
+import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
 import { SalesJournal } from "./SalesJournal";
 import { QtyStepper } from "./QtyStepper";
 import { LossConfirmModal } from "./LossConfirmModal";
@@ -78,6 +80,7 @@ export function QuickSaleScreen() {
   const createSale = useCreateSale();
   const { download: downloadInvoice, pendingId: invoicePendingId } =
     useInvoiceDownload();
+  const { send: sendInvoiceWa, pendingId: waPendingId } = useInvoiceWhatsApp();
 
   // ——— Biznes state (dəyişməz) ———
   const [productId, setProductId] = useState("");
@@ -104,6 +107,11 @@ export function QuickSaleScreen() {
     id: string;
     name: string;
     amount: number;
+    /** WhatsApp düyməsi üçün — nisyə deyilsə boş */
+    customerPhone: string;
+    /** wa mesajında istifadə olunan tarix (satış anı) */
+    createdAt: string;
+    isCredit: boolean;
   } | null>(null);
   // Qaimə endirilərkən uğur ekranı öz-özünə bağlanmasın.
   const [holdSuccess, setHoldSuccess] = useState(false);
@@ -204,8 +212,19 @@ export function QuickSaleScreen() {
         expenseItems: isManual && namedExpenses.length > 0 ? namedExpenses : undefined,
         note: note.trim() || undefined,
       });
+      const isCredit = payType === "Nisyə";
+      const cusPhone = isCredit
+        ? (customers.find((c) => c.id === customerId)?.phone ?? "")
+        : "";
       setHoldSuccess(false);
-      setSuccess({ id: created.id, name: displayName, amount: net });
+      setSuccess({
+        id: created.id,
+        name: displayName,
+        amount: net,
+        customerPhone: cusPhone,
+        createdAt: created.createdAt ?? todayISO(),
+        isCredit,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Satış alınmadı");
     }
@@ -281,6 +300,8 @@ export function QuickSaleScreen() {
   // ——— Uğur ekranı ———
   if (success) {
     const invoicePending = invoicePendingId === success.id;
+    const waPending = waPendingId === success.id;
+    const canWa = success.isCredit && !!success.customerPhone.trim();
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 text-center">
         <div className="flex h-28 w-28 items-center justify-center rounded-full bg-emerald-100 ring-8 ring-emerald-50">
@@ -295,24 +316,57 @@ export function QuickSaleScreen() {
         </div>
 
         <div className="flex flex-col items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={
-              invoicePending ? (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={
+                invoicePending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Receipt size={16} />
+                )
+              }
+              onClick={() => {
+                setHoldSuccess(true);
+                void downloadInvoice(success.id);
+              }}
+              disabled={invoicePending}
+            >
+              Qaimə çıxar
+            </Button>
+            <button
+              type="button"
+              title={
+                !success.isCredit
+                  ? "Yalnız nisyə satışlarda"
+                  : !success.customerPhone.trim()
+                    ? "Müştəri telefonu yoxdur"
+                    : "WhatsApp-la göndər"
+              }
+              onClick={() => {
+                setHoldSuccess(true);
+                void sendInvoiceWa(
+                  success.id,
+                  success.customerPhone,
+                  success.createdAt,
+                );
+              }}
+              disabled={!canWa || waPending}
+              className={cn(
+                "inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold text-white transition-colors",
+                "bg-[#25D366] hover:bg-[#1eba57] active:bg-[#15954a]",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              {waPending ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
-                <Receipt size={16} />
-              )
-            }
-            onClick={() => {
-              setHoldSuccess(true);
-              void downloadInvoice(success.id);
-            }}
-            disabled={invoicePending}
-          >
-            Qaimə çıxar
-          </Button>
+                <WhatsAppIcon size={16} />
+              )}
+              WhatsApp-la göndər
+            </button>
+          </div>
           {holdSuccess && (
             <button
               type="button"

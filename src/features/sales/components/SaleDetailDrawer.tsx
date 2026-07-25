@@ -5,11 +5,14 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { Spinner } from "@/components/ui/Spinner";
+import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
 import { fmtDate, fmtMoney } from "@/lib/format";
+import { useCustomers } from "@/features/customers/queries";
 import { useEmployees } from "@/features/employees/queries";
 import { useSaleDetail } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
+import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
 
 interface Props {
   saleId: string | null;
@@ -61,8 +64,18 @@ function Row({
 export function SaleDetailDrawer({ saleId, onClose }: Props) {
   const { data: sale, isLoading, isError, error } = useSaleDetail(saleId);
   const { data: employees = [] } = useEmployees();
+  const { data: customers = [] } = useCustomers();
   const { download: downloadInvoice, pendingId } = useInvoiceDownload();
+  const { send: sendInvoiceWa, pendingId: waPendingId } = useInvoiceWhatsApp();
   const invoicePending = !!sale && pendingId === sale.id;
+  const waPending = !!sale && waPendingId === sale.id;
+
+  const customerPhone =
+    sale?.customerId
+      ? (customers.find((c) => c.id === sale.customerId)?.phone ?? "")
+      : "";
+  const canWa =
+    !!sale && sale.paymentType === "Nisyə" && !!customerPhone.trim();
 
   const seller =
     sale?.soldByName ||
@@ -200,7 +213,7 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
               <Row label="Tarix" value={saleDateTime(sale.createdAt)} />
             </Section>
 
-            <div className="border-t border-stone-100 pt-4">
+            <div className="flex flex-col gap-2 border-t border-stone-100 pt-4">
               <Button
                 variant="secondary"
                 className="w-full justify-center"
@@ -216,6 +229,32 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
               >
                 Qaimə (PDF)
               </Button>
+              <button
+                type="button"
+                title={
+                  sale.paymentType !== "Nisyə"
+                    ? "Yalnız nisyə satışlarda"
+                    : !customerPhone.trim()
+                      ? "Müştəri telefonu yoxdur"
+                      : "WhatsApp-la göndər"
+                }
+                onClick={() =>
+                  void sendInvoiceWa(sale.id, customerPhone, sale.createdAt)
+                }
+                disabled={!canWa || waPending}
+                className={cn(
+                  "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-semibold text-white transition-colors",
+                  "bg-[#25D366] hover:bg-[#1eba57] active:bg-[#15954a]",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                {waPending ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <WhatsAppIcon size={18} />
+                )}
+                WhatsApp-la göndər
+              </button>
             </div>
           </div>
         )}
