@@ -74,8 +74,8 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
     sale?.customerId
       ? (customers.find((c) => c.id === sale.customerId)?.phone ?? "")
       : "";
-  const canWa =
-    !!sale && sale.paymentType === "Nisyə" && !!customerPhone.trim();
+  // Müştəri seçilmiş hər satışda (nağd/kart daxil) WhatsApp göndərmək olar
+  const canWa = !!sale && !!sale.customerId && !!customerPhone.trim();
 
   const seller =
     sale?.soldByName ||
@@ -234,8 +234,8 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
               <button
                 type="button"
                 title={
-                  sale.paymentType !== "Nisyə"
-                    ? "Yalnız nisyə satışlarda"
+                  !sale.customerId
+                    ? "Bu satışda müştəri seçilməyib"
                     : !customerPhone.trim()
                       ? "Müştəri telefonu yoxdur"
                       : "WhatsApp-la göndər"
