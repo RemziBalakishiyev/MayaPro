@@ -507,7 +507,11 @@ function BorclarPage() {
         onClose={() => setDeleteFor(null)}
         onConfirm={() => void handleDelete()}
         title="Müştərini sil"
-        message={`${deleteFor?.name ?? "Bu müştəri"} silinəcək. Bu əməliyyat geri alına bilməz.`}
+        message={
+          deleteFor && deleteFor.remainingDebt > 0
+            ? `Diqqət: ${deleteFor.name} müştərisinin ${fmtMoney(deleteFor.remainingDebt)} borcu var. Silinsə, borc məlumatı da itəcək. Bu əməliyyat geri alına bilməz. Silmək istədiyinizə əminsiniz?`
+            : `${deleteFor?.name ?? "Bu müştəri"} silinəcək. Bu əməliyyat geri alına bilməz.`
+        }
         confirmText="Sil"
         danger
       />

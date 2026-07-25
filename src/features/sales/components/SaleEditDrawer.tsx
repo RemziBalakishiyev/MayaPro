@@ -65,7 +65,7 @@ interface Props {
   onSaved?: () => void;
 }
 
-/** Mövcud satışın düzəliş drawer-i (say/qiymət/endirim/ödəniş/müştəri; sərbəstdə ad/kateqoriya/xərclər). */
+/** Mövcud satışın düzəliş drawer-i (say/qiymət/ödəniş/müştəri; sərbəstdə ad/kateqoriya/xərclər). */
 export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
   const toast = useToast();
   const canManage = useCan()("sales.manage");
@@ -75,7 +75,6 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
 
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
-  const [discount, setDiscount] = useState("");
   const [payType, setPayType] = useState<PaymentType>("Nağd");
   const [customerId, setCustomerId] = useState("");
   const [manualName, setManualName] = useState("");
@@ -89,7 +88,6 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
     if (!sale) return;
     setQty(String(sale.quantity));
     setPrice(String(sale.salePrice));
-    setDiscount(sale.discount ? String(sale.discount) : "");
     setPayType(sale.paymentType);
     setCustomerId(sale.customerId ?? "");
     setManualName(sale.isManual ? sale.productName : "");
@@ -108,8 +106,7 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
   const isManual = !!sale?.isManual;
   const q = Math.max(1, Number(qty) || 1);
   const sp = Number(price) || 0;
-  const disc = Number(discount) || 0;
-  const net = netTotal(sp, q, disc);
+  const net = netTotal(sp, q, 0);
   const namedExpenses = useMemo(
     () => mergeExpenseLines(expenseRows),
     [expenseRows],
@@ -140,7 +137,7 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
           isManual,
           quantity: q,
           salePrice: sp,
-          discount: disc,
+          discount: 0,
           paymentType: payType,
           customerId: payType === "Nisyə" ? customerId : null,
           costPerUnit: isManual ? (sale.costPerUnit ?? null) : undefined,
@@ -253,26 +250,15 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
               />
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Qiymət" required>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                />
-              </Field>
-              <Field label="Endirim">
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
-                />
-              </Field>
-            </div>
+            <Field label="Qiymət" required>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </Field>
 
             <div>
               <p className="mb-1.5 text-sm font-semibold text-stone-700">

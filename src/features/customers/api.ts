@@ -53,6 +53,8 @@ interface CustomerHistoryEntryDto {
   type: "initialDebt" | "sale" | "payment";
   amount: number;
   note: string | null;
+  /** type === "sale" olduqda nisyə satışın id-si */
+  saleId?: string | null;
 }
 
 const INITIAL_DEBT_NOTE = "İlkin borc (sistemə keçid)";
@@ -85,6 +87,7 @@ const toHistoryEntry = (d: CustomerHistoryEntryDto): CustomerHistoryEntry => ({
   type: d.type,
   amount: d.amount,
   note: d.note,
+  saleId: d.type === "sale" ? (d.saleId ?? null) : null,
 });
 
 // ——— Mock köməkçiləri ———
@@ -123,10 +126,34 @@ async function mockUpdate(
 async function mockRemove(id: string): Promise<void> {
   const c = await db.customers.get(id);
   if (!c) throw new Error("Müştəri tapılmadı");
-  if (c.remainingDebt > 0) {
-    throw new Error("Borcu olan müştəri silinə bilməz");
+  // Borclu olsa belə silinə bilər — bağlı nisyə satışlar/ödənişlər də təmizlənir
+  const sales = await db.sales.list();
+  for (const s of sales) {
+    if (s.customerId === id && s.paymentType === "Nisyə") {
+      if (s.productId && !s.isManual) {
+        const p = await db.products.get(s.productId);
+        if (p) {
+          await db.products.update(p.id, {
+            quantity: p.quantity + s.quantity,
+            updatedAt: todayISO(),
+          });
+        }
+      }
+      await db.sales.remove(s.id);
+    }
+  }
+  const payments = await db.payments.list();
+  for (const p of payments) {
+    if (p.customerId === id) await db.payments.remove(p.id);
   }
   await db.customers.remove(id);
+}
+
+async function mockRemoveCredit(
+  customerId: string,
+  saleId: string,
+): Promise<void> {
+  await saleHandlers.deleteCustomerCredit(customerId, saleId);
 }
 
 async function mockListPayments(customerId: string): Promise<CustomerPayment[]> {
@@ -159,6 +186,7 @@ async function mockListHistory(
       type: "sale",
       amount: s.totalAmount,
       note: `${s.productName} × ${s.quantity}`,
+      saleId: s.id,
     });
   }
 
@@ -215,6 +243,14 @@ export const customersApi = {
     USE_MOCK
       ? mockRemove(id)
       : apiClient.del<void>(`/api/customers/${id}`),
+
+  /** Nisyə borc sətri — DELETE /api/customers/{id}/credits/{saleId} */
+  removeCredit: (customerId: string, saleId: string) =>
+    USE_MOCK
+      ? mockRemoveCredit(customerId, saleId)
+      : apiClient.del<void>(
+          `/api/customers/${customerId}/credits/${saleId}`,
+        ),
 
   listPayments: (customerId: string) =>
     USE_MOCK

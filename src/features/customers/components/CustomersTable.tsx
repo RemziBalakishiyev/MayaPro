@@ -1,12 +1,73 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, HandCoins, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { Eye, HandCoins, MessageCircle, Pencil, Phone, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
+import { useToast } from "@/components/ui/toast-store";
+import { cn } from "@/lib/cn";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import { formatPhoneDisplay, phoneDigits } from "@/lib/phone";
 import { useSettingsStore } from "@/features/settings/store";
 import { waLink } from "../lib";
 import type { Customer } from "@/types";
+
+async function copyPhone(phone: string): Promise<boolean> {
+  const digits = phoneDigits(phone);
+  if (!digits) return false;
+  const text = `+${digits}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function CopyablePhone({
+  phone,
+  className,
+}: {
+  phone: string;
+  className?: string;
+}) {
+  const toast = useToast();
+  const digits = phoneDigits(phone);
+  const display = formatPhoneDisplay(phone) || phone;
+
+  if (!digits) {
+    return <span className={className}>—</span>;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <a
+        href={`tel:+${digits}`}
+        title="Zəng et"
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50"
+      >
+        <Phone size={13} />
+      </a>
+      <button
+        type="button"
+        title="Kopyalamaq üçün klikləyin"
+        onClick={async (e) => {
+          e.stopPropagation();
+          const ok = await copyPhone(phone);
+          if (ok) toast.success("Nömrə kopyalandı");
+          else toast.error("Nömrə kopyalanmadı");
+        }}
+        className={cn(
+          "text-left tabular-nums underline-offset-2 hover:text-emerald-700 hover:underline",
+          className ?? "text-xs text-stone-600",
+        )}
+      >
+        {display}
+      </button>
+    </span>
+  );
+}
 
 interface Props {
   customers: Customer[];
@@ -27,6 +88,79 @@ function lastActivityDate(c: Customer): string {
   if (!a) return b;
   if (!b) return a;
   return a > b ? a : b;
+}
+
+function CustomerRowActions({
+  customer,
+  canEdit,
+  canDelete,
+  onView,
+  onPay,
+  onEdit,
+  onDelete,
+  waTemplate,
+}: {
+  customer: Customer;
+  canEdit: boolean;
+  canDelete: boolean;
+  onView: (c: Customer) => void;
+  onPay: (c: Customer) => void;
+  onEdit?: (c: Customer) => void;
+  onDelete?: (c: Customer) => void;
+  waTemplate: string;
+}) {
+  const hasDebt = customer.remainingDebt > 0;
+
+  const menuItems: ActionMenuItem[] = [
+    {
+      label: "Detal",
+      icon: <Eye size={15} />,
+      onClick: () => onView(customer),
+    },
+    ...(canEdit && onEdit
+      ? [
+          {
+            label: "Düzəliş",
+            icon: <Pencil size={15} />,
+            onClick: () => onEdit(customer),
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+    ...(hasDebt
+      ? [
+          {
+            label: "WhatsApp",
+            icon: <MessageCircle size={15} />,
+            href: waLink(customer.phone, customer.remainingDebt, waTemplate),
+            tone: "success" as const,
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+    ...(canDelete && onDelete
+      ? [
+          {
+            label: "Sil",
+            icon: <Trash2 size={15} />,
+            onClick: () => onDelete(customer),
+            tone: "danger" as const,
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={() => onPay(customer)}
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+      >
+        <HandCoins size={14} />
+        Ödəniş
+      </button>
+      <ActionMenu items={menuItems} aria-label={`${customer.name} əməliyyatları`} />
+    </div>
+  );
 }
 
 export function CustomersTable({
@@ -56,7 +190,7 @@ export function CustomersTable({
         accessorKey: "phone",
         header: "Telefon",
         cell: ({ getValue }) => (
-          <span className="text-xs">{(getValue() as string) || "—"}</span>
+          <CopyablePhone phone={(getValue() as string) || ""} />
         ),
       },
       {
@@ -98,62 +232,18 @@ export function CustomersTable({
         id: "actions",
         header: "Əməliyyat",
         enableSorting: false,
-        cell: ({ row }) => {
-          const c = row.original;
-          const hasDebt = c.remainingDebt > 0;
-          return (
-            <div className="flex justify-end gap-1">
-              <button
-                title="Detal"
-                onClick={() => onView(c)}
-                className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-              >
-                <Eye size={15} />
-              </button>
-              <button
-                title="Ödəniş"
-                onClick={() => onPay(c)}
-                className="rounded-md p-1.5 text-emerald-700 hover:bg-emerald-50"
-              >
-                <HandCoins size={15} />
-              </button>
-              {canEdit && onEdit && (
-                <button
-                  title="Düzəliş"
-                  onClick={() => onEdit(c)}
-                  className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-                >
-                  <Pencil size={15} />
-                </button>
-              )}
-              {canDelete && onDelete && (
-                <button
-                  title={
-                    hasDebt
-                      ? "Borcu olan müştəri silinə bilməz"
-                      : "Sil"
-                  }
-                  disabled={hasDebt}
-                  onClick={() => onDelete(c)}
-                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-              {hasDebt && (
-                <a
-                  title="WhatsApp xatırlatma"
-                  href={waLink(c.phone, c.remainingDebt, waTemplate)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-md p-1.5 text-green-600 hover:bg-green-50"
-                >
-                  <MessageCircle size={15} />
-                </a>
-              )}
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <CustomerRowActions
+            customer={row.original}
+            canEdit={canEdit}
+            canDelete={canDelete}
+            onView={onView}
+            onPay={onPay}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            waTemplate={waTemplate}
+          />
+        ),
       },
     ],
     [onView, onPay, onEdit, onDelete, canEdit, canDelete, waTemplate],
@@ -179,7 +269,10 @@ export function CustomersTable({
                 <p className="truncate text-lg font-bold text-stone-900">
                   {c.name}
                 </p>
-                <p className="text-sm text-stone-400">{c.phone || "—"}</p>
+                <CopyablePhone
+                  phone={c.phone || ""}
+                  className="mt-0.5 text-left text-sm tabular-nums text-stone-400 underline-offset-2 hover:text-emerald-700 hover:underline"
+                />
               </div>
               <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
                 {debt > 0 ? "Borclu" : "Ödənilib"}
@@ -199,52 +292,51 @@ export function CustomersTable({
             </div>
             <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
               <button
-                onClick={() => onView(c)}
-                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
-              >
-                <Eye size={18} /> Detal
-              </button>
-              <button
                 onClick={() => onPay(c)}
                 className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-base font-semibold text-emerald-700 active:bg-emerald-100"
               >
                 <HandCoins size={18} /> Ödəniş
               </button>
-              {canEdit && onEdit && (
-                <button
-                  onClick={() => onEdit(c)}
-                  aria-label="Düzəliş"
-                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200"
-                >
-                  <Pencil size={18} />
-                </button>
-              )}
-              {canDelete && onDelete && (
-                <button
-                  title={
-                    debt > 0
-                      ? "Borcu olan müştəri silinə bilməz"
-                      : "Sil"
-                  }
-                  disabled={debt > 0}
-                  onClick={() => onDelete(c)}
-                  aria-label="Sil"
-                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
-              {debt > 0 && (
-                <a
-                  href={waLink(c.phone, debt, waTemplate)}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="WhatsApp xatırlatma"
-                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-green-50 text-green-600 active:bg-green-100"
-                >
-                  <MessageCircle size={18} />
-                </a>
-              )}
+              <button
+                onClick={() => onView(c)}
+                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
+              >
+                <Eye size={18} /> Detal
+              </button>
+              <ActionMenu
+                items={[
+                  ...(canEdit && onEdit
+                    ? [
+                        {
+                          label: "Düzəliş",
+                          icon: <Pencil size={15} />,
+                          onClick: () => onEdit(c),
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                  ...(debt > 0
+                    ? [
+                        {
+                          label: "WhatsApp",
+                          icon: <MessageCircle size={15} />,
+                          href: waLink(c.phone, debt, waTemplate),
+                          tone: "success" as const,
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                  ...(canDelete && onDelete
+                    ? [
+                        {
+                          label: "Sil",
+                          icon: <Trash2 size={15} />,
+                          onClick: () => onDelete(c),
+                          tone: "danger" as const,
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                ]}
+                aria-label={`${c.name} əməliyyatları`}
+              />
             </div>
           </div>
         );

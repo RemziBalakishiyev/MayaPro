@@ -14,8 +14,8 @@ export interface AuthUser {
  * - sahib (Owner): hər şey
  * - menecer (Manager): satış, mal, borc, təchizatçı, xərc (OwnerOrManager)
  * - satici (Seller): yalnız satış yaratma və müştəri yazma
- * sales.manage — satış düzəliş/sil (OwnerOrManager)
- * customers.delete — müştəri silmə (OwnerOnly)
+ * sales.manage — satış düzəliş/sil + nisyə borc sətri silmə (OwnerOrManager)
+ * customers.delete — müştəri silmə (OwnerOnly; borclu olsa belə)
  * Gün sonu (closings.write) və Ayarlar (settings.write) yalnız sahib-dədir
  */
 const CAPABILITIES: Record<Role, string[]> = {

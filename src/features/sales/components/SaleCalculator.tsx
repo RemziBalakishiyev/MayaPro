@@ -8,7 +8,6 @@ interface Props {
   realCost: number;
   qty: number;
   salePrice: number;
-  discount: number;
 }
 
 function LiveRow({
@@ -46,11 +45,10 @@ export function SaleCalculator({
   realCost,
   qty,
   salePrice,
-  discount,
 }: Props) {
   const gross = lineTotal(salePrice, qty);
-  const net = netTotal(salePrice, qty, discount);
-  const profit = saleProfit(salePrice, qty, discount, realCost);
+  const net = netTotal(salePrice, qty, 0);
+  const profit = saleProfit(salePrice, qty, 0, realCost);
   const belowCost = isLossSale(salePrice, realCost);
   const minPrice = realCost;
 
@@ -67,11 +65,6 @@ export function SaleCalculator({
         <>
           <LiveRow label="Real maya (1 əd.)" value={fmtMoney(realCost)} />
           <LiveRow label={`Satış məbləği (${qty} əd.)`} value={fmtMoney(gross)} />
-          <LiveRow
-            label="Endirim"
-            value={`− ${fmtMoney(discount)}`}
-            tone="text-amber-600"
-          />
           <div className="my-1 border-t border-stone-100" />
           <LiveRow label="Xalis satış" value={fmtMoney(net)} bold />
           <LiveRow

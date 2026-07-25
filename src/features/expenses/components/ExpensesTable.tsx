@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Trash2 } from "lucide-react";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -14,6 +15,48 @@ interface Props {
   productName: (id: string | null) => string;
   onEdit?: (expense: Expense) => void;
   onDelete?: (expense: Expense) => void;
+}
+
+function ExpenseRowActions({
+  expense,
+  onEdit,
+  onDelete,
+}: {
+  expense: Expense;
+  onEdit?: (e: Expense) => void;
+  onDelete?: (e: Expense) => void;
+}) {
+  const menuItems: ActionMenuItem[] = [
+    ...(onDelete
+      ? [
+          {
+            label: "Sil",
+            icon: <Trash2 size={15} />,
+            onClick: () => onDelete(expense),
+            tone: "danger" as const,
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      {onEdit && (
+        <button
+          type="button"
+          onClick={() => onEdit(expense)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
+        >
+          <Pencil size={14} />
+          Düzəliş
+        </button>
+      )}
+      <ActionMenu
+        items={menuItems}
+        aria-label={`${expense.title} əməliyyatları`}
+      />
+    </div>
+  );
 }
 
 export function ExpensesTable({
@@ -83,31 +126,13 @@ export function ExpensesTable({
               id: "actions",
               header: "Əməliyyat",
               enableSorting: false,
-              cell: ({ row }: { row: { original: Expense } }) => {
-                const e = row.original;
-                return (
-                  <div className="flex justify-end gap-1">
-                    {onEdit && (
-                      <button
-                        title="Düzəliş"
-                        onClick={() => onEdit(e)}
-                        className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                    )}
-                    {onDelete && (
-                      <button
-                        title="Sil"
-                        onClick={() => onDelete(e)}
-                        className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
-                  </div>
-                );
-              },
+              cell: ({ row }: { row: { original: Expense } }) => (
+                <ExpenseRowActions
+                  expense={row.original}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ),
             } as ColumnDef<Expense, unknown>,
           ]
         : []),
@@ -149,7 +174,7 @@ export function ExpensesTable({
             <p className="mt-2 text-sm text-stone-500">{e.note}</p>
           )}
           {canWrite && (
-            <div className="mt-3 flex gap-2 border-t border-stone-100 pt-3">
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
               {onEdit && (
                 <button
                   onClick={() => onEdit(e)}
@@ -158,14 +183,21 @@ export function ExpensesTable({
                   <Pencil size={18} /> Düzəliş
                 </button>
               )}
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(e)}
-                  className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-base font-semibold text-red-600 active:bg-red-100"
-                >
-                  <Trash2 size={18} /> Sil
-                </button>
-              )}
+              <ActionMenu
+                items={[
+                  ...(onDelete
+                    ? [
+                        {
+                          label: "Sil",
+                          icon: <Trash2 size={15} />,
+                          onClick: () => onDelete(e),
+                          tone: "danger" as const,
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                ]}
+                aria-label={`${e.title} əməliyyatları`}
+              />
             </div>
           )}
         </div>

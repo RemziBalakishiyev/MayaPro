@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Plus, HandCoins, Pencil, Trash2 } from "lucide-react";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { DataTable } from "@/components/ui/DataTable";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import type { Supplier } from "@/types";
@@ -14,6 +15,73 @@ interface Props {
   onPay: (supplier: Supplier) => void;
   onEdit?: (supplier: Supplier) => void;
   onDelete?: (supplier: Supplier) => void;
+}
+
+function SupplierRowActions({
+  supplier,
+  canWrite,
+  onView,
+  onAddDebt,
+  onPay,
+  onEdit,
+  onDelete,
+}: {
+  supplier: Supplier;
+  canWrite: boolean;
+  onView: (s: Supplier) => void;
+  onAddDebt: (s: Supplier) => void;
+  onPay: (s: Supplier) => void;
+  onEdit?: (s: Supplier) => void;
+  onDelete?: (s: Supplier) => void;
+}) {
+  const menuItems: ActionMenuItem[] = [
+    {
+      label: "Detal",
+      icon: <Eye size={15} />,
+      onClick: () => onView(supplier),
+    },
+    {
+      label: "Borc əlavə et",
+      icon: <Plus size={15} />,
+      onClick: () => onAddDebt(supplier),
+    },
+    ...(canWrite && onEdit
+      ? [
+          {
+            label: "Düzəliş",
+            icon: <Pencil size={15} />,
+            onClick: () => onEdit(supplier),
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+    ...(canWrite && onDelete
+      ? [
+          {
+            label: "Sil",
+            icon: <Trash2 size={15} />,
+            onClick: () => onDelete(supplier),
+            tone: "danger" as const,
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={() => onPay(supplier)}
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+      >
+        <HandCoins size={14} />
+        Ödəniş
+      </button>
+      <ActionMenu
+        items={menuItems}
+        aria-label={`${supplier.name} əməliyyatları`}
+      />
+    </div>
+  );
 }
 
 export function SuppliersTable({
@@ -78,58 +146,17 @@ export function SuppliersTable({
         id: "actions",
         header: "Əməliyyat",
         enableSorting: false,
-        cell: ({ row }) => {
-          const s = row.original;
-          const hasDebt = s.remainingDebt > 0;
-          return (
-            <div className="flex justify-end gap-1">
-              <button
-                title="Detal"
-                onClick={() => onView(s)}
-                className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-              >
-                <Eye size={15} />
-              </button>
-              <button
-                title="Borc əlavə et"
-                onClick={() => onAddDebt(s)}
-                className="rounded-md p-1.5 text-amber-600 hover:bg-amber-50"
-              >
-                <Plus size={15} />
-              </button>
-              <button
-                title="Ödəniş et"
-                onClick={() => onPay(s)}
-                className="rounded-md p-1.5 text-emerald-700 hover:bg-emerald-50"
-              >
-                <HandCoins size={15} />
-              </button>
-              {canWrite && onEdit && (
-                <button
-                  title="Düzəliş"
-                  onClick={() => onEdit(s)}
-                  className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-                >
-                  <Pencil size={15} />
-                </button>
-              )}
-              {canWrite && onDelete && (
-                <button
-                  title={
-                    hasDebt
-                      ? "Borcu olan təchizatçı silinə bilməz"
-                      : "Sil"
-                  }
-                  disabled={hasDebt}
-                  onClick={() => onDelete(s)}
-                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <SupplierRowActions
+            supplier={row.original}
+            canWrite={canWrite}
+            onView={onView}
+            onAddDebt={onAddDebt}
+            onPay={onPay}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ),
       },
     ],
     [onView, onAddDebt, onPay, onEdit, onDelete, canWrite],
@@ -170,10 +197,10 @@ export function SuppliersTable({
             </div>
             <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
               <button
-                onClick={() => onView(s)}
-                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
+                onClick={() => onPay(s)}
+                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-base font-semibold text-emerald-700 active:bg-emerald-100"
               >
-                <Eye size={18} /> Detal
+                <HandCoins size={18} /> Ödəniş
               </button>
               <button
                 onClick={() => onAddDebt(s)}
@@ -181,36 +208,35 @@ export function SuppliersTable({
               >
                 <Plus size={18} /> Borc
               </button>
-              <button
-                onClick={() => onPay(s)}
-                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-base font-semibold text-emerald-700 active:bg-emerald-100"
-              >
-                <HandCoins size={18} /> Ödəniş
-              </button>
-              {canWrite && onEdit && (
-                <button
-                  onClick={() => onEdit(s)}
-                  aria-label="Düzəliş"
-                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200"
-                >
-                  <Pencil size={18} />
-                </button>
-              )}
-              {canWrite && onDelete && (
-                <button
-                  title={
-                    debt > 0
-                      ? "Borcu olan təchizatçı silinə bilməz"
-                      : "Sil"
-                  }
-                  disabled={debt > 0}
-                  onClick={() => onDelete(s)}
-                  aria-label="Sil"
-                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <ActionMenu
+                items={[
+                  {
+                    label: "Detal",
+                    icon: <Eye size={15} />,
+                    onClick: () => onView(s),
+                  },
+                  ...(canWrite && onEdit
+                    ? [
+                        {
+                          label: "Düzəliş",
+                          icon: <Pencil size={15} />,
+                          onClick: () => onEdit(s),
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                  ...(canWrite && onDelete
+                    ? [
+                        {
+                          label: "Sil",
+                          icon: <Trash2 size={15} />,
+                          onClick: () => onDelete(s),
+                          tone: "danger" as const,
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                ]}
+                aria-label={`${s.name} əməliyyatları`}
+              />
             </div>
           </div>
         );

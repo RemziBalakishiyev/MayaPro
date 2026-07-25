@@ -365,6 +365,29 @@ export const saleHandlers = {
     );
   },
 
+  /**
+   * Nisyə borc sətri — DELETE /api/customers/{customerId}/credits/{saleId}.
+   * Satışlar endpoint-indən ayrı; yalnız bu müştərinin nisyə satışını silir.
+   */
+  async deleteCustomerCredit(
+    customerId: string,
+    saleId: string,
+  ): Promise<void> {
+    const customer = await db.customers.get(customerId);
+    if (!customer) throw new Error("Müştəri tapılmadı");
+
+    const sale = await db.sales.get(saleId);
+    if (
+      !sale ||
+      sale.customerId !== customerId ||
+      sale.paymentType !== "Nisyə"
+    ) {
+      throw new Error("Nisyə borc tapılmadı");
+    }
+
+    await saleHandlers.deleteSale(saleId);
+  },
+
   /** Müştəri ödənişi: borc azalır (0-dan aşağı düşmür) + qeyd + activity. */
   async addCustomerPayment(
     customerId: string,
@@ -453,9 +476,6 @@ export const supplierHandlers = {
   async remove(id: string): Promise<void> {
     const s = await db.suppliers.get(id);
     if (!s) throw new Error("Təchizatçı tapılmadı");
-    if (s.remainingDebt > 0) {
-      throw new Error("Borcu olan təchizatçı silinə bilməz");
-    }
     await db.suppliers.remove(id);
     await logActivity("Təchizatçı sildi", s.name);
   },

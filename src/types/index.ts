@@ -132,6 +132,8 @@ export interface CustomerHistoryEntry {
   amount: number;
   /** Satışda mal adı (× miqdar); ilkin borc / ödənişdə qeyd mətni */
   note: string | null;
+  /** type === "sale" üçün — DELETE /api/customers/{id}/credits/{saleId} */
+  saleId?: string | null;
 }
 
 export interface Supplier {

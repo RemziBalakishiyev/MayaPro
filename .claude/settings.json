@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(npm run *)",
+      "Bash(timeout 25 npm run dev)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173 --max-time 4)",
+      "Bash(git reset *)",
+      "Bash(git commit -q -m 'feat: serbest satis ekrani *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Lenovo LEGION\\Documents\\Freelancess Projects\\mayapro-warehouse-api\\src\\MayaPro.WarehouseApi.SharedKernel\\Contracts",
+      "c:\\Users\\Lenovo LEGION\\Documents\\Freelancess Projects\\mayapro-warehouse-api\\src\\Modules\\MayaPro.WarehouseApi.Modules.Reports\\Application\\UseCases\\GetDashboard",
+      "c:\\Users\\Lenovo LEGION\\Documents\\Freelancess Projects\\mayapro-warehouse-api\\tests\\MayaPro.WarehouseApi.Modules.Reports.Tests",
+      "c:\\Users\\Lenovo LEGION\\Documents\\Freelancess Projects\\mayapro-warehouse-api\\src\\Modules\\MayaPro.WarehouseApi.Modules.Products\\Application",
+      "c:\\Users\\Lenovo LEGION\\Documents\\Freelancess Projects\\mayapro-warehouse-api\\src\\Modules\\MayaPro.WarehouseApi.Modules.Suppliers\\Application\\Contracts",
+      "c:\\Users\\Lenovo LEGION\\Documents\\Freelancess Projects\\mayapro-warehouse-api\\src\\Modules\\MayaPro.WarehouseApi.Modules.Suppliers\\Application\\UseCases\\GetSuppliers",
+      "c:\\Users\\Lenovo LEGION\\Documents\\Freelancess Projects\\mayapro-warehouse-api\\tests\\MayaPro.WarehouseApi.IntegrationTests"
+    ]
+  }
+}

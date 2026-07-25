@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Package, Plus, Minus, Pencil, Eye, Trash2 } from "lucide-react";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { DataTable } from "@/components/ui/DataTable";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -28,6 +29,72 @@ interface Props {
   onEdit: (product: Product) => void;
   onAdjust: (product: Product, mode: StockMode) => void;
   onDelete?: (product: Product) => void;
+}
+
+function ProductRowActions({
+  product,
+  canEdit,
+  onEdit,
+  onAdjust,
+  onDelete,
+}: {
+  product: Product;
+  canEdit: boolean;
+  onEdit: (p: Product) => void;
+  onAdjust: (p: Product, mode: StockMode) => void;
+  onDelete?: (p: Product) => void;
+}) {
+  const navigate = useNavigate();
+
+  const menuItems: ActionMenuItem[] = [
+    {
+      label: "Detal",
+      icon: <Eye size={15} />,
+      onClick: () =>
+        void navigate({ to: "/mallar/$id", params: { id: product.id } }),
+    },
+    {
+      label: "Stok azalt",
+      icon: <Minus size={15} />,
+      onClick: () => onAdjust(product, "sub"),
+    },
+    ...(canEdit
+      ? [
+          {
+            label: "Redaktə et",
+            icon: <Pencil size={15} />,
+            onClick: () => onEdit(product),
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+    ...(canEdit && onDelete
+      ? [
+          {
+            label: "Sil",
+            icon: <Trash2 size={15} />,
+            onClick: () => onDelete(product),
+            tone: "danger" as const,
+          } satisfies ActionMenuItem,
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={() => onAdjust(product, "add")}
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+      >
+        <Plus size={14} />
+        Stok
+      </button>
+      <ActionMenu
+        items={menuItems}
+        aria-label={`${product.name} əməliyyatları`}
+      />
+    </div>
+  );
 }
 
 export function ProductsTable({
@@ -180,53 +247,15 @@ export function ProductsTable({
         id: "actions",
         header: "Əməliyyat",
         enableSorting: false,
-        cell: ({ row }) => {
-          const p = row.original;
-          return (
-            <div className="flex justify-end gap-1">
-              <Link
-                to="/mallar/$id"
-                params={{ id: p.id }}
-                title="Detallara bax"
-                className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-              >
-                <Eye size={15} />
-              </Link>
-              <button
-                title="Stok artır"
-                onClick={() => onAdjust(p, "add")}
-                className="rounded-md p-1.5 text-emerald-700 hover:bg-emerald-50"
-              >
-                <Plus size={15} />
-              </button>
-              <button
-                title="Stok azalt"
-                onClick={() => onAdjust(p, "sub")}
-                className="rounded-md p-1.5 text-amber-600 hover:bg-amber-50"
-              >
-                <Minus size={15} />
-              </button>
-              {canEdit && (
-                <button
-                  title="Redaktə et"
-                  onClick={() => onEdit(p)}
-                  className="rounded-md p-1.5 text-stone-500 hover:bg-stone-100"
-                >
-                  <Pencil size={15} />
-                </button>
-              )}
-              {canEdit && onDelete && (
-                <button
-                  title="Sil"
-                  onClick={() => onDelete(p)}
-                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <ProductRowActions
+            product={row.original}
+            canEdit={canEdit}
+            onEdit={onEdit}
+            onAdjust={onAdjust}
+            onDelete={onDelete}
+          />
+        ),
       },
     ],
     [onEdit, onAdjust, onDelete, canEdit],
@@ -296,7 +325,7 @@ export function ProductsTable({
                 </p>
               </div>
             </div>
-            <div className="mt-3 flex gap-2 border-t border-stone-100 pt-3">
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
               <button
                 onClick={() => onAdjust(p, "add")}
                 className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-base font-semibold text-emerald-700 active:bg-emerald-100"
@@ -309,24 +338,30 @@ export function ProductsTable({
               >
                 <Minus size={18} /> Stok
               </button>
-              {canEdit && (
-                <button
-                  onClick={() => onEdit(p)}
-                  aria-label="Redaktə et"
-                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200"
-                >
-                  <Pencil size={18} />
-                </button>
-              )}
-              {canEdit && onDelete && (
-                <button
-                  onClick={() => onDelete(p)}
-                  aria-label="Sil"
-                  className="flex h-11 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 active:bg-red-100"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <ActionMenu
+                items={[
+                  ...(canEdit
+                    ? [
+                        {
+                          label: "Redaktə et",
+                          icon: <Pencil size={15} />,
+                          onClick: () => onEdit(p),
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                  ...(canEdit && onDelete
+                    ? [
+                        {
+                          label: "Sil",
+                          icon: <Trash2 size={15} />,
+                          onClick: () => onDelete(p),
+                          tone: "danger" as const,
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
+                ]}
+                aria-label={`${p.name} əməliyyatları`}
+              />
             </div>
           </div>
         );

@@ -308,11 +308,6 @@ function ProductDetailPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-stone-800">
                         {s.quantity} əd. × {fmtMoney(s.salePrice)}
-                        {s.discount > 0 && (
-                          <span className="ml-1 text-xs text-amber-600">
-                            (−{fmtMoney(s.discount)} endirim)
-                          </span>
-                        )}
                       </p>
                       <p className="text-[11px] text-stone-400">
                         {fmtDate(s.createdAt)} · {s.paymentType}

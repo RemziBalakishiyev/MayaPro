@@ -109,7 +109,11 @@ function TedarukculerPage() {
         onClose={() => setDeleteFor(null)}
         onConfirm={() => void handleDelete()}
         title="Təchizatçını sil"
-        message={`${deleteFor?.name ?? "Bu təchizatçı"} silinəcək. Bu əməliyyat geri alına bilməz.`}
+        message={
+          deleteFor && deleteFor.remainingDebt > 0
+            ? `Diqqət: ${deleteFor.name} təchizatçısına ${fmtMoney(deleteFor.remainingDebt)} borcunuz var. Silinsə, borc məlumatı da itəcək. Bu əməliyyat geri alına bilməz. Silmək istədiyinizə əminsiniz?`
+            : `${deleteFor?.name ?? "Bu təchizatçı"} silinəcək. Bu əməliyyat geri alına bilməz.`
+        }
         confirmText="Sil"
         danger
       />

@@ -9,7 +9,7 @@ const optNum = z.preprocess((v) => {
 }, z.number().optional());
 
 const searchSchema = z.object({
-  period: z.enum(["today", "week", "month", "all"]).default("today"),
+  period: z.enum(["today", "week", "month", "all"]).default("all"),
   pay: z.enum(["Nağd", "Kart", "Nisyə"]).optional(),
   q: z.string().optional(),
   minProfit: optNum,

@@ -3,18 +3,24 @@ import { getRouteApi } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   ChevronDown,
+  Eye,
   FileText,
   Loader2,
+  Pencil,
   Search,
   SlidersHorizontal,
+  Trash2,
 } from "lucide-react";
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { DataTable } from "@/components/ui/DataTable";
 import { inputCls } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-store";
-import { USE_MOCK } from "@/lib/api-client";
+import { useCan } from "@/features/auth/store";
+import { ApiError, USE_MOCK } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/download";
 import { fmtDate, fmtMoney } from "@/lib/format";
@@ -24,8 +30,9 @@ import {
 } from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
 import { periodToRange } from "../lib";
-import { JOURNAL_PAGE_SIZE, useSalesJournal } from "../queries";
+import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
 import { SaleDetailDrawer } from "./SaleDetailDrawer";
+import { SaleEditDrawer } from "./SaleEditDrawer";
 import type { PaymentType, Sale } from "@/types";
 
 const routeApi = getRouteApi("/_app/satis");
@@ -52,6 +59,8 @@ const parseNum = (raw: string): number | undefined => {
 /** Satış jurnalı — filterlər + DataTable 10-luq pagination. */
 export function SalesJournal() {
   const toast = useToast();
+  const canManage = useCan()("sales.manage");
+  const deleteSale = useDeleteSale();
   const navigate = routeApi.useNavigate();
   const { period, pay, q, minProfit, maxProfit, minQty, maxQty } =
     routeApi.useSearch();
@@ -67,7 +76,7 @@ export function SalesJournal() {
   });
 
   const activeFilterCount = [
-    period !== "today",
+    period !== "all",
     !!pay,
     !!q?.trim(),
     minProfit != null,
@@ -81,6 +90,8 @@ export function SalesJournal() {
   );
   const [exportingPdf, setExportingPdf] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
 
   const sellerName = useMemo(() => {
     const map = new Map(employees.map((e) => [e.id, e.name]));
@@ -110,21 +121,13 @@ export function SalesJournal() {
               <p className="truncate font-semibold text-stone-900">
                 {s.productName}
               </p>
-              <div className="mt-0.5 flex flex-nowrap items-center gap-1.5 overflow-hidden">
-                {s.category ? (
-                  <span className="truncate text-xs text-stone-400">
-                    {s.category}
-                  </span>
-                ) : null}
-                {s.isManual && (
-                  <Badge
-                    tone="Sərbəst"
-                    className="shrink-0 px-1.5 py-0 text-[10px]"
-                  >
-                    Sərbəst
-                  </Badge>
-                )}
-              </div>
+              {(s.category || s.isManual) && (
+                <p className="mt-0.5 truncate text-xs text-stone-400">
+                  {[s.category, s.isManual ? "Sərbəst" : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
           );
         },
@@ -144,21 +147,6 @@ export function SalesJournal() {
             {fmtMoney(getValue() as number)}
           </span>
         ),
-      },
-      {
-        accessorKey: "discount",
-        header: "Endirim",
-        meta: { className: "hidden xl:table-cell" },
-        cell: ({ getValue }) => {
-          const d = getValue() as number;
-          return d > 0 ? (
-            <span className="tabular-nums text-sm text-amber-700">
-              {fmtMoney(d)}
-            </span>
-          ) : (
-            <span className="text-stone-300">—</span>
-          );
-        },
       },
       {
         id: "xerc",
@@ -250,15 +238,69 @@ export function SalesJournal() {
           </span>
         ),
       },
+      {
+        id: "actions",
+        header: "Əməliyyat",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const s = row.original;
+          const menuItems: ActionMenuItem[] = canManage
+            ? [
+                {
+                  label: "Düzəliş",
+                  icon: <Pencil size={15} />,
+                  onClick: () => setEditId(s.id),
+                },
+                {
+                  label: "Sil",
+                  icon: <Trash2 size={15} />,
+                  onClick: () => setDeleteTarget(s),
+                  tone: "danger",
+                },
+              ]
+            : [];
+          return (
+            <div className="flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                onClick={() => setDetailId(s.id)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
+              >
+                <Eye size={14} />
+                Detal
+              </button>
+              <ActionMenu
+                items={menuItems}
+                aria-label={`${s.productName} əməliyyatları`}
+              />
+            </div>
+          );
+        },
+      },
     ],
-    [sellerName],
+    [canManage, sellerName],
   );
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteSale.mutateAsync(deleteTarget.id);
+      toast.success("Satış silindi");
+      setDeleteTarget(null);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        toast.error(e.message || "Gün bağlanıb");
+      } else {
+        toast.error(e instanceof Error ? e.message : "Satış silinmədi");
+      }
+    }
+  };
 
   const clearFilters = () => {
     navigate({
       search: (prev) => ({
         ...prev,
-        period: "today",
+        period: "all",
         pay: undefined,
         minProfit: undefined,
         maxProfit: undefined,
@@ -537,7 +579,6 @@ export function SalesJournal() {
           isLoading={journal.isLoading}
           pageSize={JOURNAL_PAGE_SIZE}
           embedded
-          onRowClick={(s) => setDetailId(s.id)}
           emptyState={{
             title: "Satış yoxdur",
             description:
@@ -555,21 +596,13 @@ export function SalesJournal() {
                   {fmtMoney(s.totalAmount)}
                 </span>
               </div>
-              <div className="mt-1 flex flex-nowrap items-center gap-1.5 overflow-hidden">
-                {s.category ? (
-                  <span className="truncate text-xs text-stone-400">
-                    {s.category}
-                  </span>
-                ) : null}
-                {s.isManual && (
-                  <Badge
-                    tone="Sərbəst"
-                    className="shrink-0 px-1.5 py-0 text-[10px]"
-                  >
-                    Sərbəst
-                  </Badge>
-                )}
-              </div>
+              {(s.category || s.isManual) && (
+                <p className="mt-1 truncate text-xs text-stone-400">
+                  {[s.category, s.isManual ? "Sərbəst" : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-xs tabular-nums text-stone-400">
                   {s.quantity} × {fmtMoney(s.salePrice)}
@@ -590,6 +623,35 @@ export function SalesJournal() {
                   {saleTime(s.createdAt)}
                 </span>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setDetailId(s.id)}
+                  className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
+                >
+                  <Eye size={18} /> Detal
+                </button>
+                <ActionMenu
+                  items={
+                    canManage
+                      ? [
+                          {
+                            label: "Düzəliş",
+                            icon: <Pencil size={15} />,
+                            onClick: () => setEditId(s.id),
+                          },
+                          {
+                            label: "Sil",
+                            icon: <Trash2 size={15} />,
+                            onClick: () => setDeleteTarget(s),
+                            tone: "danger",
+                          },
+                        ]
+                      : []
+                  }
+                  aria-label={`${s.productName} əməliyyatları`}
+                />
+              </div>
             </div>
           )}
         />
@@ -598,6 +660,21 @@ export function SalesJournal() {
       <SaleDetailDrawer
         saleId={detailId}
         onClose={() => setDetailId(null)}
+      />
+
+      <SaleEditDrawer
+        saleId={editId}
+        onClose={() => setEditId(null)}
+      />
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void handleDelete()}
+        title="Satışı sil"
+        message="Bu satışı silmək istədiyinizə əminsiniz? Bu əməliyyat geri alına bilməz."
+        confirmText="Sil"
+        danger
       />
     </div>
   );

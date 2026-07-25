@@ -78,7 +78,6 @@ export function QuickSaleScreen() {
   const [productId, setProductId] = useState("");
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
-  const [discount, setDiscount] = useState("");
   const [payType, setPayType] = useState<PaymentType>("Nağd");
   const [customerId, setCustomerId] = useState("");
   const [note, setNote] = useState("");
@@ -130,7 +129,6 @@ export function QuickSaleScreen() {
   // ——— Hesablamalar (mövcud pure funksiyalar) ———
   const q = Math.max(1, Number(qty) || 1);
   const sp = Number(price) || 0;
-  const disc = Number(discount) || 0;
   // Sərbəst: maya = alış + Σxərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
   const namedExpenses = useMemo(
     () => mergeExpenseLines(expenseRows),
@@ -141,9 +139,9 @@ export function QuickSaleScreen() {
       ? null
       : calcRealCost(Number(manualPurchase) || 0, q, namedExpenses)
     : (product?.realCostPerUnit ?? 0);
-  const net = netTotal(sp, q, disc);
+  const net = netTotal(sp, q, 0);
   const profit: number | null =
-    realCost == null ? null : saleProfit(sp, q, disc, realCost);
+    realCost == null ? null : saleProfit(sp, q, 0, realCost);
   const belowCost = realCost != null && isLossSale(sp, realCost);
   const notEnoughStock = !isManual && !!product && q > product.quantity;
 
@@ -163,7 +161,6 @@ export function QuickSaleScreen() {
     setExpenseError("");
     setQty("1");
     setPrice("");
-    setDiscount("");
     setPayType("Nağd");
     setCustomerId("");
     setNote("");
@@ -189,7 +186,7 @@ export function QuickSaleScreen() {
         isManual,
         quantity: q,
         salePrice: sp,
-        discount: disc,
+        discount: 0,
         paymentType: payType,
         customerId: payType === "Nisyə" ? customerId : null,
         costPerUnit: isManual ? realCost : undefined,
@@ -220,7 +217,6 @@ export function QuickSaleScreen() {
     setExpenseRows([]);
     setProductId(p.id);
     setQty("1");
-    setDiscount("");
     setCustomerId("");
   };
 
@@ -234,7 +230,6 @@ export function QuickSaleScreen() {
     setProductId("");
     setQty("1");
     setPrice("");
-    setDiscount("");
     setPayType("Nağd");
     setCustomerId("");
   };
@@ -248,7 +243,6 @@ export function QuickSaleScreen() {
     setExpenseRows([]);
     setQty("1");
     setPrice("");
-    setDiscount("");
   };
 
   const step = (delta: number) => {
@@ -516,7 +510,7 @@ export function QuickSaleScreen() {
                 <SaleSection
                   icon={ClipboardList}
                   title="Xərc və ödəniş"
-                  desc="Partiya xərcləri, endirim və ödəniş"
+                  desc="Partiya xərcləri və ödəniş"
                 >
                   <ExpenseRows
                     key={isManual ? "manual" : "off"}
@@ -527,18 +521,6 @@ export function QuickSaleScreen() {
                       setExpenseRows(rows);
                     }}
                   />
-                  <div>
-                    <p className="mb-1.5 text-sm font-medium text-stone-700">
-                      Endirim (ümumi)
-                    </p>
-                    <input
-                      value={discount}
-                      onChange={(e) => setDiscount(e.target.value)}
-                      inputMode="decimal"
-                      placeholder="0"
-                      className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-lg font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-                    />
-                  </div>
                   <PaymentBlock
                     payType={payType}
                     setPayType={setPayType}
@@ -593,35 +575,21 @@ export function QuickSaleScreen() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="mb-2 text-sm font-semibold text-stone-600">
-                      Qiymət (1 əd.)
-                    </p>
-                    <input
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      inputMode="decimal"
-                      className={cn(
-                        "h-14 w-full rounded-xl border bg-white px-4 text-xl font-bold tabular-nums outline-none focus:ring-4",
-                        belowCost
-                          ? "border-red-400 text-red-600 focus:border-red-500 focus:ring-red-500/20"
-                          : "border-stone-300 text-stone-900 focus:border-emerald-500 focus:ring-emerald-500/20",
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <p className="mb-2 text-sm font-semibold text-stone-600">
-                      Endirim (ümumi)
-                    </p>
-                    <input
-                      value={discount}
-                      onChange={(e) => setDiscount(e.target.value)}
-                      inputMode="decimal"
-                      placeholder="0"
-                      className="h-14 w-full rounded-xl border border-stone-300 bg-white px-4 text-xl font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-                    />
-                  </div>
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-stone-600">
+                    Qiymət (1 əd.)
+                  </p>
+                  <input
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    inputMode="decimal"
+                    className={cn(
+                      "h-14 w-full rounded-xl border bg-white px-4 text-xl font-bold tabular-nums outline-none focus:ring-4",
+                      belowCost
+                        ? "border-red-400 text-red-600 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-stone-300 text-stone-900 focus:border-emerald-500 focus:ring-emerald-500/20",
+                    )}
+                  />
                 </div>
 
                 <PaymentBlock

@@ -71,6 +71,28 @@ export const useDeleteCustomer = () => {
   });
 };
 
+/** Nisyə borc sətri silmə — Owner/Manager (sales.manage). */
+export const useDeleteCustomerCredit = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      customerId,
+      saleId,
+    }: {
+      customerId: string;
+      saleId: string;
+    }) => customersApi.removeCredit(customerId, saleId),
+    onSuccess: (_data, { customerId }) => {
+      qc.invalidateQueries({ queryKey: customerKeys.all });
+      qc.invalidateQueries({ queryKey: customerKeys.history(customerId) });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};
+
 export const useAddCustomerPayment = () => {
   const qc = useQueryClient();
   return useMutation({
