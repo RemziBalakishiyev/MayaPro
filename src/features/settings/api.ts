@@ -8,6 +8,8 @@ import { useSettingsStore, type Settings } from "./store";
 interface SettingsDto {
   storeName: string;
   ownerName: string | null;
+  address: string | null;
+  phone: string | null;
   whatsappTemplate: string;
   currency: string;
   defaultMinStock: number;
@@ -17,6 +19,8 @@ interface SettingsDto {
 const toSettings = (d: SettingsDto): Settings => ({
   storeName: d.storeName,
   ownerName: d.ownerName ?? "",
+  address: d.address ?? "",
+  phone: d.phone ?? "",
   whatsappTemplate: d.whatsappTemplate,
   currency: d.currency,
   defaultMinStock: d.defaultMinStock,
@@ -29,6 +33,8 @@ const snapshot = (): Settings => {
   return {
     storeName: s.storeName,
     ownerName: s.ownerName,
+    address: s.address,
+    phone: s.phone,
     whatsappTemplate: s.whatsappTemplate,
     currency: s.currency,
     defaultMinStock: s.defaultMinStock,

@@ -8,6 +8,10 @@ export const DEFAULT_WA_TEMPLATE =
 export interface Settings {
   storeName: string;
   ownerName: string;
+  /** Qaimə başlığında görünür */
+  address: string;
+  /** Qaimə başlığında görünür */
+  phone: string;
   whatsappTemplate: string;
   currency: string;
   defaultMinStock: number;
@@ -21,6 +25,8 @@ interface SettingsState extends Settings {
 const DEFAULTS: Settings = {
   storeName: "Sədərək Anbar",
   ownerName: "",
+  address: "",
+  phone: "",
   whatsappTemplate: DEFAULT_WA_TEMPLATE,
   currency: "AZN",
   defaultMinStock: 10,

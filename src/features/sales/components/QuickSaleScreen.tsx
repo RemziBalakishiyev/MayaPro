@@ -8,9 +8,11 @@ import {
   Coins,
   CreditCard,
   HandCoins,
+  Loader2,
   Package,
   PackagePlus,
   Plus,
+  Receipt,
   Search,
   Wallet,
 } from "lucide-react";
@@ -33,6 +35,7 @@ import { CategoryField } from "@/features/categories/components/CategoryField";
 import { mergeExpenseLines } from "@/features/products/lib";
 import { netTotal, saleProfit, isLossSale } from "../lib";
 import { useCreateSale } from "../queries";
+import { useInvoiceDownload } from "../useInvoiceDownload";
 import { SalesJournal } from "./SalesJournal";
 import { QtyStepper } from "./QtyStepper";
 import { LossConfirmModal } from "./LossConfirmModal";
@@ -73,6 +76,8 @@ export function QuickSaleScreen() {
   const { data: products = [] } = useProducts();
   const { data: customers = [] } = useCustomers();
   const createSale = useCreateSale();
+  const { download: downloadInvoice, pendingId: invoicePendingId } =
+    useInvoiceDownload();
 
   // ——— Biznes state (dəyişməz) ———
   const [productId, setProductId] = useState("");
@@ -95,9 +100,13 @@ export function QuickSaleScreen() {
   const [search, setSearch] = useState("");
   const [newCusOpen, setNewCusOpen] = useState(false);
   const [newCusName, setNewCusName] = useState("");
-  const [success, setSuccess] = useState<{ name: string; amount: number } | null>(
-    null,
-  );
+  const [success, setSuccess] = useState<{
+    id: string;
+    name: string;
+    amount: number;
+  } | null>(null);
+  // Qaimə endirilərkən uğur ekranı öz-özünə bağlanmasın.
+  const [holdSuccess, setHoldSuccess] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const product = products.find((p) => p.id === productId);
@@ -115,16 +124,13 @@ export function QuickSaleScreen() {
     if (!showDetails && !success) searchRef.current?.focus();
   }, [showDetails, success]);
 
-  // Uğur ekranı 2 saniyə → təmiz seçimə qayıt
+  // Uğur ekranı 5 saniyə (qaimə düyməsinə çatmaq üçün) → təmiz seçimə qayıt
   useEffect(() => {
-    if (!success) return;
-    const t = setTimeout(() => {
-      reset();
-      setSuccess(null);
-    }, 2000);
+    if (!success || holdSuccess) return;
+    const t = setTimeout(closeSuccess, 5000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [success]);
+  }, [success, holdSuccess]);
 
   // ——— Hesablamalar (mövcud pure funksiyalar) ———
   const q = Math.max(1, Number(qty) || 1);
@@ -167,6 +173,12 @@ export function QuickSaleScreen() {
     setSearch("");
   };
 
+  const closeSuccess = () => {
+    reset();
+    setHoldSuccess(false);
+    setSuccess(null);
+  };
+
   const complete = async () => {
     if (!isManual && !product) return;
     if (isManual && incompleteExpenseIndexes(expenseRows).length > 0) {
@@ -177,9 +189,8 @@ export function QuickSaleScreen() {
     const category = isManual
       ? manualCategory.trim() || null
       : product!.category || null;
-    const captured = { name: displayName, amount: net };
     try {
-      await createSale.mutateAsync({
+      const created = await createSale.mutateAsync({
         productId: isManual ? null : product!.id,
         productName: isManual ? displayName : undefined,
         category,
@@ -193,7 +204,8 @@ export function QuickSaleScreen() {
         expenseItems: isManual && namedExpenses.length > 0 ? namedExpenses : undefined,
         note: note.trim() || undefined,
       });
-      setSuccess(captured);
+      setHoldSuccess(false);
+      setSuccess({ id: created.id, name: displayName, amount: net });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Satış alınmadı");
     }
@@ -268,6 +280,7 @@ export function QuickSaleScreen() {
 
   // ——— Uğur ekranı ———
   if (success) {
+    const invoicePending = invoicePendingId === success.id;
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 text-center">
         <div className="flex h-28 w-28 items-center justify-center rounded-full bg-emerald-100 ring-8 ring-emerald-50">
@@ -279,6 +292,36 @@ export function QuickSaleScreen() {
             {fmtMoney(success.amount)}
           </p>
           <p className="mt-2 text-base text-stone-500">{success.name}</p>
+        </div>
+
+        <div className="flex flex-col items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={
+              invoicePending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Receipt size={16} />
+              )
+            }
+            onClick={() => {
+              setHoldSuccess(true);
+              void downloadInvoice(success.id);
+            }}
+            disabled={invoicePending}
+          >
+            Qaimə çıxar
+          </Button>
+          {holdSuccess && (
+            <button
+              type="button"
+              onClick={closeSuccess}
+              className="text-sm font-semibold text-stone-500 hover:text-emerald-700"
+            >
+              Yeni satış
+            </button>
+          )}
         </div>
       </div>
     );

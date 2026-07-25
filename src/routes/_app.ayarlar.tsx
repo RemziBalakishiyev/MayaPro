@@ -43,6 +43,8 @@ function AyarlarPage() {
   const [f, setF] = useState<Settings>({
     storeName: settings.storeName,
     ownerName: settings.ownerName,
+    address: settings.address,
+    phone: settings.phone,
     whatsappTemplate: settings.whatsappTemplate,
     currency: settings.currency,
     defaultMinStock: settings.defaultMinStock,
@@ -110,6 +112,23 @@ function AyarlarPage() {
               <Input
                 value={f.ownerName}
                 onChange={(e) => set("ownerName", e.target.value)}
+              />
+            </Field>
+            <Field label="Ünvan" hint="Qaimə başlığında görünəcək">
+              <Input
+                value={f.address}
+                maxLength={300}
+                placeholder="Məs. Sədərək TM, blok 3, mağaza 214"
+                onChange={(e) => set("address", e.target.value)}
+              />
+            </Field>
+            <Field label="Telefon" hint="Qaimə başlığında görünəcək">
+              <Input
+                type="tel"
+                value={f.phone}
+                maxLength={30}
+                placeholder="Məs. +994 50 123 45 67"
+                onChange={(e) => set("phone", e.target.value)}
               />
             </Field>
             <Field

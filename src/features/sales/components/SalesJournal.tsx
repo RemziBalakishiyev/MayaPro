@@ -7,6 +7,7 @@ import {
   FileText,
   Loader2,
   Pencil,
+  Receipt,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -31,6 +32,7 @@ import {
 import { useEmployees } from "@/features/employees/queries";
 import { periodToRange } from "../lib";
 import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
+import { useInvoiceDownload } from "../useInvoiceDownload";
 import { SaleDetailDrawer } from "./SaleDetailDrawer";
 import { SaleEditDrawer } from "./SaleEditDrawer";
 import type { PaymentType, Sale } from "@/types";
@@ -65,6 +67,8 @@ export function SalesJournal() {
   const { period, pay, q, minProfit, maxProfit, minQty, maxQty } =
     routeApi.useSearch();
   const { data: employees = [] } = useEmployees();
+  const { download: downloadInvoice, pendingId: invoicePendingId } =
+    useInvoiceDownload();
   const journal = useSalesJournal({
     period,
     paymentType: pay,
@@ -259,6 +263,7 @@ export function SalesJournal() {
                 },
               ]
             : [];
+          const invoicePending = invoicePendingId === s.id;
           return (
             <div className="flex items-center justify-end gap-1.5">
               <button
@@ -269,6 +274,20 @@ export function SalesJournal() {
                 <Eye size={14} />
                 Detal
               </button>
+              <button
+                type="button"
+                title="Qaimə (PDF)"
+                aria-label={`${s.productName} qaiməsi`}
+                onClick={() => void downloadInvoice(s.id)}
+                disabled={invoicePending}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100 text-stone-600 transition-colors hover:bg-stone-200 disabled:opacity-50"
+              >
+                {invoicePending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Receipt size={14} />
+                )}
+              </button>
               <ActionMenu
                 items={menuItems}
                 aria-label={`${s.productName} əməliyyatları`}
@@ -278,7 +297,7 @@ export function SalesJournal() {
         },
       },
     ],
-    [canManage, sellerName],
+    [canManage, sellerName, downloadInvoice, invoicePendingId],
   );
 
   const handleDelete = async () => {
@@ -630,6 +649,20 @@ export function SalesJournal() {
                   className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
                 >
                   <Eye size={18} /> Detal
+                </button>
+                <button
+                  type="button"
+                  title="Qaimə (PDF)"
+                  aria-label={`${s.productName} qaiməsi`}
+                  onClick={() => void downloadInvoice(s.id)}
+                  disabled={invoicePendingId === s.id}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200 disabled:opacity-50"
+                >
+                  {invoicePendingId === s.id ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Receipt size={18} />
+                  )}
                 </button>
                 <ActionMenu
                   items={

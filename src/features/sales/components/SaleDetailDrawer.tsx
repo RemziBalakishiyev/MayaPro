@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { Loader2, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/cn";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { useEmployees } from "@/features/employees/queries";
 import { useSaleDetail } from "../queries";
+import { useInvoiceDownload } from "../useInvoiceDownload";
 
 interface Props {
   saleId: string | null;
@@ -58,6 +61,8 @@ function Row({
 export function SaleDetailDrawer({ saleId, onClose }: Props) {
   const { data: sale, isLoading, isError, error } = useSaleDetail(saleId);
   const { data: employees = [] } = useEmployees();
+  const { download: downloadInvoice, pendingId } = useInvoiceDownload();
+  const invoicePending = !!sale && pendingId === sale.id;
 
   const seller =
     sale?.soldByName ||
@@ -194,6 +199,24 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
               <Row label="Satıcı" value={seller} />
               <Row label="Tarix" value={saleDateTime(sale.createdAt)} />
             </Section>
+
+            <div className="border-t border-stone-100 pt-4">
+              <Button
+                variant="secondary"
+                className="w-full justify-center"
+                icon={
+                  invoicePending ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Receipt size={18} />
+                  )
+                }
+                onClick={() => void downloadInvoice(sale.id)}
+                disabled={invoicePending}
+              >
+                Qaimə (PDF)
+              </Button>
+            </div>
           </div>
         )}
       </Drawer>
