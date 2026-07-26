@@ -31,7 +31,7 @@ import {
   type Period,
 } from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
-import { periodToRange } from "../lib";
+import { periodToRange, saleBatchExpense } from "../lib";
 import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
 import { SaleDetailDrawer } from "./SaleDetailDrawer";
@@ -157,8 +157,44 @@ export function SalesJournal() {
         ),
       },
       {
+        id: "purchasePricePerUnit",
+        header: () => (
+          <span title="Malın alış qiyməti (1 ədəd)">Maya qiyməti</span>
+        ),
+        meta: { className: "hidden lg:table-cell" },
+        cell: ({ row }) => {
+          const p = row.original.purchasePricePerUnit;
+          return (
+            <span className="tabular-nums text-stone-700">
+              {p != null ? fmtMoney(p) : <span className="text-stone-300">—</span>}
+            </span>
+          );
+        },
+      },
+      {
+        id: "xerc",
+        header: () => (
+          <span title="Bu satışa düşən partiya xərci">Xərc</span>
+        ),
+        meta: { className: "hidden lg:table-cell" },
+        cell: ({ row }) => {
+          const s = row.original;
+          const cost = saleBatchExpense(s);
+          if (cost == null) {
+            return <span className="text-stone-300">—</span>;
+          }
+          return (
+            <span className="tabular-nums text-sm text-stone-700">
+              {fmtMoney(cost)}
+            </span>
+          );
+        },
+      },
+      {
         accessorKey: "salePrice",
-        header: "Qiymət",
+        header: () => (
+          <span title="1 ədədin satış qiyməti">Satış qiyməti</span>
+        ),
         cell: ({ getValue }) => (
           <span className="tabular-nums text-stone-700">
             {fmtMoney(getValue() as number)}
@@ -166,35 +202,16 @@ export function SalesJournal() {
         ),
       },
       {
-        id: "xerc",
-        header: "Xərc",
+        id: "discount",
+        header: "Endirim",
+        meta: { className: "hidden lg:table-cell" },
         cell: ({ row }) => {
-          const s = row.original;
-          const hasExpenses =
-            s.isManual && (s.expenseItems?.length ?? 0) > 0;
-          if (s.costPerUnit == null) {
-            return (
-              <div>
-                <span className="text-stone-300">—</span>
-                {hasExpenses && (
-                  <p className="text-[10px] font-medium text-stone-400">
-                    xərclə
-                  </p>
-                )}
-              </div>
-            );
-          }
+          const d = row.original.discount;
+          if (!d) return null;
           return (
-            <div>
-              <span className="tabular-nums text-sm text-stone-700">
-                {fmtMoney(s.costPerUnit * s.quantity)}
-              </span>
-              {hasExpenses && (
-                <p className="text-[10px] font-medium text-stone-400">
-                  xərclə
-                </p>
-              )}
-            </div>
+            <span className="tabular-nums text-sm font-medium text-amber-600">
+              −{fmtMoney(d)}
+            </span>
           );
         },
       },
@@ -204,7 +221,7 @@ export function SalesJournal() {
         cell: ({ getValue }) => {
           const p = getValue() as number | null;
           if (p == null) {
-            return <span className="text-stone-400">—</span>;
+            return <span className="text-stone-400">naməlum</span>;
           }
           return (
             <span
@@ -221,7 +238,7 @@ export function SalesJournal() {
       },
       {
         accessorKey: "totalAmount",
-        header: "Yekun",
+        header: () => <span title="Müştəridən alınan pul">Yekun</span>,
         cell: ({ getValue }) => (
           <span className="text-base font-bold tabular-nums text-stone-900">
             {fmtMoney(getValue() as number)}
@@ -643,12 +660,20 @@ export function SalesJournal() {
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-xs tabular-nums text-stone-400">
                   {s.quantity} × {fmtMoney(s.salePrice)}
-                </span>
-                <span className="text-xs tabular-nums text-stone-400">
-                  Xərc:{" "}
-                  {s.costPerUnit != null
-                    ? fmtMoney(s.costPerUnit * s.quantity)
-                    : "—"}
+                  {" · "}
+                  {s.profit == null ? (
+                    <span className="text-stone-400">naməlum</span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "font-medium",
+                        s.profit < 0 ? "text-red-600" : "text-emerald-700",
+                      )}
+                    >
+                      {s.profit >= 0 ? "+" : ""}
+                      {fmtMoney(s.profit)}
+                    </span>
+                  )}
                 </span>
                 <Badge
                   tone={s.paymentType}

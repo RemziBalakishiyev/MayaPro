@@ -231,6 +231,10 @@ export const saleHandlers = {
     const costPerUnit = isManual
       ? (input.costPerUnit ?? null)
       : (product?.realCostPerUnit ?? 0);
+    // Vahid alış qiyməti snapshot-u: katalogda maldan; sərbəstdə hələlik bilinmir.
+    const purchasePricePerUnit = isManual
+      ? null
+      : (product?.purchasePrice ?? 0);
     const profit = costPerUnit == null ? null : net - costPerUnit * qty;
     const productName = isManual
       ? (input.productName?.trim() || "Sərbəst satış")
@@ -257,6 +261,7 @@ export const saleHandlers = {
       // Müştəri bütün ödəniş növlərində göndərilə bilər; Nisyədə məcburidir
       customerId: input.customerId ?? null,
       costPerUnit,
+      purchasePricePerUnit,
       profit,
       isManual,
       expenseItems,

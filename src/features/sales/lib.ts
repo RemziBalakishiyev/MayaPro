@@ -1,6 +1,7 @@
 /** Satış sətri üçün təmiz (pure) hesablamalar. */
 import { daysAgoISO, todayISO } from "@/lib/format";
 import type { Period } from "@/features/reports/lib";
+import type { Sale } from "@/types";
 
 /** Period → API from/to (ISO tarix, gün səviyyəsi). */
 export const periodToRange = (
@@ -42,3 +43,24 @@ export const saleProfit = (
 /** Vahid qiymət real mayadan aşağıdırsa (ziyanlı satış). */
 export const isLossSale = (salePrice: number, realCost: number): boolean =>
   Number(salePrice) > 0 && realCost > 0 && Number(salePrice) < realCost;
+
+/** Sərbəst satışda sənədləşmə xərc sətirlərinin cəmi. */
+const expenseItemsTotal = (sale: Sale): number =>
+  (sale.expenseItems ?? []).reduce(
+    (sum, e) => sum + (Number(e.amount) || 0),
+    0,
+  );
+
+/**
+ * "Xərc" sütunu — bu satışa düşən partiya/əlavə xərc:
+ * - sərbəst (isManual) satışda: Σ expenseItems (sənədləşmə xərcləri)
+ * - normal (katalog) satışda: (costPerUnit − purchasePricePerUnit) × say
+ * - hesablana bilmirsə (maya snapshot-u yoxdursa): null ("—")
+ */
+export const saleBatchExpense = (sale: Sale): number | null => {
+  if (sale.isManual) return expenseItemsTotal(sale);
+  if (sale.costPerUnit == null || sale.purchasePricePerUnit == null) {
+    return null;
+  }
+  return (sale.costPerUnit - sale.purchasePricePerUnit) * sale.quantity;
+};

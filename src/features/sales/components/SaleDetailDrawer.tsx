@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { useCustomers } from "@/features/customers/queries";
 import { useEmployees } from "@/features/employees/queries";
+import { saleBatchExpense } from "../lib";
 import { useSaleDetail } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
 import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
@@ -82,8 +83,7 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
     employees.find((e) => e.id === sale?.employeeId)?.name ||
     "—";
 
-  const costTotal =
-    sale?.costPerUnit != null ? sale.costPerUnit * sale.quantity : null;
+  const batchExpense = sale ? saleBatchExpense(sale) : null;
 
   // Nisyədə müştəri məcburi olduğu üçün adının boş qayıtması → silinmiş müştəri
   const deletedCustomer =
@@ -131,23 +131,18 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
             </Section>
 
             <Section title="Hesab">
-              <Row label="Cəm" value={fmtMoney(sale.subtotal)} />
-              <Row label="YEKUN" value={fmtMoney(sale.totalAmount)} strong />
-
-              <div className="border-t border-stone-100 pt-2">
-                <Row
-                  label="Maya (1 əd.)"
-                  value={
-                    sale.costPerUnit != null
-                      ? fmtMoney(sale.costPerUnit)
-                      : "—"
-                  }
-                />
-                <Row
-                  label="Maya (ümumi)"
-                  value={costTotal != null ? fmtMoney(costTotal) : "—"}
-                />
-              </div>
+              <Row
+                label="Maya qiyməti (vahid)"
+                value={
+                  sale.purchasePricePerUnit != null
+                    ? fmtMoney(sale.purchasePricePerUnit)
+                    : "—"
+                }
+              />
+              <Row
+                label="Bu satışa düşən xərc"
+                value={batchExpense != null ? fmtMoney(batchExpense) : "—"}
+              />
 
               {sale.isManual && (sale.expenseItems?.length ?? 0) > 0 && (
                 <div className="rounded-xl bg-stone-50 px-3 py-2.5">
@@ -169,6 +164,23 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
                   </ul>
                 </div>
               )}
+
+              <Row label="Satış qiyməti" value={fmtMoney(sale.salePrice)} />
+
+              {sale.discount > 0 && (
+                <Row
+                  label="Endirim"
+                  value={
+                    <span className="font-medium text-amber-600">
+                      −{fmtMoney(sale.discount)}
+                    </span>
+                  }
+                />
+              )}
+
+              <div className="border-t border-stone-100 pt-2">
+                <Row label="Yekun" value={fmtMoney(sale.totalAmount)} strong />
+              </div>
 
               <Row
                 label="Qazanc"
