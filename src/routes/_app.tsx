@@ -25,7 +25,8 @@ import {
   MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/cn";
 import { useAuthStore } from "@/features/auth/store";
 import { useSettingsStore } from "@/features/settings/store";
 import { useHydrateSettings } from "@/features/settings/queries";
@@ -89,6 +90,16 @@ function AppLayout() {
     navigate({ to: "/login" });
   };
 
+  /* Mobil drawer açıqkən Escape ilə bağlansın (klaviatura naviqasiyası). */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
   const navLinks = (onNavigate?: () => void) =>
     NAV.map(({ to, label, icon: Icon }) => (
       <Link
@@ -96,57 +107,82 @@ function AppLayout() {
         to={to}
         onClick={onNavigate}
         activeOptions={{ exact: to === "/" }}
-        className="flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white"
+        className={cn(
+          "flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2",
+          "text-base font-medium text-emerald-100/80 transition",
+          "hover:bg-emerald-900 hover:text-white",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
+        )}
         activeProps={{ className: "bg-emerald-800 text-white" }}
       >
-        <Icon size={22} />
-        <span className="flex-1">{label}</span>
+        <Icon size={22} className="shrink-0" />
+        <span className="min-w-0 flex-1 truncate">{label}</span>
         {to === "/mallar" && lowStockCount > 0 && (
-          <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">
+          <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold leading-none text-white">
             {lowStockCount}
           </span>
         )}
       </Link>
     ));
 
-  const sidebarInner = (onNavigate?: () => void) => (
-    <>
-      <div className="flex flex-shrink-0 items-center gap-3 px-4 py-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/20 ring-1 ring-emerald-400/40">
-          <Store size={22} className="text-emerald-300" />
-        </div>
-        <div>
-          <p className="text-base font-bold leading-tight text-white">
-            {storeName}
-          </p>
-          <p className="text-xs leading-tight text-emerald-300/70">
-            Anbar İdarəetməsi
-          </p>
-        </div>
-      </div>
-
-      <nav className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
-        {navLinks(onNavigate)}
-      </nav>
-
-      <div className="flex-shrink-0 border-t border-emerald-900 px-5 py-4">
-        <p className="text-xs text-emerald-300/60">Kassada olmalı</p>
-        <p className="text-2xl font-bold tabular-nums text-emerald-300">
-          {fmtMoney(stats?.expectedCash ?? 0)}
-        </p>
-      </div>
-
-      <div className="flex-shrink-0 border-t border-emerald-900 px-3 py-3">
-        <button
-          onClick={handleLogout}
-          className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-base font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white"
+  /**
+   * Sidebar məzmunu — həm desktop `aside`, həm də mobil drawer üçün.
+   * Hündürlük bölgüsü: loqo və alt blok `flex-shrink-0`, orta menyu
+   * `flex-1 min-h-0 overflow-y-auto` (min-h-0 olmadan flex overflow işləmir).
+   * `onNavigate` yalnız drawer-dən verilir → drawer-ə xas düzəlişlər üçün nişan.
+   */
+  const sidebarInner = (onNavigate?: () => void) => {
+    const isDrawer = Boolean(onNavigate);
+    return (
+      <>
+        <div
+          className={cn(
+            "flex flex-shrink-0 items-center gap-3 px-4 py-2",
+            // drawer-də sağ yuxarıdakı "Bağla" düyməsi mətnin üstünə düşməsin
+            isDrawer && "pr-16",
+          )}
         >
-          <LogOut size={22} />
-          <span>Çıxış</span>
-        </button>
-      </div>
-    </>
-  );
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 ring-1 ring-emerald-400/40">
+            <Store size={22} className="text-emerald-300" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-base font-bold leading-tight text-white">
+              {storeName}
+            </p>
+            <p className="truncate text-xs leading-tight text-emerald-300/70">
+              Anbar İdarəetməsi
+            </p>
+          </div>
+        </div>
+
+        <nav
+          aria-label="Əsas menyu"
+          className="sidebar-scroll min-h-0 flex-1 space-y-px overflow-y-auto px-3 py-1"
+        >
+          {navLinks(onNavigate)}
+        </nav>
+
+        <div className="flex-shrink-0 space-y-0.5 border-t border-emerald-900 px-3 py-1.5">
+          <div className="px-3">
+            <p className="text-xs leading-none text-emerald-300/60">
+              Kassada olmalı
+            </p>
+            <p className="mt-0.5 truncate text-xl font-bold leading-tight tabular-nums text-emerald-300">
+              {fmtMoney(stats?.expectedCash ?? 0)}
+            </p>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-base font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+          >
+            <LogOut size={22} className="shrink-0" />
+            <span>Çıxış</span>
+          </button>
+        </div>
+      </>
+    );
+  };
 
   return (
     <div className="min-h-full bg-stone-50">
@@ -159,14 +195,21 @@ function AppLayout() {
       {menuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
+            aria-hidden="true"
             className="absolute inset-0 bg-stone-900/60"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 flex h-screen w-72 max-w-[85%] flex-col bg-emerald-950 shadow-2xl">
+          {/* h-full (h-screen deyil): mobil brauzer panelləri 100vh-i görünən
+              sahədən böyük etdikdə alt blok kəsilməsin. */}
+          <div
+            role="dialog"
+            aria-label="Menyu"
+            className="absolute inset-y-0 left-0 flex h-full w-72 max-w-[85%] flex-col bg-emerald-950 shadow-2xl"
+          >
             <button
               onClick={() => setMenuOpen(false)}
               aria-label="Bağla"
-              className="absolute right-3 top-4 flex h-10 w-10 items-center justify-center rounded-xl text-emerald-200 hover:bg-emerald-900"
+              className="absolute right-3 top-2 flex h-10 w-10 items-center justify-center rounded-xl text-emerald-200 hover:bg-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
             >
               <X size={22} />
             </button>
@@ -223,7 +266,10 @@ function AppLayout() {
       </div>
 
       {/* Mobil aşağı tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white pb-safe-bottom lg:hidden">
+      <nav
+        aria-label="Sürətli naviqasiya"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white pb-safe-bottom lg:hidden"
+      >
         <div className="grid grid-cols-5">
           {TABS.map(({ to, label, icon: Icon }) => (
             <Link

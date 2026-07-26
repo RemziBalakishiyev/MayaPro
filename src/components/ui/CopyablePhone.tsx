@@ -1,12 +1,9 @@
 import { Phone } from "lucide-react";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
-import { formatPhoneDisplay, phoneDigits } from "@/lib/phone";
+import { formatPhoneDisplay, toStoredPhone } from "@/lib/phone";
 
-async function copyPhone(phone: string): Promise<boolean> {
-  const digits = phoneDigits(phone);
-  if (!digits) return false;
-  const text = `+${digits}`;
+async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     return true;
@@ -15,7 +12,11 @@ async function copyPhone(phone: string): Promise<boolean> {
   }
 }
 
-/** Zəng düyməsi + klikləyəndə kopyalanan nömrə. */
+/**
+ * Zəng düyməsi + klikləyəndə kopyalanan nömrə.
+ * Nömrə həmişə `toStoredPhone` ilə normallaşdırılır (994XXXXXXXXX), belə ki
+ * "050...", "+994...", "994..." formatlarının hamısı düzgün `tel:` linki verir.
+ */
 export function CopyablePhone({
   phone,
   className,
@@ -24,34 +25,37 @@ export function CopyablePhone({
   className?: string;
 }) {
   const toast = useToast();
-  const digits = phoneDigits(phone);
-  const display = formatPhoneDisplay(phone) || phone;
+  const stored = toStoredPhone(phone);
 
-  if (!digits) {
+  if (!stored) {
     return <span className={className}>—</span>;
   }
+
+  const display = formatPhoneDisplay(phone);
 
   return (
     <span className="inline-flex items-center gap-1.5">
       <a
-        href={`tel:+${digits}`}
+        href={`tel:+${stored}`}
         title="Zəng et"
+        aria-label={`Zəng et: ${display}`}
         onClick={(e) => e.stopPropagation()}
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50"
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
       >
-        <Phone size={13} />
+        <Phone size={13} aria-hidden="true" />
       </a>
       <button
         type="button"
         title="Kopyalamaq üçün klikləyin"
+        aria-label={`${display} — kopyala`}
         onClick={async (e) => {
           e.stopPropagation();
-          const ok = await copyPhone(phone);
+          const ok = await copyText(`+${stored}`);
           if (ok) toast.success("Nömrə kopyalandı");
           else toast.error("Nömrə kopyalanmadı");
         }}
         className={cn(
-          "text-left tabular-nums underline-offset-2 hover:text-emerald-700 hover:underline",
+          "rounded text-left tabular-nums underline-offset-2 hover:text-emerald-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
           className ?? "text-xs text-stone-600",
         )}
       >
