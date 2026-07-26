@@ -89,6 +89,8 @@ export interface Sale {
   customerId: string | null;
   /** Satış anındakı real maya snapshot-u (1 ədəd); manual satışda maya bilinmirsə null. */
   costPerUnit?: number | null;
+  /** Malın vahid alış qiyməti (satış anındakı snapshot); bilinmirsə null. */
+  purchasePricePerUnit?: number | null;
   /** Qazanc; manual satışda maya naməlumdursa null ("naməlum"). */
   profit: number | null;
   /** Sərbəst (katalogdankənar) satış bayrağı. */

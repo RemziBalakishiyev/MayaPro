@@ -31,7 +31,7 @@ import {
   type Period,
 } from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
-import { periodToRange } from "../lib";
+import { periodToRange, saleBatchExpense } from "../lib";
 import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
 import { SaleDetailDrawer } from "./SaleDetailDrawer";
@@ -52,6 +52,17 @@ const saleTime = (iso: string): string => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return fmtDate(iso, "dd.MM");
   return fmtDate(iso, "HH:mm");
 };
+
+/** Hesablana bilməyən (naməlum) pul dəyəri üçün vahid boş göstərici. */
+const EmptyValue = () => (
+  <span className="text-stone-300">
+    <span aria-hidden="true">—</span>
+    <span className="sr-only">məlum deyil</span>
+  </span>
+);
+
+/** Cədvəldəki ikinci dərəcəli pul sütunları üçün eyni tipoqrafiya. */
+const moneyCls = "tabular-nums text-sm text-stone-700";
 
 const parseNum = (raw: string): number | undefined => {
   if (raw.trim() === "") return undefined;
@@ -157,54 +168,62 @@ export function SalesJournal() {
         ),
       },
       {
-        accessorKey: "salePrice",
-        header: "Qiymət",
-        cell: ({ getValue }) => (
-          <span className="tabular-nums text-stone-700">
-            {fmtMoney(getValue() as number)}
-          </span>
+        id: "purchasePricePerUnit",
+        header: () => (
+          <span title="Malın alış qiyməti (1 ədəd)">Maya qiyməti</span>
         ),
+        meta: { className: "hidden lg:table-cell" },
+        cell: ({ row }) => {
+          const p = row.original.purchasePricePerUnit;
+          if (p == null) return <EmptyValue />;
+          return <span className={moneyCls}>{fmtMoney(p)}</span>;
+        },
       },
       {
         id: "xerc",
-        header: "Xərc",
+        header: () => <span title="Bu satışa düşən partiya xərci">Xərc</span>,
+        meta: { className: "hidden lg:table-cell" },
         cell: ({ row }) => {
-          const s = row.original;
-          const hasExpenses =
-            s.isManual && (s.expenseItems?.length ?? 0) > 0;
-          if (s.costPerUnit == null) {
-            return (
-              <div>
-                <span className="text-stone-300">—</span>
-                {hasExpenses && (
-                  <p className="text-[10px] font-medium text-stone-400">
-                    xərclə
-                  </p>
-                )}
-              </div>
-            );
-          }
+          const cost = saleBatchExpense(row.original);
+          if (cost == null) return <EmptyValue />;
+          return <span className={moneyCls}>{fmtMoney(cost)}</span>;
+        },
+      },
+      {
+        accessorKey: "salePrice",
+        header: () => <span title="1 ədədin satış qiyməti">Satış qiyməti</span>,
+        cell: ({ getValue }) => (
+          <span className={moneyCls}>{fmtMoney(getValue() as number)}</span>
+        ),
+      },
+      {
+        id: "discount",
+        header: () => (
+          <span title="Bu satışa verilən endirim">Endirim</span>
+        ),
+        meta: { className: "hidden lg:table-cell" },
+        cell: ({ row }) => {
+          const d = row.original.discount;
+          // Endirim yalnız > 0 olduqda göstərilir (0 → boş xana)
+          if (!(d > 0)) return null;
           return (
-            <div>
-              <span className="tabular-nums text-sm text-stone-700">
-                {fmtMoney(s.costPerUnit * s.quantity)}
-              </span>
-              {hasExpenses && (
-                <p className="text-[10px] font-medium text-stone-400">
-                  xərclə
-                </p>
-              )}
-            </div>
+            <span className="tabular-nums text-sm font-medium text-amber-600">
+              −{fmtMoney(d)}
+            </span>
           );
         },
       },
       {
         accessorKey: "profit",
-        header: "Qazanc",
+        header: () => (
+          <span title="Yekun məbləğdən maya çıxıldıqdan sonra qalan">
+            Qazanc
+          </span>
+        ),
         cell: ({ getValue }) => {
           const p = getValue() as number | null;
           if (p == null) {
-            return <span className="text-stone-400">—</span>;
+            return <span className="text-sm text-stone-400">naməlum</span>;
           }
           return (
             <span
@@ -221,7 +240,7 @@ export function SalesJournal() {
       },
       {
         accessorKey: "totalAmount",
-        header: "Yekun",
+        header: () => <span title="Müştəridən alınan pul">Yekun</span>,
         cell: ({ getValue }) => (
           <span className="text-base font-bold tabular-nums text-stone-900">
             {fmtMoney(getValue() as number)}
@@ -643,12 +662,21 @@ export function SalesJournal() {
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-xs tabular-nums text-stone-400">
                   {s.quantity} × {fmtMoney(s.salePrice)}
-                </span>
-                <span className="text-xs tabular-nums text-stone-400">
-                  Xərc:{" "}
-                  {s.costPerUnit != null
-                    ? fmtMoney(s.costPerUnit * s.quantity)
-                    : "—"}
+                  <span aria-hidden="true"> · </span>
+                  <span className="sr-only">Qazanc: </span>
+                  {s.profit == null ? (
+                    "naməlum"
+                  ) : (
+                    <span
+                      className={cn(
+                        "font-medium",
+                        s.profit < 0 ? "text-red-600" : "text-emerald-700",
+                      )}
+                    >
+                      {s.profit >= 0 ? "+" : ""}
+                      {fmtMoney(s.profit)}
+                    </span>
+                  )}
                 </span>
                 <Badge
                   tone={s.paymentType}
