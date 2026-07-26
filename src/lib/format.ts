@@ -1,15 +1,34 @@
 import { format } from "date-fns";
 
+/** Pul dəyərini təhlükəsiz ədədə çevirir: null / undefined / NaN → 0 */
+const toAmount = (value: number | string | null | undefined): number => {
+  const n = typeof value === "string" ? Number(value) : (value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
 /** Pul formatı: 1250 → "1,250.00 ₼" */
 export const fmtMoney = (value: number | string | null | undefined): string => {
-  const n = typeof value === "string" ? Number(value) : (value ?? 0);
-  const safe = Number.isFinite(n) ? n : 0;
-  const formatted = safe.toLocaleString("en-US", {
+  const formatted = toAmount(value).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  // Qırılmaz boşluq: "₼" rəqəmdən ayrı sətirə düşməsin
-  return `${formatted}\u00A0\u20BC`;
+  // \u00A0 — qırılmaz boşluq: "₼" rəqəmdən ayrı sətirə düşməsin
+  return `${formatted}\u00A0₼`;
+};
+
+/**
+ * İşarəli pul formatı (qazanc, fərq və s.):
+ * 120 → "+120.00 ₼", -5.5 → "-5.50 ₼", 0 → "+0.00 ₼".
+ * Sıfır üçün işarə `zeroSign` ilə seçilir: fmtMoneySigned(0, "±") → "±0.00 ₼".
+ */
+export const fmtMoneySigned = (
+  value: number | string | null | undefined,
+  zeroSign: "+" | "±" | "" = "+",
+): string => {
+  const n = toAmount(value);
+  if (n === 0) return `${zeroSign}${fmtMoney(0)}`;
+  // Mənfi işarəni toLocaleString özü əlavə edir
+  return `${n > 0 ? "+" : ""}${fmtMoney(n)}`;
 };
 
 /** Tarix formatı: Date | string | number → "10.07.2026" */
