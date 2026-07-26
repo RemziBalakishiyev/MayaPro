@@ -43,3 +43,23 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Sidebar menyusu üçün incə scrollbar — tünd fonda diskret görünür,
+   məzmun daşmadıqda heç nə görünmür (Firefox + WebKit/Chrome/Edge) */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 95, 70, 0.4) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(6, 95, 70, 0.4);
+  border-radius: 9999px;
+}

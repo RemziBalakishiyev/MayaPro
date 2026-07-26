@@ -96,7 +96,7 @@ function AppLayout() {
         to={to}
         onClick={onNavigate}
         activeOptions={{ exact: to === "/" }}
-        className="flex items-center gap-3 rounded-xl px-3 py-3.5 text-base font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white"
+        className="flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-3 text-base font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white"
         activeProps={{ className: "bg-emerald-800 text-white" }}
       >
         <Icon size={22} />
@@ -111,7 +111,7 @@ function AppLayout() {
 
   const sidebarInner = (onNavigate?: () => void) => (
     <>
-      <div className="flex items-center gap-3 px-4 py-5">
+      <div className="flex flex-shrink-0 items-center gap-3 px-4 py-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/20 ring-1 ring-emerald-400/40">
           <Store size={22} className="text-emerald-300" />
         </div>
@@ -125,18 +125,18 @@ function AppLayout() {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+      <nav className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
         {navLinks(onNavigate)}
       </nav>
 
-      <div className="border-t border-emerald-900 px-5 py-4">
+      <div className="flex-shrink-0 border-t border-emerald-900 px-5 py-4">
         <p className="text-xs text-emerald-300/60">Kassada olmalı</p>
         <p className="text-2xl font-bold tabular-nums text-emerald-300">
           {fmtMoney(stats?.expectedCash ?? 0)}
         </p>
       </div>
 
-      <div className="border-t border-emerald-900 px-3 py-3">
+      <div className="flex-shrink-0 border-t border-emerald-900 px-3 py-3">
         <button
           onClick={handleLogout}
           className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-base font-medium text-emerald-100/80 transition hover:bg-emerald-900 hover:text-white"
@@ -151,7 +151,7 @@ function AppLayout() {
   return (
     <div className="min-h-full bg-stone-50">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col bg-emerald-950 lg:flex">
+      <aside className="fixed inset-y-0 left-0 hidden h-screen w-64 flex-col bg-emerald-950 lg:flex">
         {sidebarInner()}
       </aside>
 
@@ -162,7 +162,7 @@ function AppLayout() {
             className="absolute inset-0 bg-stone-900/60"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85%] flex-col bg-emerald-950 shadow-2xl">
+          <div className="absolute inset-y-0 left-0 flex h-screen w-72 max-w-[85%] flex-col bg-emerald-950 shadow-2xl">
             <button
               onClick={() => setMenuOpen(false)}
               aria-label="Bağla"
