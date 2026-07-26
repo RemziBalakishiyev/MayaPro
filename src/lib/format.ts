@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 
-/** Pul formatı: 1250 → "1,250.00 AZN" */
+/** Pul formatı: 1250 → "1,250.00 ₼" */
 export const fmtMoney = (value: number | string | null | undefined): string => {
   const n = typeof value === "string" ? Number(value) : (value ?? 0);
   const safe = Number.isFinite(n) ? n : 0;
@@ -8,8 +8,8 @@ export const fmtMoney = (value: number | string | null | undefined): string => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  // Qırılmaz boşluq: "AZN" rəqəmdən ayrı sətirə düşməsin
-  return `${formatted}\u00A0AZN`;
+  // Qırılmaz boşluq: "₼" rəqəmdən ayrı sətirə düşməsin
+  return `${formatted}\u00A0\u20BC`;
 };
 
 /** Tarix formatı: Date | string | number → "10.07.2026" */
