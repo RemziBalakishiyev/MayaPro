@@ -22,7 +22,7 @@ import { CustomerPicker } from "@/components/ui/CustomerPicker";
 import { useToast } from "@/components/ui/toast-store";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
-import { fmtMoney, todayISO } from "@/lib/format";
+import { fmtMoney, fmtMoneySigned, todayISO } from "@/lib/format";
 import { useProducts } from "@/features/products/queries";
 import { attrText, calcRealCost, firstAttrValue } from "@/features/products/lib";
 import {
@@ -936,8 +936,7 @@ function TotalContent({
                 profit < 0 ? "text-red-600" : "text-emerald-700",
               )}
             >
-              {profit >= 0 ? "+" : ""}
-              {fmtMoney(profit)}
+              {fmtMoneySigned(profit)}
             </span>
           )}
         </div>
