@@ -445,6 +445,9 @@ const buildSales = (
   today.forEach(({ pi, q, pay, cus, emp }, i) => {
     const p = products[pi];
     const subtotal = p.salePrice * q;
+    // i === 2 → endirimli satış nümunəsi (Endirim sütunu yalnız > 0-da görünür)
+    const discount = i === 2 ? 5 : 0;
+    const total = Math.max(0, subtotal - discount);
     const t = new Date();
     t.setHours(9 + i, (i * 17) % 60, 0, 0);
     sales.push({
@@ -455,13 +458,15 @@ const buildSales = (
       quantity: q,
       salePrice: p.salePrice,
       subtotal,
-      discount: 0,
-      totalAmount: subtotal,
+      discount,
+      totalAmount: total,
       paymentType: pay,
       customerId: cus || null,
       costPerUnit: p.realCostPerUnit,
-      purchasePricePerUnit: p.purchasePrice,
-      profit: (p.salePrice - p.realCostPerUnit) * q,
+      // i === 1 → snapshot xüsusiyyətindən əvvəlki "köhnə" sətir nümunəsi:
+      // Maya qiyməti və Xərc "—" göstərilməlidir, Qazanc isə dəyişmir.
+      purchasePricePerUnit: i === 1 ? null : p.purchasePrice,
+      profit: total - p.realCostPerUnit * q,
       expenseItems: [],
       createdAt: t.toISOString(),
       employeeId: emp,

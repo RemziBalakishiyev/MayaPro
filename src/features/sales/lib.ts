@@ -44,23 +44,26 @@ export const saleProfit = (
 export const isLossSale = (salePrice: number, realCost: number): boolean =>
   Number(salePrice) > 0 && realCost > 0 && Number(salePrice) < realCost;
 
-/** Sərbəst satışda sənədləşmə xərc sətirlərinin cəmi. */
-const expenseItemsTotal = (sale: Sale): number =>
+/** Sərbəst satışda sənədləşmə xərc sətirlərinin cəmi (sətir yoxdursa 0). */
+export const saleExpenseItemsTotal = (sale: Sale): number =>
   (sale.expenseItems ?? []).reduce(
     (sum, e) => sum + (Number(e.amount) || 0),
     0,
   );
 
 /**
- * "Xərc" sütunu — bu satışa düşən partiya/əlavə xərc:
- * - sərbəst (isManual) satışda: Σ expenseItems (sənədləşmə xərcləri)
- * - normal (katalog) satışda: (costPerUnit − purchasePricePerUnit) × say
- * - hesablana bilmirsə (maya snapshot-u yoxdursa): null ("—")
+ * "Xərc" — bu satışa düşən partiya/əlavə xərc (cədvəl və detal drawer üçün
+ * tək mənbə):
+ * - sərbəst (isManual) satışda: Σ expenseItems (xərc sətri yoxdursa 0 —
+ *   "0" ilə "naməlum" fərqlidir);
+ * - normal (katalog) satışda: (costPerUnit − purchasePricePerUnit) × say;
+ * - snapshot-lardan biri yoxdursa (köhnə sətirlər): null → UI-da "—".
  */
 export const saleBatchExpense = (sale: Sale): number | null => {
-  if (sale.isManual) return expenseItemsTotal(sale);
-  if (sale.costPerUnit == null || sale.purchasePricePerUnit == null) {
-    return null;
-  }
-  return (sale.costPerUnit - sale.purchasePricePerUnit) * sale.quantity;
+  if (sale.isManual) return saleExpenseItemsTotal(sale);
+  const { costPerUnit, purchasePricePerUnit } = sale;
+  // 0 keçərli dəyərdir → yalnız null/undefined "hesablanmır" sayılır
+  if (costPerUnit == null || purchasePricePerUnit == null) return null;
+  const qty = Number(sale.quantity) || 0;
+  return (Number(costPerUnit) - Number(purchasePricePerUnit)) * qty;
 };

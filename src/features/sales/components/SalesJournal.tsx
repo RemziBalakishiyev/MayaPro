@@ -53,6 +53,17 @@ const saleTime = (iso: string): string => {
   return fmtDate(iso, "HH:mm");
 };
 
+/** Hesablana bilməyən (naməlum) pul dəyəri üçün vahid boş göstərici. */
+const EmptyValue = () => (
+  <span className="text-stone-300">
+    <span aria-hidden="true">—</span>
+    <span className="sr-only">məlum deyil</span>
+  </span>
+);
+
+/** Cədvəldəki ikinci dərəcəli pul sütunları üçün eyni tipoqrafiya. */
+const moneyCls = "tabular-nums text-sm text-stone-700";
+
 const parseNum = (raw: string): number | undefined => {
   if (raw.trim() === "") return undefined;
   const n = Number(raw);
@@ -164,50 +175,37 @@ export function SalesJournal() {
         meta: { className: "hidden lg:table-cell" },
         cell: ({ row }) => {
           const p = row.original.purchasePricePerUnit;
-          return (
-            <span className="tabular-nums text-stone-700">
-              {p != null ? fmtMoney(p) : <span className="text-stone-300">—</span>}
-            </span>
-          );
+          if (p == null) return <EmptyValue />;
+          return <span className={moneyCls}>{fmtMoney(p)}</span>;
         },
       },
       {
         id: "xerc",
-        header: () => (
-          <span title="Bu satışa düşən partiya xərci">Xərc</span>
-        ),
+        header: () => <span title="Bu satışa düşən partiya xərci">Xərc</span>,
         meta: { className: "hidden lg:table-cell" },
         cell: ({ row }) => {
-          const s = row.original;
-          const cost = saleBatchExpense(s);
-          if (cost == null) {
-            return <span className="text-stone-300">—</span>;
-          }
-          return (
-            <span className="tabular-nums text-sm text-stone-700">
-              {fmtMoney(cost)}
-            </span>
-          );
+          const cost = saleBatchExpense(row.original);
+          if (cost == null) return <EmptyValue />;
+          return <span className={moneyCls}>{fmtMoney(cost)}</span>;
         },
       },
       {
         accessorKey: "salePrice",
-        header: () => (
-          <span title="1 ədədin satış qiyməti">Satış qiyməti</span>
-        ),
+        header: () => <span title="1 ədədin satış qiyməti">Satış qiyməti</span>,
         cell: ({ getValue }) => (
-          <span className="tabular-nums text-stone-700">
-            {fmtMoney(getValue() as number)}
-          </span>
+          <span className={moneyCls}>{fmtMoney(getValue() as number)}</span>
         ),
       },
       {
         id: "discount",
-        header: "Endirim",
+        header: () => (
+          <span title="Bu satışa verilən endirim">Endirim</span>
+        ),
         meta: { className: "hidden lg:table-cell" },
         cell: ({ row }) => {
           const d = row.original.discount;
-          if (!d) return null;
+          // Endirim yalnız > 0 olduqda göstərilir (0 → boş xana)
+          if (!(d > 0)) return null;
           return (
             <span className="tabular-nums text-sm font-medium text-amber-600">
               −{fmtMoney(d)}
@@ -217,11 +215,15 @@ export function SalesJournal() {
       },
       {
         accessorKey: "profit",
-        header: "Qazanc",
+        header: () => (
+          <span title="Yekun məbləğdən maya çıxıldıqdan sonra qalan">
+            Qazanc
+          </span>
+        ),
         cell: ({ getValue }) => {
           const p = getValue() as number | null;
           if (p == null) {
-            return <span className="text-stone-400">naməlum</span>;
+            return <span className="text-sm text-stone-400">naməlum</span>;
           }
           return (
             <span
@@ -660,9 +662,10 @@ export function SalesJournal() {
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-xs tabular-nums text-stone-400">
                   {s.quantity} × {fmtMoney(s.salePrice)}
-                  {" · "}
+                  <span aria-hidden="true"> · </span>
+                  <span className="sr-only">Qazanc: </span>
                   {s.profit == null ? (
-                    <span className="text-stone-400">naməlum</span>
+                    "naməlum"
                   ) : (
                     <span
                       className={cn(

@@ -145,36 +145,49 @@ export function DataTable<TData>({
                   return (
                     <th
                       key={header.id}
+                      scope="col"
+                      aria-sort={
+                        !canSort
+                          ? undefined
+                          : sorted === "asc"
+                            ? "ascending"
+                            : sorted === "desc"
+                              ? "descending"
+                              : "none"
+                      }
                       className={cn(
                         "whitespace-nowrap px-3 text-left text-sm font-bold text-stone-500",
                         embedded ? "py-2.5" : "py-3.5",
-                        (header.column.columnDef.meta as { className?: string })
-                          ?.className,
+                        header.column.columnDef.meta?.className,
                       )}
                     >
-                      {header.isPlaceholder ? null : (
+                      {header.isPlaceholder ? null : canSort ? (
                         <button
                           type="button"
-                          disabled={!canSort}
                           onClick={header.column.getToggleSortingHandler()}
-                          className={cn(
-                            "inline-flex items-center gap-1",
-                            canSort && "cursor-pointer select-none hover:text-stone-700",
-                          )}
+                          className="inline-flex cursor-pointer select-none items-center gap-1 hover:text-stone-700"
                         >
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext(),
                           )}
-                          {canSort &&
-                            (sorted === "asc" ? (
-                              <ChevronUp size={15} />
-                            ) : sorted === "desc" ? (
-                              <ChevronDown size={15} />
-                            ) : (
-                              <ChevronsUpDown size={15} className="text-stone-300" />
-                            ))}
+                          {sorted === "asc" ? (
+                            <ChevronUp size={15} />
+                          ) : sorted === "desc" ? (
+                            <ChevronDown size={15} />
+                          ) : (
+                            <ChevronsUpDown size={15} className="text-stone-300" />
+                          )}
                         </button>
+                      ) : (
+                        // Sıralanmayan sütun: disabled düymə əvəzinə sadə span —
+                        // belədə başlıqdakı title tooltip-i (izah) hover-də görünür.
+                        <span className="inline-flex items-center gap-1">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                        </span>
                       )}
                     </th>
                   );
@@ -200,8 +213,8 @@ export function DataTable<TData>({
                     className={cn(
                       "whitespace-nowrap px-3 text-base text-stone-700",
                       embedded ? "py-3" : "py-4",
-                      (cell.column.columnDef.meta as { className?: string })
-                        ?.className,
+                      // Başlıqla eyni sinif → responsiv gizlətmə th/td-də sinxron
+                      cell.column.columnDef.meta?.className,
                     )}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

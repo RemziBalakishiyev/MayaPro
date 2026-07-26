@@ -150,7 +150,7 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
                     Xərclər
                   </p>
                   <ul className="space-y-1">
-                    {sale.expenseItems!.map((e, i) => (
+                    {(sale.expenseItems ?? []).map((e, i) => (
                       <li
                         key={`${e.name}-${i}`}
                         className="flex justify-between gap-2 text-sm text-stone-700"
