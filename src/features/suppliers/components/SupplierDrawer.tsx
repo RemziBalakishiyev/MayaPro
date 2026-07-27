@@ -18,7 +18,8 @@ interface Props {
 }
 
 function historyLabel(entry: SupplierHistoryEntry): string {
-  return entry.type === "initialDebt" ? "İlkin borc" : "Ödəniş";
+  if (entry.type === "initialDebt") return "İlkin borc";
+  return entry.note ? `Ödəniş — ${entry.note}` : "Ödəniş";
 }
 
 export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
@@ -33,11 +34,10 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
     [allProducts, supplier],
   );
 
-  // UI: ən yenilər yuxarıda
-  const history = useMemo(
-    () => [...historyAsc].sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [historyAsc],
-  );
+  // API xronoloji (köhnədən yeniyə) qaytarır → UI-də ən yenilər yuxarıda.
+  // Yenidən sıralamaq yerinə çeviririk: eyni tarixli sətirlərdə (məs. yaradılış
+  // günü edilən ödəniş) ilkin borc həmişə ən altda qalsın.
+  const history = useMemo(() => [...historyAsc].reverse(), [historyAsc]);
 
   return (
     <Drawer open={!!supplier} onClose={onClose} title={supplier?.name ?? ""}>
@@ -75,7 +75,7 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
             </Button>
           </div>
 
-          <div>
+          <section>
             <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-stone-500">
               Bu təchizatçıdan alınan mallar
             </h4>
@@ -95,9 +95,9 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
-          <div>
+          <section>
             <div className="mb-2.5 flex items-baseline justify-between gap-2">
               <h4 className="text-xs font-bold uppercase tracking-wide text-stone-500">
                 Borc / ödəniş tarixçəsi
@@ -123,6 +123,7 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
                       )}
                     >
                       <span
+                        aria-hidden="true"
                         className={cn(
                           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
                           isPay
@@ -158,7 +159,7 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
                 })}
               </ul>
             )}
-          </div>
+          </section>
         </div>
       )}
     </Drawer>

@@ -447,6 +447,13 @@ export interface NewSupplier {
   initialDebt?: number;
 }
 
+/** Təchizatçı düzəlişi — borc sahələri buradan dəyişmir. */
+export interface UpdateSupplier {
+  name: string;
+  phone: string;
+  note?: string;
+}
+
 export const supplierHandlers = {
   /** Təchizatçılar + hər biri üçün bağlı məhsul sayı (itemCount) real hesablanır. */
   async list(): Promise<Supplier[]> {
@@ -482,18 +489,17 @@ export const supplierHandlers = {
       createdAt: new Date().toISOString(),
     };
     await db.suppliers.create(supplier);
-    if (debt > 0) {
-      await logActivity(
-        "Təchizatçı əlavə etdi",
-        `${supplier.name} — ilkin borc ${fmtMoney(debt)}`,
-      );
-    } else {
-      await logActivity("Təchizatçı əlavə etdi", supplier.name);
-    }
+    // Real backend də ilkin borc olduqda məbləği activity mətninə əlavə edir.
+    await logActivity(
+      "Təchizatçı əlavə etdi",
+      debt > 0
+        ? `${supplier.name} — ilkin borc ${fmtMoney(debt)}`
+        : supplier.name,
+    );
     return supplier;
   },
 
-  async update(id: string, input: NewSupplier): Promise<Supplier> {
+  async update(id: string, input: UpdateSupplier): Promise<Supplier> {
     const s = await db.suppliers.get(id);
     if (!s) throw new Error("Təchizatçı tapılmadı");
     return db.suppliers.update(id, {
