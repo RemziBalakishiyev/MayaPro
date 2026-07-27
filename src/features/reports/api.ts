@@ -145,10 +145,12 @@ async function mockSummary(period: Period): Promise<SummaryData> {
     );
   const salesTotal = sumBy(ps, (s) => s.totalAmount);
   const profit = sumBy(ps, (s) => s.profit ?? 0);
-  const exp = sumBy(pe, (e) => e.amount);
   // Mənbə bölgüsü — real backend summary ilə eyni sahələr (BE#6 kontraktı),
   // Hesabatlar səhifəsi bunları lokal hesablama əvəzinə istifadə edə bilsin.
+  // Ümumi xərc elə bölgünün cəmidir (backend-dəki kimi struktur invariant:
+  // generalExpenses + productExpenses === expenses).
   const expBySource = expenseBySource(pe);
+  const exp = expBySource.general + expBySource.product;
   return {
     period,
     from: null,

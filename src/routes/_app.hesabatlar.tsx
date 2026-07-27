@@ -58,19 +58,20 @@ function HesabatlarPage() {
     const periodSales = sales.filter((s) => inPeriod(s.createdAt, period));
     const periodExpenses = expenses.filter((e) => inPeriod(e.date, period));
 
-    // Backend summary-də generalExpenses/productExpenses varsa ONLARDAN istifadə
-    // olunur; yoxdursa (köhnə backend) xam xərc siyahısından lokal hesablanır
-    // (fallback, AC3). Hər iki halda "Xərc" başlıq rəqəmi elə bu bölgünün
-    // cəminə bərabərdir (AC4) — ayrıca uyğunsuz cəm hesablanmır.
-    const hasSourceSummary =
-      summary?.generalExpenses !== undefined &&
-      summary?.productExpenses !== undefined;
-    const expBySource = hasSourceSummary
-      ? { general: summary!.generalExpenses!, product: summary!.productExpenses! }
-      : expenseBySource(periodExpenses);
-    const expensesTotal = hasSourceSummary
-      ? expBySource.general + expBySource.product
-      : sumBy(periodExpenses, (e) => e.amount);
+    // Xərc mənbəyi bölgüsü: server summary-də HƏR İKİ sahə ƏDƏD olduqda onlardan
+    // götürülür (0 legitim dəyərdir — ona görə truthy yox, `typeof` yoxlaması).
+    // Sahələr yoxdursa/ədəd deyilsə (köhnə backend, sorğu alınmadı və ya hələ
+    // gəlməyib) xam xərc siyahısından lokal hesablanır — səhifə sınmır (AC3).
+    const srvGeneral = summary?.generalExpenses;
+    const srvProduct = summary?.productExpenses;
+    const expBySource =
+      typeof srvGeneral === "number" && typeof srvProduct === "number"
+        ? { general: srvGeneral, product: srvProduct }
+        : expenseBySource(periodExpenses);
+    // "Xərc" başlıq rəqəmi elə bu bölgünün cəmidir — beləcə cəm invariantı HƏR İKİ
+    // qolda (server və lokal) struktur olaraq qorunur (AC4), ayrıca hesablanan
+    // ikinci cəm yoxdur ki, ondan fərqlənsin.
+    const expensesTotal = expBySource.general + expBySource.product;
 
     const frozen = frozenProducts(products, sales);
     const frozenGroups = [30, 60, 90].map((days) => {
