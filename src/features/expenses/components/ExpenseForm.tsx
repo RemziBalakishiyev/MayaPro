@@ -156,6 +156,7 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
   const [note, setNote] = useState("");
   const [categoryError, setCategoryError] = useState("");
   const [productError, setProductError] = useState("");
+  const [dateError, setDateError] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -180,6 +181,7 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
     }
     setCategoryError("");
     setProductError("");
+    setDateError("");
   }, [open, initial]);
 
   const filteredProducts = useMemo(() => {
@@ -200,11 +202,21 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
     const catErr = category.trim() ? "" : "Xərc növü seçilməlidir";
     const prodErr =
       source === "product" && !productId ? "Mal seçimi mütləqdir" : "";
+    // `max` HTML atributu klaviatura ilə yazılan tarixi bloklamır, ona görə
+    // submit zamanı da yoxlanılır. Redaktədə köhnə (artıq mövcud) gələcək
+    // tarixli xərc formu kilidləmir — yalnız istifadəçi tarixi YENİ gələcək
+    // dəyərə dəyişəndə xəbərdarlıq olunur.
+    const initialDate = initial ? initial.date.slice(0, 10) : null;
+    const dateErr =
+      date > todayISO() && date !== initialDate
+        ? "Gələcək tarixli xərc əlavə edilə bilməz"
+        : "";
     setCategoryError(catErr);
     setProductError(prodErr);
+    setDateError(dateErr);
     const baseInvalid = !title.trim() || n <= 0;
     if (baseInvalid) toast.error("Xərc adı və məbləğ mütləqdir");
-    if (baseInvalid || catErr || prodErr) return;
+    if (baseInvalid || catErr || prodErr || dateErr) return;
 
     const payload = {
       title,
@@ -286,11 +298,15 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
               onChange={(e) => setAmount(e.target.value)}
             />
           </Field>
-          <Field label="Tarix">
+          <Field label="Tarix" error={dateError}>
             <Input
               type="date"
+              max={todayISO()}
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (e.target.value <= todayISO()) setDateError("");
+              }}
             />
           </Field>
         </div>
