@@ -1,13 +1,14 @@
 import { useMemo } from "react";
-import { HandCoins, Package, Plus } from "lucide-react";
+import { ArrowDownLeft, BookOpen, HandCoins, Package, Plus } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { StatCard } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import { cn } from "@/lib/cn";
 import { useProducts } from "@/features/products/queries";
-import { useSupplierPayments } from "../queries";
-import type { Supplier } from "@/types";
+import { useSupplierHistory } from "../queries";
+import type { Supplier, SupplierHistoryEntry } from "@/types";
 
 interface Props {
   supplier: Supplier | null;
@@ -16,9 +17,13 @@ interface Props {
   onPay: (supplier: Supplier) => void;
 }
 
+function historyLabel(entry: SupplierHistoryEntry): string {
+  return entry.type === "initialDebt" ? "İlkin borc" : "Ödəniş";
+}
+
 export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
   const { data: allProducts = [] } = useProducts();
-  const { data: payments = [] } = useSupplierPayments(supplier?.id);
+  const { data: historyAsc = [] } = useSupplierHistory(supplier?.id);
 
   const supProducts = useMemo(
     () =>
@@ -28,9 +33,10 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
     [allProducts, supplier],
   );
 
-  const sortedPays = useMemo(
-    () => [...payments].sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [payments],
+  // UI: ən yenilər yuxarıda
+  const history = useMemo(
+    () => [...historyAsc].sort((a, b) => (a.date < b.date ? 1 : -1)),
+    [historyAsc],
   );
 
   return (
@@ -92,24 +98,65 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
           </div>
 
           <div>
-            <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-stone-500">
-              Ödəniş tarixçəsi
-            </h4>
-            {sortedPays.length === 0 ? (
-              <EmptyState icon={HandCoins} title="Ödəniş yoxdur" />
+            <div className="mb-2.5 flex items-baseline justify-between gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-stone-500">
+                Borc / ödəniş tarixçəsi
+              </h4>
+              {history.length > 0 && (
+                <span className="text-xs tabular-nums text-stone-400">
+                  {history.length} əməliyyat
+                </span>
+              )}
+            </div>
+            {history.length === 0 ? (
+              <EmptyState icon={HandCoins} title="Tarixçə yoxdur" />
             ) : (
-              <div className="divide-y divide-stone-100 rounded-xl border border-stone-200">
-                {sortedPays.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2 px-3 py-2">
-                    <span className="flex-1 text-sm text-stone-600">
-                      {fmtDate(p.date)}
-                    </span>
-                    <span className="text-sm font-bold tabular-nums text-emerald-700">
-                      −{fmtMoney(p.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <ul className="relative space-y-0 overflow-hidden rounded-xl border border-stone-200 bg-white">
+                {history.map((h, i) => {
+                  const isPay = h.type === "payment";
+                  return (
+                    <li
+                      key={`${h.type}-${h.date}-${h.amount}-${i}`}
+                      className={cn(
+                        "relative flex items-center gap-3 px-3.5 py-3",
+                        i > 0 && "border-t border-stone-100",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          isPay
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-amber-50 text-amber-600",
+                        )}
+                      >
+                        {isPay ? (
+                          <ArrowDownLeft size={15} />
+                        ) : (
+                          <BookOpen size={15} />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="min-w-0 truncate text-sm font-semibold text-stone-800">
+                          {historyLabel(h)}
+                        </p>
+                        <p className="text-xs text-stone-400">
+                          {fmtDate(h.date)}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 text-sm font-bold tabular-nums",
+                          isPay ? "text-emerald-700" : "text-red-600",
+                        )}
+                      >
+                        {isPay ? "−" : "+"}
+                        {fmtMoney(h.amount)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
         </div>

@@ -4,6 +4,7 @@ import { suppliersApi, type NewSupplier } from "./api";
 export const supplierKeys = {
   all: ["suppliers"] as const,
   payments: (id: string) => ["suppliers", id, "payments"] as const,
+  history: (id: string) => ["suppliers", id, "history"] as const,
 };
 
 export const useSuppliers = () =>
@@ -19,14 +20,24 @@ export const useSupplierPayments = (supplierId: string | undefined) =>
     enabled: !!supplierId,
   });
 
+export const useSupplierHistory = (supplierId: string | undefined) =>
+  useQuery({
+    queryKey: supplierKeys.history(supplierId ?? ""),
+    queryFn: () => suppliersApi.listHistory(supplierId as string),
+    enabled: !!supplierId,
+  });
+
 export const useCreateSupplier = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: NewSupplier) => suppliersApi.create(input),
-    onSuccess: () => {
+    onSuccess: (supplier) => {
       qc.invalidateQueries({ queryKey: supplierKeys.all });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
+      if (supplier?.id) {
+        qc.invalidateQueries({ queryKey: supplierKeys.history(supplier.id) });
+      }
     },
   });
 };
@@ -76,6 +87,7 @@ export const useAddSupplierPayment = () => {
     onSuccess: (_data, { supplierId }) => {
       qc.invalidateQueries({ queryKey: supplierKeys.all });
       qc.invalidateQueries({ queryKey: supplierKeys.payments(supplierId) });
+      qc.invalidateQueries({ queryKey: supplierKeys.history(supplierId) });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["activity"] });
     },

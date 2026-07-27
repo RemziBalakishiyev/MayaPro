@@ -4,10 +4,14 @@
  * Backend SupplierDto: debt (qalıq), paidAmount, lastPaymentDate, itemCount
  * (bağlı məhsul sayı) (+ contactName). Adapter: remainingDebt=debt,
  * totalDebt=debt+paidAmount, paidAmount, lastPaymentDate və itemCount serverdən.
+ * Qeyd: SupplierDto ilkin borcu ayrıca sahə kimi qaytarmır (Customer-dən fərqli) —
+ * açılış balansı yalnız GET /api/suppliers/{id}/history-də "initialDebt" sətri kimi görünür.
  */
 import { supplierHandlers, type NewSupplier } from "@/mocks/handlers";
+import { db } from "@/mocks/db";
+import { todayISO } from "@/lib/format";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
-import type { Supplier, SupplierPayment } from "@/types";
+import type { Supplier, SupplierHistoryEntry, SupplierPayment } from "@/types";
 
 interface SupplierDto {
   id: string;
@@ -32,6 +36,15 @@ interface SupplierPaymentDto {
   date: string;
 }
 
+interface SupplierHistoryEntryDto {
+  date: string;
+  type: "initialDebt" | "payment";
+  amount: number;
+  note: string | null;
+}
+
+const INITIAL_DEBT_NOTE = "İlkin borc (sistemə keçid)";
+
 const toSupplier = (d: SupplierDto): Supplier => ({
   id: d.id,
   name: d.name,
@@ -40,8 +53,11 @@ const toSupplier = (d: SupplierDto): Supplier => ({
   totalDebt: d.debt + d.paidAmount,
   paidAmount: d.paidAmount,
   remainingDebt: d.debt,
+  // Real backend siyahıda ilkin borcu ayrıca göndərmir — tarixçədən görünür.
+  initialDebt: 0,
   itemCount: d.itemCount ?? 0,
   lastPaymentDate: d.lastPaymentDate ?? "",
+  createdAt: d.createdAt,
 });
 
 const toPayment = (d: SupplierPaymentDto): SupplierPayment => ({
@@ -50,6 +66,44 @@ const toPayment = (d: SupplierPaymentDto): SupplierPayment => ({
   amount: d.amount,
   date: d.date,
 });
+
+const toHistoryEntry = (d: SupplierHistoryEntryDto): SupplierHistoryEntry => ({
+  date: d.date,
+  type: d.type,
+  amount: d.amount,
+  note: d.note,
+});
+
+// ——— Mock köməkçiləri ———
+async function mockListHistory(
+  supplierId: string,
+): Promise<SupplierHistoryEntry[]> {
+  const supplier = await db.suppliers.get(supplierId);
+  if (!supplier) return [];
+
+  const entries: SupplierHistoryEntry[] = [];
+
+  if ((supplier.initialDebt ?? 0) > 0) {
+    entries.push({
+      date: supplier.createdAt || todayISO(),
+      type: "initialDebt",
+      amount: supplier.initialDebt,
+      note: INITIAL_DEBT_NOTE,
+    });
+  }
+
+  const payments = await supplierHandlers.listPayments(supplierId);
+  for (const p of payments) {
+    entries.push({
+      date: p.date,
+      type: "payment",
+      amount: p.amount,
+      note: null,
+    });
+  }
+
+  return entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
 
 export const suppliersApi = {
   list: () =>
@@ -66,6 +120,15 @@ export const suppliersApi = {
           .get<SupplierPaymentDto[]>(`/api/suppliers/${supplierId}/payments`)
           .then((rows) => rows.map(toPayment)),
 
+  listHistory: (supplierId: string) =>
+    USE_MOCK
+      ? mockListHistory(supplierId)
+      : apiClient
+          .get<SupplierHistoryEntryDto[]>(
+            `/api/suppliers/${supplierId}/history`,
+          )
+          .then((rows) => rows.map(toHistoryEntry)),
+
   create: (input: NewSupplier) =>
     USE_MOCK
       ? supplierHandlers.create(input)
@@ -74,6 +137,9 @@ export const suppliersApi = {
             name: input.name.trim(),
             phone: input.phone.trim(),
             note: input.note,
+            // Backend CreateSupplierCommand.Debt → JSON "debt" (Customer-dəki
+            // "initialDebt"-dən fərqli sahə adı).
+            debt: Math.max(0, Number(input.initialDebt) || 0),
           })
           .then(toSupplier),
 

@@ -443,6 +443,8 @@ export interface NewSupplier {
   name: string;
   phone: string;
   note?: string;
+  /** Köhnə dəftərdən qalan açılış borcu (≥ 0). */
+  initialDebt?: number;
 }
 
 export const supplierHandlers = {
@@ -465,19 +467,29 @@ export const supplierHandlers = {
   },
 
   async create(input: NewSupplier): Promise<Supplier> {
+    const debt = Math.max(0, Number(input.initialDebt) || 0);
     const supplier: Supplier = {
       id: uid("sup"),
       name: input.name.trim(),
       phone: input.phone.trim(),
       note: input.note?.trim() || "",
-      totalDebt: 0,
+      totalDebt: debt,
       paidAmount: 0,
-      remainingDebt: 0,
+      remainingDebt: debt,
+      initialDebt: debt,
       itemCount: 0,
       lastPaymentDate: "",
+      createdAt: new Date().toISOString(),
     };
     await db.suppliers.create(supplier);
-    await logActivity("Təchizatçı əlavə etdi", supplier.name);
+    if (debt > 0) {
+      await logActivity(
+        "Təchizatçı əlavə etdi",
+        `${supplier.name} — ilkin borc ${fmtMoney(debt)}`,
+      );
+    } else {
+      await logActivity("Təchizatçı əlavə etdi", supplier.name);
+    }
     return supplier;
   },
 

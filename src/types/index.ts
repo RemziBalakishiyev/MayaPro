@@ -154,8 +154,21 @@ export interface Supplier {
   totalDebt: number;
   paidAmount: number;
   remainingDebt: number;
+  /** Sistemə keçid zamanı yazılan ilkin (açılış) borcu. Təmiz başlayan təchizatçıda 0 */
+  initialDebt: number;
   itemCount: number;
   lastPaymentDate: string;
+  /** Mock tarixçə / sıralama üçün; real API-də də mövcuddur */
+  createdAt?: string;
+}
+
+/** GET /api/suppliers/{id}/history — ilkin borc + ödəniş tarixçəsi */
+export interface SupplierHistoryEntry {
+  date: string;
+  type: "initialDebt" | "payment";
+  amount: number;
+  /** İlkin borc / ödənişdə qeyd mətni */
+  note: string | null;
 }
 
 export interface Employee {
