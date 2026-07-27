@@ -203,7 +203,15 @@ export const PERIOD_LABELS: Record<Period, string> = {
   all: "Hamısı",
 };
 
-/** ISO tarix seçilmiş dövrə düşürmü. */
+/**
+ * ISO tarix seçilmiş dövrə düşürmü.
+ *
+ * "month" — TƏQVİM AYI (cari ayın 1-dən bu günə qədər), backend
+ * `GetSummaryHandler`-in "month" dövrü ilə (və Xərclər səhifəsinin
+ * `input[type=month]` filtri ilə) EYNİ məntiq. Əvvəllər "son 30 gün"
+ * (`daysBetween <= 29`) idi — bu, ay sərhədində Hesabatlar və Xərclər
+ * səhifələrindəki rəqəmlərin fərqlənməsinə səbəb olurdu (FE#9).
+ */
 export const inPeriod = (iso: string, period: Period): boolean => {
   switch (period) {
     case "today":
@@ -211,7 +219,7 @@ export const inPeriod = (iso: string, period: Period): boolean => {
     case "week":
       return daysBetween(iso) <= 6;
     case "month":
-      return daysBetween(iso) <= 29;
+      return iso.slice(0, 7) === todayISO().slice(0, 7);
     case "all":
     default:
       return true;

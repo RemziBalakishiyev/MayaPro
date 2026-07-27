@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
-import { useReportsData } from "@/features/reports/queries";
+import { useReportsData, useSummary } from "@/features/reports/queries";
 import {
   sumBy,
   inPeriod,
@@ -48,12 +48,29 @@ function HesabatlarPage() {
   const navigate = Route.useNavigate();
   const { period } = Route.useSearch();
   const { data, isLoading } = useReportsData();
+  // Xərc mənbəyi bölgüsü (Ümumi/Mala bağlı) üçün server summary — mövcud olduqda
+  // ONDAN istifadə olunur (Xərclər səhifəsi ilə eyni rəqəm, FE#9/AC1-AC2).
+  const { data: summary } = useSummary(period);
 
   const view = useMemo(() => {
     if (!data) return null;
     const { products, sales, expenses } = data;
     const periodSales = sales.filter((s) => inPeriod(s.createdAt, period));
     const periodExpenses = expenses.filter((e) => inPeriod(e.date, period));
+
+    // Backend summary-də generalExpenses/productExpenses varsa ONLARDAN istifadə
+    // olunur; yoxdursa (köhnə backend) xam xərc siyahısından lokal hesablanır
+    // (fallback, AC3). Hər iki halda "Xərc" başlıq rəqəmi elə bu bölgünün
+    // cəminə bərabərdir (AC4) — ayrıca uyğunsuz cəm hesablanmır.
+    const hasSourceSummary =
+      summary?.generalExpenses !== undefined &&
+      summary?.productExpenses !== undefined;
+    const expBySource = hasSourceSummary
+      ? { general: summary!.generalExpenses!, product: summary!.productExpenses! }
+      : expenseBySource(periodExpenses);
+    const expensesTotal = hasSourceSummary
+      ? expBySource.general + expBySource.product
+      : sumBy(periodExpenses, (e) => e.amount);
 
     const frozen = frozenProducts(products, sales);
     const frozenGroups = [30, 60, 90].map((days) => {
@@ -74,7 +91,7 @@ function HesabatlarPage() {
     return {
       sales: sumBy(periodSales, (s) => s.totalAmount),
       profit: sumBy(periodSales, (s) => s.profit ?? 0),
-      expenses: sumBy(periodExpenses, (e) => e.amount),
+      expenses: expensesTotal,
       stockValue: sumBy(products, (p) => p.realCostPerUnit * p.quantity),
       cashSales: sumBy(
         periodSales.filter((s) => s.paymentType === "Nağd"),
@@ -87,7 +104,7 @@ function HesabatlarPage() {
       daily: dailySeries(sales, 14),
       weekly: weeklySeries(sales, 6),
       expByCat: expenseByCategory(periodExpenses),
-      expBySource: expenseBySource(periodExpenses),
+      expBySource,
       topBar,
       payments: paymentBreakdown(periodSales),
       leastSold: [...topProductsByQty(periodSales, products)].reverse().slice(0, 5),
@@ -96,7 +113,7 @@ function HesabatlarPage() {
       frozenTotal: sumBy(frozen, (p) => p.frozenValue),
       lossSellers: lossSellers(products),
     };
-  }, [data, period]);
+  }, [data, period, summary]);
 
   if (isLoading || !view) {
     return (
