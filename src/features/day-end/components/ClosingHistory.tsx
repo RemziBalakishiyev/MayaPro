@@ -70,7 +70,7 @@ export function ClosingHistory() {
                 d < 0 ? "text-red-600" : d > 0 ? "text-emerald-700" : "text-stone-700"
               }`}
             >
-              {d === 0 ? "±0.00 AZN" : `${d > 0 ? "+" : ""}${fmtMoney(d)}`}
+              {d === 0 ? "±0.00 ₼" : `${d > 0 ? "+" : ""}${fmtMoney(d)}`}
             </span>
           );
         },
