@@ -60,20 +60,32 @@ function XerclerPage() {
   const month = search.month ?? todayISO().slice(0, 7);
   const sourceFilter = search.source;
 
-  // Bütün ay xərcləri (xülasə kartı bunun üzərində hesablanır, çip filtri bunu dəyişmir).
+  // Bütün ay xərcləri (siyahı bunun üzərində qurulur, çip filtri bunu dəyişmir).
   const monthExpenses = useMemo(
     () => expenses.filter((e) => e.date.slice(0, 7) === month),
     [expenses, month],
   );
 
+  const isCurrentMonth = month === todayISO().slice(0, 7);
+
+  // Xülasə kartı — Hesabatlar səhifəsi ilə eyni pəncərə: cari ay bugünlə bitir,
+  // keçmiş aylar isə onsuz da bağlıdır (üst sərhədə ehtiyac yoxdur).
+  const monthTotalExpenses = useMemo(
+    () =>
+      isCurrentMonth
+        ? monthExpenses.filter((e) => e.date.slice(0, 10) <= todayISO())
+        : monthExpenses,
+    [monthExpenses, isCurrentMonth],
+  );
+
   const monthTotal = useMemo(
-    () => monthExpenses.reduce((s, e) => s + e.amount, 0),
-    [monthExpenses],
+    () => monthTotalExpenses.reduce((s, e) => s + e.amount, 0),
+    [monthTotalExpenses],
   );
 
   const sourceTotals = useMemo(
-    () => expenseBySource(monthExpenses),
-    [monthExpenses],
+    () => expenseBySource(monthTotalExpenses),
+    [monthTotalExpenses],
   );
 
   // Cədvəldə görünən sətirlər — ay + mənbə çipi.
