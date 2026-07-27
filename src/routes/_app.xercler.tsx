@@ -57,7 +57,8 @@ function XerclerPage() {
   const [editing, setEditing] = useState<Expense | null>(null);
   const [deleteFor, setDeleteFor] = useState<Expense | null>(null);
 
-  const month = search.month ?? todayISO().slice(0, 7);
+  const today = todayISO();
+  const month = search.month ?? today.slice(0, 7);
   const sourceFilter = search.source;
 
   // Bütün ay xərcləri (siyahı bunun üzərində qurulur, çip filtri bunu dəyişmir).
@@ -66,27 +67,32 @@ function XerclerPage() {
     [expenses, month],
   );
 
-  const isCurrentMonth = month === todayISO().slice(0, 7);
-
-  // Xülasə kartı — Hesabatlar səhifəsi ilə eyni pəncərə: cari ay bugünlə bitir,
-  // keçmiş aylar isə onsuz da bağlıdır (üst sərhədə ehtiyac yoxdur).
-  const monthTotalExpenses = useMemo(
+  // Xülasə kartı Hesabatlar səhifəsi ilə EYNİ pəncərəni götürür (backend
+  // `ReportPeriod.Month`: ayın 1-i … bu gün, hər iki sərhəd daxil): cari ayda
+  // gələcək tarixli qeyd cəmə düşmür, keçmiş aylar isə onsuz da bağlıdır.
+  // `e.date` "YYYY-MM-DD" və ya ISO datetime ola bilər → gün hissəsi kəsilir;
+  // ISO formatda leksikoqrafik müqayisə xronoloji müqayisə ilə eynidir.
+  const summaryExpenses = useMemo(
     () =>
-      isCurrentMonth
-        ? monthExpenses.filter((e) => e.date.slice(0, 10) <= todayISO())
+      month === today.slice(0, 7)
+        ? monthExpenses.filter((e) => e.date.slice(0, 10) <= today)
         : monthExpenses,
-    [monthExpenses, isCurrentMonth],
+    [monthExpenses, month, today],
   );
 
   const monthTotal = useMemo(
-    () => monthTotalExpenses.reduce((s, e) => s + e.amount, 0),
-    [monthTotalExpenses],
+    () => summaryExpenses.reduce((s, e) => s + e.amount, 0),
+    [summaryExpenses],
   );
 
   const sourceTotals = useMemo(
-    () => expenseBySource(monthTotalExpenses),
-    [monthTotalExpenses],
+    () => expenseBySource(summaryExpenses),
+    [summaryExpenses],
   );
+
+  // Siyahıda görünən, amma cəmə düşməyən gələcək tarixli qeydlərin sayı —
+  // istifadəçi sətirlərlə cəm arasındakı fərqi izahsız görməsin (AC3).
+  const futureCount = monthExpenses.length - summaryExpenses.length;
 
   // Cədvəldə görünən sətirlər — ay + mənbə çipi.
   const visibleExpenses = useMemo(
@@ -165,7 +171,16 @@ function XerclerPage() {
           <StatCard
             label="Bu ay üzrə cəmi xərc"
             value={fmtMoney(monthTotal)}
-            sub={expenseSourceSummaryText(sourceTotals)}
+            sub={
+              <>
+                {expenseSourceSummaryText(sourceTotals)}
+                {futureCount > 0 && (
+                  <span className="mt-0.5 block text-amber-600">
+                    {futureCount} gələcək tarixli xərc cəmə daxil deyil
+                  </span>
+                )}
+              </>
+            }
             icon={Receipt}
             tone="red"
           />
