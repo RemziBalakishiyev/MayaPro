@@ -16,7 +16,6 @@ import {
   dailySeries,
   weeklySeries,
   expenseByCategory,
-  expenseBySource,
   topProductsByQty,
   frozenProducts,
   lossSellers,
@@ -24,6 +23,10 @@ import {
   PERIOD_LABELS,
   type Period,
 } from "@/features/reports/lib";
+import {
+  expenseBySource,
+  expenseSourceSummaryText,
+} from "@/features/expenses/lib";
 import { DailyBarChart } from "@/features/reports/components/DailyBarChart";
 import { TrendLineChart } from "@/features/reports/components/TrendLineChart";
 import { ExpensePie } from "@/features/reports/components/ExpensePie";
@@ -135,7 +138,7 @@ function HesabatlarPage() {
         <StatCard
           label="Xərc"
           value={fmtMoney(view.expenses)}
-          sub={`Satışdan əlavə xərclər: ${fmtMoney(view.expBySource.general)} · Mala bağlı: ${fmtMoney(view.expBySource.product)}`}
+          sub={expenseSourceSummaryText(view.expBySource)}
           tone="red"
         />
         <StatCard label="Anbar dəyəri" value={fmtMoney(view.stockValue)} />

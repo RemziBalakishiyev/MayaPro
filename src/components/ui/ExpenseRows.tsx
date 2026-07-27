@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -12,6 +12,8 @@ import type { ProductExpenseLine } from "@/types";
 export type ExpenseRowValue = ProductExpenseLine;
 
 const CUSTOM_VALUE = "__custom__";
+/** Növlər yüklənərkən göstərilən deaktiv seçim. */
+const LOADING_VALUE = "__loading__";
 
 /** Sətirlərin məbləğ cəmi (yalnız adı dolu olanlar). */
 export const rowsTotal = (rows: ExpenseRowValue[]): number =>
@@ -47,9 +49,12 @@ export function ExpenseRows({ value, onChange, error }: Props) {
   const focusIdx = useRef<number | null>(null);
   const total = rowsTotal(value);
   const hasRows = value.length > 0;
-  // Mərkəzi xərc növləri siyahısı (hardcoded EXPENSE_PRESETS əvəzinə).
-  const { data: expenseTypes = [] } = useExpenseTypes();
-  const presets = expenseTypes.map((t) => t.name);
+  // Mərkəzi xərc növləri siyahısı (Xərclər səhifəsindəki eyni mənbədən).
+  const { data: expenseTypes, isLoading: typesLoading } = useExpenseTypes();
+  const presets = useMemo(
+    () => (expenseTypes ?? []).map((t) => t.name),
+    [expenseTypes],
+  );
 
   useEffect(() => {
     if (hasRows) setOpen(true);
@@ -121,10 +126,16 @@ export function ExpenseRows({ value, onChange, error }: Props) {
                 {/* Mobil: növ + ad üst sətir; desktop: sm:contents → eyni grid sətiri */}
                 <div className="flex gap-2 sm:contents">
                   <Select
+                    aria-label="Xərc növü"
                     value={selectValueForName(row.name, presets)}
                     onChange={(e) => onSelectKind(idx, e.target.value)}
                     className="min-w-0 flex-1"
                   >
+                    {typesLoading && (
+                      <option value={LOADING_VALUE} disabled>
+                        Yüklənir…
+                      </option>
+                    )}
                     {presets.map((p) => (
                       <option key={p} value={p}>
                         {p}

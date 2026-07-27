@@ -22,8 +22,13 @@ export function ExpenseTypeField({ value, onChange }: Props) {
   const [newName, setNewName] = useState("");
 
   const submitNew = async () => {
+    if (createType.isPending) return;
     const name = newName.trim();
-    if (!name) return;
+    if (!name) {
+      // Sorğu göndərilmir, forma açıq qalır — istifadəçi səbəbi görsün.
+      toast.error("Xərc növü adı boş ola bilməz");
+      return;
+    }
     try {
       const type = await createType.mutateAsync(name);
       onChange(type.name);
@@ -37,9 +42,10 @@ export function ExpenseTypeField({ value, onChange }: Props) {
 
   if (adding) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Input
           autoFocus
+          aria-label="Yeni xərc növü adı"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Yeni xərc növü adı"
@@ -49,7 +55,7 @@ export function ExpenseTypeField({ value, onChange }: Props) {
               void submitNew();
             }
           }}
-          className="flex-1"
+          className="min-w-[9rem] flex-1"
         />
         <Button
           type="button"
@@ -81,6 +87,7 @@ export function ExpenseTypeField({ value, onChange }: Props) {
 
   return (
     <Select
+      aria-label="Xərc növü"
       value={value}
       onChange={(e) => {
         if (e.target.value === NEW_TYPE) setAdding(true);

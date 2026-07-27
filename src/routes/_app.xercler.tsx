@@ -15,7 +15,10 @@ import {
 } from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
-import { expenseBySource } from "@/features/reports/lib";
+import {
+  expenseBySource,
+  expenseSourceSummaryText,
+} from "@/features/expenses/lib";
 import { useProducts } from "@/features/products/queries";
 import { useCan } from "@/features/auth/store";
 import type { Expense, ExpenseSource } from "@/types";
@@ -30,7 +33,11 @@ const SOURCE_FILTERS: { key: SourceFilter; label: string }[] = [
 
 const searchSchema = z.object({
   month: z.string().optional(), // "YYYY-MM"
-  source: z.enum(["all", "general", "product"]).default("all"),
+  /**
+   * Filter çipi URL-də saxlanılır (F5-dən sonra itmir).
+   * `.catch` → keçərsiz dəyər (məs. ?source=xyz) route xətası vermir, "all"-a düşür.
+   */
+  source: z.enum(["all", "general", "product"]).default("all").catch("all"),
 });
 
 export const Route = createFileRoute("/_app/xercler")({
@@ -146,7 +153,7 @@ function XerclerPage() {
           <StatCard
             label="Bu ay üzrə cəmi xərc"
             value={fmtMoney(monthTotal)}
-            sub={`Satışdan əlavə xərclər: ${fmtMoney(sourceTotals.general)} · Mala bağlı: ${fmtMoney(sourceTotals.product)}`}
+            sub={expenseSourceSummaryText(sourceTotals)}
             icon={Receipt}
             tone="red"
           />
@@ -185,6 +192,14 @@ function XerclerPage() {
         isLoading={isLoading}
         canWrite={canWrite}
         productName={productName}
+        emptyState={
+          sourceFilter === "all"
+            ? undefined
+            : {
+                title: `Bu ay «${SOURCE_FILTERS.find((f) => f.key === sourceFilter)?.label}» xərc yoxdur`,
+                description: "Filtri «Hamısı»na keçirin və ya yeni xərc əlavə edin.",
+              }
+        }
         onEdit={(e) => {
           setEditing(e);
           setFormOpen(true);

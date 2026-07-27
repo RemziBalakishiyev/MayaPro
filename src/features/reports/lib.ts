@@ -180,22 +180,6 @@ export const expenseByCategory = (expenses: Expense[]): NamedValue[] => {
   return Object.entries(byCat).map(([name, value]) => ({ name, value }));
 };
 
-/** Xərc mənbəyi bölgüsü — Ümumi (satışa bağlı olmayan) / Mala bağlı cəmləri. */
-export interface ExpenseSourceTotals {
-  general: number;
-  product: number;
-}
-
-export const expenseBySource = (expenses: Expense[]): ExpenseSourceTotals =>
-  expenses.reduce<ExpenseSourceTotals>(
-    (acc, e) => {
-      if (e.source === "product") acc.product += e.amount;
-      else acc.general += e.amount;
-      return acc;
-    },
-    { general: 0, product: 0 },
-  );
-
 /** Ödəniş növü bölgüsü (Nağd/Kart/Nisyə). */
 export const paymentBreakdown = (sales: Sale[]): NamedValue[] =>
   (["Nağd", "Kart", "Nisyə"] as const).map((pt) => ({
