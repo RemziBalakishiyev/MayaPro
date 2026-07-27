@@ -206,9 +206,12 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
     // submit zamanı da yoxlanılır. Redaktədə köhnə (artıq mövcud) gələcək
     // tarixli xərc formu kilidləmir — yalnız istifadəçi tarixi YENİ gələcək
     // dəyərə dəyişəndə xəbərdarlıq olunur.
+    // Tarix silinə də bilir (input boşalır) — boş dəyər backend-də 400 verir,
+    // ona görə burada tutulur.
     const initialDate = initial ? initial.date.slice(0, 10) : null;
-    const dateErr =
-      date > todayISO() && date !== initialDate
+    const dateErr = !date
+      ? "Tarix seçilməlidir"
+      : date > todayISO() && date !== initialDate
         ? "Gələcək tarixli xərc əlavə edilə bilməz"
         : "";
     setCategoryError(catErr);
@@ -298,14 +301,15 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
               onChange={(e) => setAmount(e.target.value)}
             />
           </Field>
-          <Field label="Tarix" error={dateError}>
+          <Field label="Tarix" required error={dateError}>
             <Input
               type="date"
               max={todayISO()}
               value={date}
               onChange={(e) => {
-                setDate(e.target.value);
-                if (e.target.value <= todayISO()) setDateError("");
+                const v = e.target.value;
+                setDate(v);
+                if (v && v <= todayISO()) setDateError("");
               }}
             />
           </Field>

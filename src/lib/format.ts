@@ -26,14 +26,21 @@ export const fmtDate = (
 export const uid = (prefix = "id"): string =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-/** Bugünün ISO tarixi: "2026-07-10" */
-export const todayISO = (): string => new Date().toISOString().slice(0, 10);
+/**
+ * Bugünün ISO tarixi: "2026-07-10" — LOKAL təqvim günü.
+ *
+ * Əvvəl `toISOString()` (UTC) idi: Bakı UTC+4 olduğuna görə gecə 00:00–04:00
+ * arası DÜNƏNİN tarixi qayıdırdı — "Bu gün" filtrləri sürüşür, xərc formasının
+ * `max` tarixi isə bugünkü xərci bloklayırdı. Backend də iş gününü Bakı vaxtı
+ * ilə hesablayır (`IDateProvider`, Asia/Baku), lokal gün onunla uyğundur.
+ */
+export const todayISO = (): string => format(new Date(), "yyyy-MM-dd");
 
-/** N gün əvvəlin ISO tarixi. */
+/** N gün əvvəlin ISO tarixi (lokal gün, `todayISO` ilə eyni əsasda). */
 export const daysAgoISO = (d: number): string => {
   const t = new Date();
   t.setDate(t.getDate() - d);
-  return t.toISOString().slice(0, 10);
+  return format(t, "yyyy-MM-dd");
 };
 
 /** Verilmiş ISO tarixdən bu günə qədər keçən gün sayı. */
