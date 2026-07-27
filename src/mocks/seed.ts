@@ -13,15 +13,17 @@ import type {
   Activity,
   Closing,
   Category,
+  ExpenseType,
   PaymentType,
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 7;
+export const SEED_VERSION = 8;
 
 export interface SeedDatabase {
   products: Product[];
   categories: Category[];
+  expenseTypes: ExpenseType[];
   sales: Sale[];
   customers: Customer[];
   suppliers: Supplier[];
@@ -298,6 +300,18 @@ const buildCategories = (): Category[] => {
   return names.map((name, i) => ({ id: `cat_${i + 1}`, name }));
 };
 
+/** Mərkəzi xərc növləri seed-i — köhnə partiya-xərci preset-ləri + ümumi xərc növləri. */
+const buildExpenseTypes = (): ExpenseType[] =>
+  [
+    "Yol pulu",
+    "Fəhlə pulu",
+    "Yer/Anbar xərci",
+    "Paket/Qutu",
+    "Gömrük",
+    "Mağaza xərci",
+    "Digər",
+  ].map((name, i) => ({ id: `etp_${i + 1}`, name }));
+
 const buildCustomers = (): Customer[] =>
   [
     {
@@ -555,29 +569,32 @@ const buildExpenses = (): Expense[] => [
   {
     id: uid("exp"),
     title: "Sərnişin yükdaşıma (İstanbul karqo)",
-    category: "Yol",
+    category: "Yol pulu",
     amount: 240,
     productId: "prd_1",
     date: daysAgoISO(24),
     note: "120 ədəd şalvar partiyası",
+    source: "product",
   },
   {
     id: uid("exp"),
     title: "Hambal pulu",
-    category: "Fəhlə",
+    category: "Fəhlə pulu",
     amount: 45,
     productId: null,
     date: daysAgoISO(4),
     note: "",
+    source: "general",
   },
   {
     id: uid("exp"),
     title: "Mağaza icarəsi (aylıq pay)",
-    category: "Mağaza",
+    category: "Mağaza xərci",
     amount: 600,
     productId: null,
     date: daysAgoISO(7),
     note: "İyul ayı",
+    source: "general",
   },
   {
     id: uid("exp"),
@@ -587,15 +604,17 @@ const buildExpenses = (): Expense[] => [
     productId: null,
     date: daysAgoISO(3),
     note: "",
+    source: "general",
   },
   {
     id: uid("exp"),
     title: "Anbar yeri kirayəsi",
-    category: "Anbar/Yer",
+    category: "Yer/Anbar xərci",
     amount: 180,
     productId: null,
     date: daysAgoISO(10),
     note: "Anbar B",
+    source: "general",
   },
   {
     id: uid("exp"),
@@ -605,15 +624,17 @@ const buildExpenses = (): Expense[] => [
     productId: null,
     date: todayISO(),
     note: "",
+    source: "general",
   },
   {
     id: uid("exp"),
     title: "Karqo çatdırılma",
-    category: "Yol",
+    category: "Yol pulu",
     amount: 60,
     productId: "prd_8",
     date: todayISO(),
     note: "İdman dəsti əlavə partiya",
+    source: "product",
   },
 ];
 
@@ -711,6 +732,7 @@ export const buildSeed = (): SeedDatabase => {
   return {
     products,
     categories: buildCategories(),
+    expenseTypes: buildExpenseTypes(),
     sales,
     customers,
     suppliers,

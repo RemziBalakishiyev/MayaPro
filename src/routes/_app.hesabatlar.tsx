@@ -16,6 +16,7 @@ import {
   dailySeries,
   weeklySeries,
   expenseByCategory,
+  expenseBySource,
   topProductsByQty,
   frozenProducts,
   lossSellers,
@@ -83,6 +84,7 @@ function HesabatlarPage() {
       daily: dailySeries(sales, 14),
       weekly: weeklySeries(sales, 6),
       expByCat: expenseByCategory(periodExpenses),
+      expBySource: expenseBySource(periodExpenses),
       topBar,
       payments: paymentBreakdown(periodSales),
       leastSold: [...topProductsByQty(periodSales, products)].reverse().slice(0, 5),
@@ -130,7 +132,12 @@ function HesabatlarPage() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Satış" value={fmtMoney(view.sales)} />
         <StatCard label="Xalis qazanc" value={fmtMoney(view.profit)} tone="green" />
-        <StatCard label="Xərc" value={fmtMoney(view.expenses)} tone="red" />
+        <StatCard
+          label="Xərc"
+          value={fmtMoney(view.expenses)}
+          sub={`Satışdan əlavə xərclər: ${fmtMoney(view.expBySource.general)} · Mala bağlı: ${fmtMoney(view.expBySource.product)}`}
+          tone="red"
+        />
         <StatCard label="Anbar dəyəri" value={fmtMoney(view.stockValue)} />
         <StatCard label="Nağd satış" value={fmtMoney(view.cashSales)} />
         <StatCard label="Nisyə satış" value={fmtMoney(view.creditSales)} tone="amber" />

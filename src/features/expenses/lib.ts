@@ -1,11 +1,6 @@
-import type { ExpenseCategory } from "@/types";
-
-/** Xərc kateqoriyaları — MVP-dəki EXP_CATS ilə eyni. */
-export const EXP_CATS: ExpenseCategory[] = [
-  "Yol",
-  "Fəhlə",
-  "Anbar/Yer",
-  "Paket/Qutu",
-  "Mağaza",
-  "Digər",
-];
+/**
+ * expenses/lib.ts — kateqoriya siyahısı features/expense-types-ə köçürüldü
+ * (useExpenseTypes). Bu fayl hazırda boşdur, gələcək xərc-spesifik xalis
+ * funksiyalar üçün saxlanılır.
+ */
+export {};

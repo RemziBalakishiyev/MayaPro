@@ -7,6 +7,12 @@ import { Badge } from "@/components/ui/Badge";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import type { Expense } from "@/types";
 
+/** Xərc mənbəyi → badge mətni ("source" sahəsi backend/mock-dan). */
+const SOURCE_LABEL: Record<Expense["source"], string> = {
+  general: "Ümumi",
+  product: "Mala bağlı",
+};
+
 interface Props {
   expenses: Expense[];
   isLoading?: boolean;
@@ -85,8 +91,15 @@ export function ExpensesTable({
       },
       {
         accessorKey: "category",
-        header: "Kateqoriya",
+        header: "Növ",
         cell: ({ getValue }) => <Badge>{getValue() as string}</Badge>,
+      },
+      {
+        accessorKey: "source",
+        header: "Mənbə",
+        cell: ({ getValue }) => (
+          <Badge>{SOURCE_LABEL[getValue() as Expense["source"]]}</Badge>
+        ),
       },
       {
         id: "product",
@@ -164,6 +177,7 @@ export function ExpensesTable({
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Badge>{e.category}</Badge>
+            <Badge>{SOURCE_LABEL[e.source]}</Badge>
             {e.productId && (
               <span className="text-sm font-medium text-emerald-700">
                 {productName(e.productId)}

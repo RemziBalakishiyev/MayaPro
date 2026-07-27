@@ -5,19 +5,11 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
+import { useExpenseTypes } from "@/features/expense-types/queries";
 import type { ProductExpenseLine } from "@/types";
 
 /** Forma / API ilə eyni forma: { name, amount }. */
 export type ExpenseRowValue = ProductExpenseLine;
-
-/** Select-dən seçiləndə ad inputuna yazılan hazır adlar. */
-export const EXPENSE_PRESETS = [
-  "Yol pulu",
-  "Fəhlə pulu",
-  "Yer/Anbar xərci",
-  "Paket/Qutu",
-  "Gömrük",
-] as const;
 
 const CUSTOM_VALUE = "__custom__";
 
@@ -36,11 +28,9 @@ export const incompleteExpenseIndexes = (rows: ExpenseRowValue[]): number[] =>
     )
     .filter((i) => i >= 0);
 
-const selectValueForName = (name: string): string => {
+const selectValueForName = (name: string, presets: string[]): string => {
   const trimmed = name.trim();
-  return (EXPENSE_PRESETS as readonly string[]).includes(trimmed)
-    ? trimmed
-    : CUSTOM_VALUE;
+  return presets.includes(trimmed) ? trimmed : CUSTOM_VALUE;
 };
 
 interface Props {
@@ -57,6 +47,9 @@ export function ExpenseRows({ value, onChange, error }: Props) {
   const focusIdx = useRef<number | null>(null);
   const total = rowsTotal(value);
   const hasRows = value.length > 0;
+  // Mərkəzi xərc növləri siyahısı (hardcoded EXPENSE_PRESETS əvəzinə).
+  const { data: expenseTypes = [] } = useExpenseTypes();
+  const presets = expenseTypes.map((t) => t.name);
 
   useEffect(() => {
     if (hasRows) setOpen(true);
@@ -128,11 +121,11 @@ export function ExpenseRows({ value, onChange, error }: Props) {
                 {/* Mobil: növ + ad üst sətir; desktop: sm:contents → eyni grid sətiri */}
                 <div className="flex gap-2 sm:contents">
                   <Select
-                    value={selectValueForName(row.name)}
+                    value={selectValueForName(row.name, presets)}
                     onChange={(e) => onSelectKind(idx, e.target.value)}
                     className="min-w-0 flex-1"
                   >
-                    {EXPENSE_PRESETS.map((p) => (
+                    {presets.map((p) => (
                       <option key={p} value={p}>
                         {p}
                       </option>

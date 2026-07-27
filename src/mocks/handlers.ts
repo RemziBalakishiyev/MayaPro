@@ -14,9 +14,10 @@ import type {
   Supplier,
   SupplierPayment,
   Expense,
-  ExpenseCategory,
+  ExpenseSource,
   Closing,
   Category,
+  ExpenseType,
 } from "@/types";
 
 /** Yeni mal üçün giriş — hesablanan/avtomatik sahələr xaric. */
@@ -118,6 +119,23 @@ export const categoryHandlers = {
     const category: Category = { id: uid("cat"), name: trimmed };
     await db.categories.create(category);
     return category;
+  },
+};
+
+export const expenseTypeHandlers = {
+  list: () => db.expenseTypes.list(),
+
+  /** Yeni xərc növü yaradır; ad təkrarlanırsa (registrsiz) xəta atır. */
+  async create(name: string): Promise<ExpenseType> {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Xərc növü adı boş ola bilməz");
+    const existing = await db.expenseTypes.list();
+    if (existing.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) {
+      throw new Error("Bu xərc növü artıq mövcuddur");
+    }
+    const type: ExpenseType = { id: uid("etp"), name: trimmed };
+    await db.expenseTypes.create(type);
+    return type;
   },
 };
 
@@ -543,30 +561,35 @@ export const supplierHandlers = {
 /** Yeni xərc üçün giriş. */
 export interface NewExpense {
   title: string;
-  category: ExpenseCategory;
+  category: string;
   amount: number;
   date: string;
   productId: string | null;
   note?: string;
+  /** Ümumi (satışa bağlı olmayan) və ya mala bağlı xərc. */
+  source: ExpenseSource;
 }
 
 export const expenseHandlers = {
   list: () => db.expenses.list(),
 
   /**
-   * Xərc yazılır. ƏSAS QAYDA: xərc bir mala bağlıdırsa (productId),
+   * Xərc yazılır. ƏSAS QAYDA: xərc bir mala bağlıdırsa (source="product"),
    * kateqoriya adı malın expenses massivinə sətir kimi düşür və real maya
-   * yenidən hesablanır.
+   * yenidən hesablanır. Ümumi (source="general") xərclər malın mayasına
+   * TƏSİR ETMİR — productId həmişə null saxlanılır.
    */
   async createExpense(input: NewExpense): Promise<Expense> {
+    const isProduct = input.source === "product";
     const expense: Expense = {
       id: uid("exp"),
       title: input.title.trim(),
       category: input.category,
       amount: input.amount,
-      productId: input.productId || null,
+      productId: isProduct ? input.productId || null : null,
       date: input.date,
       note: input.note ?? "",
+      source: input.source,
     };
     await db.expenses.create(expense);
 
@@ -606,14 +629,16 @@ export const expenseHandlers = {
       await reverseProductExpense(existing);
     }
 
+    const isProduct = input.source === "product";
     const expense: Expense = {
       ...existing,
       title: input.title.trim(),
       category: input.category,
       amount: input.amount,
-      productId: input.productId || null,
+      productId: isProduct ? input.productId || null : null,
       date: input.date,
       note: input.note ?? "",
+      source: input.source,
     };
     await db.expenses.update(id, expense);
 

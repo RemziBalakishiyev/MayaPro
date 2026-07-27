@@ -3,7 +3,7 @@
  */
 import { expenseHandlers, type NewExpense } from "@/mocks/handlers";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
-import type { Expense, ExpenseCategory } from "@/types";
+import type { Expense, ExpenseSource } from "@/types";
 
 interface ExpenseDto {
   id: string;
@@ -14,6 +14,8 @@ interface ExpenseDto {
   productId: string | null;
   productName: string | null;
   note: string | null;
+  /** Backend sahəsi; köhnə cavablarda yoxdursa productId-dən çıxarılır. */
+  source?: ExpenseSource;
   createdByUserId: string | null;
   createdAt: string;
 }
@@ -21,11 +23,12 @@ interface ExpenseDto {
 const toExpense = (d: ExpenseDto): Expense => ({
   id: d.id,
   title: d.title,
-  category: d.category as ExpenseCategory,
+  category: d.category,
   amount: d.amount,
   productId: d.productId ?? null,
   date: d.date,
   note: d.note ?? "",
+  source: d.source ?? (d.productId ? "product" : "general"),
 });
 
 export const expensesApi = {
@@ -47,6 +50,7 @@ export const expensesApi = {
             date: input.date,
             productId: input.productId,
             note: input.note,
+            source: input.source,
           })
           .then(toExpense),
 
@@ -61,6 +65,7 @@ export const expensesApi = {
             date: input.date,
             productId: input.productId,
             note: input.note,
+            source: input.source,
           })
           .then(toExpense),
 
