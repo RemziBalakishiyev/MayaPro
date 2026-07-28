@@ -1,6 +1,6 @@
 import { ShoppingCart } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, fmtMoneySigned } from "@/lib/format";
 import { lineTotal, netTotal, saleProfit, isLossSale } from "../lib";
 
 interface Props {
@@ -69,7 +69,7 @@ export function SaleCalculator({
           <LiveRow label="Xalis satış" value={fmtMoney(net)} bold />
           <LiveRow
             label="Qazanc"
-            value={`${profit >= 0 ? "+" : ""}${fmtMoney(profit)}`}
+            value={fmtMoneySigned(profit)}
             bold
             tone={profit < 0 ? "text-red-600" : "text-emerald-700"}
           />

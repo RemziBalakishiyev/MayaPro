@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/DataTable";
-import { fmtMoney, fmtDate } from "@/lib/format";
+import { fmtMoney, fmtMoneySigned, fmtDate } from "@/lib/format";
 import { useClosings } from "../queries";
 import type { Closing } from "@/types";
 
@@ -67,7 +67,11 @@ export function ClosingHistory() {
           return (
             <span
               className={`font-bold tabular-nums ${
-                d < 0 ? "text-red-600" : d > 0 ? "text-emerald-700" : "text-stone-700"
+                d < 0
+                  ? "text-red-600"
+                  : d > 0
+                    ? "text-emerald-700"
+                    : "text-stone-700"
               }`}
             >
               {d === 0 ? "±0.00 ₼" : `${d > 0 ? "+" : ""}${fmtMoney(d)}`}

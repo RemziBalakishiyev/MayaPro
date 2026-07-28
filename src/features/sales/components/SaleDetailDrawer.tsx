@@ -7,7 +7,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Spinner } from "@/components/ui/Spinner";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, fmtMoneySigned } from "@/lib/format";
 import { useCustomers } from "@/features/customers/queries";
 import { useEmployees } from "@/features/employees/queries";
 import { saleBatchExpense } from "../lib";
@@ -194,8 +194,7 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
                         sale.profit < 0 ? "text-red-600" : "text-emerald-700",
                       )}
                     >
-                      {sale.profit >= 0 ? "+" : ""}
-                      {fmtMoney(sale.profit)}
+                      {fmtMoneySigned(sale.profit)}
                     </span>
                   )
                 }

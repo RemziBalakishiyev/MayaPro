@@ -19,7 +19,7 @@ import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { fmtMoney, fmtDate } from "@/lib/format";
+import { fmtMoney, fmtMoneySigned, fmtDate } from "@/lib/format";
 import { useProduct } from "@/features/products/queries";
 import { useSales } from "@/features/sales/queries";
 import { useSuppliers } from "@/features/suppliers/queries";
@@ -327,8 +327,7 @@ function ProductDetailPage() {
                             s.profit < 0 ? "text-red-600" : "text-emerald-700"
                           }`}
                         >
-                          {s.profit < 0 ? "" : "+"}
-                          {fmtMoney(s.profit)}
+                          {fmtMoneySigned(s.profit)}
                         </p>
                       )}
                     </div>

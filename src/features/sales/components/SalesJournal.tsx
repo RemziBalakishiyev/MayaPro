@@ -25,7 +25,7 @@ import { useCustomers } from "@/features/customers/queries";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/download";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtMoney, fmtMoneySigned } from "@/lib/format";
 import {
   PERIOD_LABELS,
   type Period,
@@ -232,8 +232,7 @@ export function SalesJournal() {
                 p < 0 ? "text-red-600" : "text-emerald-700",
               )}
             >
-              {p >= 0 ? "+" : ""}
-              {fmtMoney(p)}
+              {fmtMoneySigned(p)}
             </span>
           );
         },
