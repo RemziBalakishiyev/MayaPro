@@ -420,6 +420,7 @@ const buildSales = (
         paymentType: pay,
         customerId: pay === "Nisyə" ? customers[(d + k) % 3].id : null,
         costPerUnit: p.realCostPerUnit,
+        purchasePricePerUnit: p.purchasePrice,
         profit: (price - p.realCostPerUnit) * q,
         expenseItems: [],
         createdAt: daysAgoISO(d),
@@ -444,6 +445,9 @@ const buildSales = (
   today.forEach(({ pi, q, pay, cus, emp }, i) => {
     const p = products[pi];
     const subtotal = p.salePrice * q;
+    // i === 2 → endirimli satış nümunəsi (Endirim sütunu yalnız > 0-da görünür)
+    const discount = i === 2 ? 5 : 0;
+    const total = Math.max(0, subtotal - discount);
     const t = new Date();
     t.setHours(9 + i, (i * 17) % 60, 0, 0);
     sales.push({
@@ -454,12 +458,15 @@ const buildSales = (
       quantity: q,
       salePrice: p.salePrice,
       subtotal,
-      discount: 0,
-      totalAmount: subtotal,
+      discount,
+      totalAmount: total,
       paymentType: pay,
       customerId: cus || null,
       costPerUnit: p.realCostPerUnit,
-      profit: (p.salePrice - p.realCostPerUnit) * q,
+      // i === 1 → snapshot xüsusiyyətindən əvvəlki "köhnə" sətir nümunəsi:
+      // Maya qiyməti və Xərc "—" göstərilməlidir, Qazanc isə dəyişmir.
+      purchasePricePerUnit: i === 1 ? null : p.purchasePrice,
+      profit: total - p.realCostPerUnit * q,
       expenseItems: [],
       createdAt: t.toISOString(),
       employeeId: emp,
@@ -482,6 +489,7 @@ const buildSales = (
     paymentType: "Nağd",
     customerId: null,
     costPerUnit: null,
+    purchasePricePerUnit: null,
     profit: null,
     isManual: true,
     expenseItems: [],
@@ -503,6 +511,8 @@ const buildSales = (
     paymentType: "Nağd",
     customerId: null,
     costPerUnit: 8,
+    // costPerUnit = purchasePricePerUnit + ΣexpenseItems/say → 5 + 6/2 = 8
+    purchasePricePerUnit: 5,
     profit: (15 - 8) * 2,
     isManual: true,
     expenseItems: [
@@ -511,6 +521,31 @@ const buildSales = (
     ],
     createdAt: manualAfternoon.toISOString(),
     employeeId: "emp_2",
+  });
+
+  // Sərbəst satış — tam nümunə: alış 100 + xərc 50 (say 2) + satış 150
+  // → Maya 100, Xərc 50, Satış 150, Qazanc +50, Yekun 300
+  const manualEvening = new Date();
+  manualEvening.setHours(16, 5, 0, 0);
+  sales.push({
+    id: uid("sal"),
+    productId: null,
+    productName: "Əl ilə: qulaqlıq",
+    category: "Aksesuar",
+    quantity: 2,
+    salePrice: 150,
+    subtotal: 300,
+    discount: 0,
+    totalAmount: 300,
+    paymentType: "Kart",
+    customerId: null,
+    costPerUnit: 125,
+    purchasePricePerUnit: 100,
+    profit: (150 - 125) * 2,
+    isManual: true,
+    expenseItems: [{ name: "Yol pulu", amount: 50 }],
+    createdAt: manualEvening.toISOString(),
+    employeeId: "emp_1",
   });
 
   return sales;

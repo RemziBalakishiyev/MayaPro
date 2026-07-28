@@ -231,6 +231,23 @@ export const saleHandlers = {
     const costPerUnit = isManual
       ? (input.costPerUnit ?? null)
       : (product?.realCostPerUnit ?? 0);
+    // Xərc sətirləri yalnız sənədləşmə — maya/qazanc yenidən hesablanmır
+    const expenseItems = isManual
+      ? mergeExpenseLines(input.expenseItems ?? [])
+      : [];
+    // Vahid alış qiyməti snapshot-u:
+    // - katalogda: malın alış qiyməti;
+    // - sərbəstdə: formada maya = alış + Σxərc/say kimi qurulur, ona görə
+    //   alış qiyməti geri açılır (maya bilinmirsə null qalır).
+    const manualExpenseTotal = expenseItems.reduce(
+      (sum, e) => sum + (Number(e.amount) || 0),
+      0,
+    );
+    const purchasePricePerUnit = isManual
+      ? costPerUnit == null
+        ? null
+        : Math.round((costPerUnit - manualExpenseTotal / qty) * 100) / 100
+      : (product?.purchasePrice ?? 0);
     const profit = costPerUnit == null ? null : net - costPerUnit * qty;
     const productName = isManual
       ? (input.productName?.trim() || "Sərbəst satış")
@@ -238,10 +255,6 @@ export const saleHandlers = {
     const category = isManual
       ? (input.category?.trim() || null)
       : (input.category?.trim() || product?.category || null);
-    // Xərc sətirləri yalnız sənədləşmə — maya/qazanc yenidən hesablanmır
-    const expenseItems = isManual
-      ? mergeExpenseLines(input.expenseItems ?? [])
-      : [];
 
     const sale: Sale = {
       id: uid("sal"),
@@ -257,6 +270,7 @@ export const saleHandlers = {
       // Müştəri bütün ödəniş növlərində göndərilə bilər; Nisyədə məcburidir
       customerId: input.customerId ?? null,
       costPerUnit,
+      purchasePricePerUnit,
       profit,
       isManual,
       expenseItems,
