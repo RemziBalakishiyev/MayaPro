@@ -634,7 +634,7 @@ const buildActivity = (): Activity[] => [
     id: uid("act"),
     employeeId: "emp_3",
     action: "Satış etdi",
-    detail: "Kəmər dəri kişi × 4 — 40.00 AZN",
+    detail: "Kəmər dəri kişi × 4 — 40.00 ₼",
     date: todayISO(),
   },
   {
@@ -655,14 +655,14 @@ const buildActivity = (): Activity[] => [
     id: uid("act"),
     employeeId: "emp_1",
     action: "Gün sonu bağladı",
-    detail: `${fmtDate(daysAgoISO(1))} — fərq: 0.00 AZN`,
+    detail: `${fmtDate(daysAgoISO(1))} — fərq: 0.00 ₼`,
     date: daysAgoISO(1),
   },
   {
     id: uid("act"),
     employeeId: "emp_3",
     action: "Endirim etdi",
-    detail: "İdman ayaqqabısı — 5 AZN endirim",
+    detail: "İdman ayaqqabısı — 5 ₼ endirim",
     date: daysAgoISO(2),
   },
   {
