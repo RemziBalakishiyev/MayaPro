@@ -5,9 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   ClipboardList,
   Coins,
+  Maximize2,
   MapPin,
+  Minimize2,
   Package,
   Plus,
   Trash2,
@@ -131,6 +134,58 @@ function Section({
   );
 }
 
+/**
+ * "Yer" kartı — partiya xərcləri accordion-u ilə eyni açılıb-bağlanma naxışı:
+ * default bağlı, doludursa başlıqda xülasə, klikləyəndə açılır/bağlanır.
+ */
+function LocationSection({
+  icon: Icon,
+  title,
+  desc,
+  summary,
+  defaultOpen,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  summary: string | null;
+  defaultOpen: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-stone-50">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-start gap-2.5 p-4 text-left"
+      >
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+          <Icon size={16} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-bold text-stone-900">
+            {title}
+            {summary && (
+              <span className="font-normal text-stone-500"> · {summary}</span>
+            )}
+          </h3>
+          <p className="text-xs text-stone-500">{desc}</p>
+        </div>
+        <ChevronDown
+          size={18}
+          className={cn(
+            "mt-1 shrink-0 text-stone-400 transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+      {open && <div className="space-y-3 px-4 pb-4">{children}</div>}
+    </section>
+  );
+}
+
 /** Qiymət/say sahəsi: label + input + kiçik izah + (opsional) əlavə sətir. */
 function PriceField({
   label,
@@ -168,6 +223,8 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const updateMut = useUpdateProduct();
   const suppliers = useSuppliers();
   const [expenseError, setExpenseError] = useState("");
+  // Böyüdülmüş rejim seçimi — sessiya daxilində saxlanılır (drawer bağlansa belə sıfırlanmır).
+  const [maximized, setMaximized] = useState(false);
 
   const {
     register,
@@ -213,6 +270,24 @@ export function ProductForm({ open, onClose, initial }: Props) {
     [v.warehouse, v.shelf && `Rəf ${v.shelf}`, v.box && `Qutu ${v.box}`]
       .filter(Boolean)
       .join(" / ");
+
+  // "Yer" accordion-unun xülasəsi — canlı doldurulan dəyərlərdən qurulur.
+  const liveLocation = buildLocation(w);
+  const supplierName = (suppliers.data ?? []).find(
+    (s) => s.id === w.supplierId,
+  )?.name;
+  const locationSummary =
+    [liveLocation || null, supplierName ? `Təchizatçı: ${supplierName}` : null]
+      .filter(Boolean)
+      .join(" · ") || null;
+  const locationDefaultOpen = !!(
+    initial &&
+    (initial.supplierId ||
+      initial.warehouse ||
+      initial.shelf ||
+      initial.box ||
+      initial.store)
+  );
 
   const onValid = async (data: ProductFormValues) => {
     if (incompleteExpenseIndexes(data.expenses).length > 0) {
@@ -290,219 +365,265 @@ export function ProductForm({ open, onClose, initial }: Props) {
     </>
   );
 
+  // Böyüt/kiçilt düyməsi — yalnız desktop-da görünür (mobildə drawer onsuz da tam enlidir).
+  const headerExtra = (
+    <button
+      type="button"
+      onClick={() => setMaximized((m) => !m)}
+      aria-label={maximized ? "Formu kiçilt" : "Formu böyüt"}
+      title={maximized ? "Kiçilt" : "Böyüt"}
+      className="hidden h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700 sm:flex"
+    >
+      {maximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+    </button>
+  );
+
   return (
     <Drawer
       open={open}
       onClose={onClose}
       wide
+      maximized={maximized}
+      headerExtra={headerExtra}
       footer={footer}
       title={initial?.id ? "Malı redaktə et" : "Yeni mal əlavə et"}
     >
-      <form id="product-form" onSubmit={handleSubmit(onValid)} className="space-y-4">
-        {/* ① Mal haqqında */}
-        <Section
-          icon={Package}
-          title="Mal haqqında"
-          desc="Malın adı, şəkli və əsas məlumatları"
+      <form id="product-form" onSubmit={handleSubmit(onValid)}>
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-4",
+            maximized && "sm:grid-cols-2",
+          )}
         >
-          <Field label="Mal adı" required error={errors.name?.message}>
-            <Input
-              {...register("name")}
-              placeholder="Məs: Kişi cins şalvar"
-              className="h-14 text-lg"
-            />
-          </Field>
-          <Field label="Şəkil">
-            <ImageUpload
-              value={w.image}
-              onChange={(url) => setValue("image", url, { shouldDirty: true })}
-              disabled={saving}
-            />
-          </Field>
-          <Field label="Kateqoriya">
-            <CategoryField
-              value={w.category}
-              onChange={(v) => setValue("category", v, { shouldDirty: true })}
-            />
-          </Field>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-stone-700">
-              Xüsusiyyətlər
-            </label>
-            {fields.length === 0 ? (
-              <p className="mb-2 text-xs text-stone-400">
-                Ölçü, rəng, marka kimi əlavə məlumatlar — istəyə bağlı
-              </p>
-            ) : (
-              <div className="mb-2 space-y-2">
-                {fields.map((f, idx) => (
-                  <div key={f.id} className="flex items-center gap-2">
-                    <Input
-                      placeholder="Ad (məs. Ölçü)"
-                      className="flex-1"
-                      {...register(`attributes.${idx}.name`)}
-                    />
-                    <Input
-                      placeholder="Dəyər (məs. M)"
-                      className="flex-1"
-                      {...register(`attributes.${idx}.value`)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => remove(idx)}
-                      className="shrink-0 rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600"
-                      aria-label="Xüsusiyyəti sil"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              icon={<Plus size={14} />}
-              disabled={fields.length >= MAX_ATTRS}
-              onClick={() => append({ name: "", value: "" })}
+          <div className="space-y-4">
+            {/* ① Mal haqqında */}
+            <Section
+              icon={Package}
+              title="Mal haqqında"
+              desc="Malın adı, şəkli və əsas məlumatları"
             >
-              Xüsusiyyət əlavə et
-            </Button>
-          </div>
+              <Field label="Mal adı" required error={errors.name?.message}>
+                <Input
+                  {...register("name")}
+                  placeholder="Məs: Kişi cins şalvar"
+                  className="h-14 text-lg"
+                />
+              </Field>
+              <Field label="Şəkil">
+                <ImageUpload
+                  value={w.image}
+                  onChange={(url) =>
+                    setValue("image", url, { shouldDirty: true })
+                  }
+                  disabled={saving}
+                />
+              </Field>
+              <Field label="Kateqoriya">
+                <CategoryField
+                  value={w.category}
+                  onChange={(v) =>
+                    setValue("category", v, { shouldDirty: true })
+                  }
+                />
+              </Field>
 
-          <Field label="Barkod">
-            <Input {...register("barcode")} placeholder="SDK1001" />
-          </Field>
-        </Section>
-
-        {/* ② Qiymət və say */}
-        <Section
-          icon={Coins}
-          title="Qiymət və say"
-          desc="Neçəyə aldın, neçəyə satırsan və neçə ədəd"
-        >
-          <div className="grid grid-cols-3 gap-3">
-            <PriceField
-              label="Alış"
-              hint="aldığın qiymət"
-              error={errors.purchasePrice?.message}
-            >
-              <Input type="number" min="0" step="0.01" {...register("purchasePrice")} />
-            </PriceField>
-            <PriceField
-              label="Satış"
-              hint="satacağın qiymət"
-              error={errors.salePrice?.message}
-              extra={
-                perUnit > 0 && !errors.salePrice ? (
-                  <p className="mt-0.5 text-xs font-semibold text-emerald-700">
-                    +{fmtMoney(perUnit)} qazanc
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-stone-700">
+                  Xüsusiyyətlər
+                </label>
+                {fields.length === 0 ? (
+                  <p className="mb-2 text-xs text-stone-400">
+                    Ölçü, rəng, marka kimi əlavə məlumatlar — istəyə bağlı
                   </p>
-                ) : null
-              }
-            >
-              <Input type="number" min="0" step="0.01" {...register("salePrice")} />
-            </PriceField>
-            <PriceField
-              label="Miqdar"
-              hint="neçə ədəd"
-              error={errors.quantity?.message}
-            >
-              <Input type="number" min="0" {...register("quantity")} />
-            </PriceField>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Valyuta">
-              <Controller
-                name="currency"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    name={field.name}
-                    value={field.value}
-                    onBlur={field.onBlur}
-                    ref={field.ref}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  >
-                    <option>AZN</option>
-                    <option>USD</option>
-                    <option>TRY</option>
-                  </Select>
+                ) : (
+                  <div className="mb-2 space-y-2">
+                    {fields.map((f, idx) => (
+                      <div key={f.id} className="flex items-center gap-2">
+                        <Input
+                          placeholder="Ad (məs. Ölçü)"
+                          className="flex-1"
+                          {...register(`attributes.${idx}.name`)}
+                        />
+                        <Input
+                          placeholder="Dəyər (məs. M)"
+                          className="flex-1"
+                          {...register(`attributes.${idx}.value`)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => remove(idx)}
+                          className="shrink-0 rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600"
+                          aria-label="Xüsusiyyəti sil"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              />
-            </Field>
-            <Field label="Minimum stok" hint="bu saydan aşağı düşəndə xəbərdarlıq">
-              <Input type="number" min="0" {...register("minStock")} />
-            </Field>
-          </div>
-        </Section>
-
-        {/* ③ Yer */}
-        <Section
-          icon={MapPin}
-          title="Yer"
-          desc="Təchizatçı və anbardakı yeri"
-        >
-          <Field label="Təchizatçı">
-            <Controller
-              name="supplierId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  name={field.name}
-                  value={field.value}
-                  onBlur={field.onBlur}
-                  ref={field.ref}
-                  onChange={(e) => field.onChange(e.target.value)}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Plus size={14} />}
+                  disabled={fields.length >= MAX_ATTRS}
+                  onClick={() => append({ name: "", value: "" })}
                 >
-                  <option value="">Seçin...</option>
-                  {(suppliers.data ?? []).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Anbar">
-              <Input {...register("warehouse")} />
-            </Field>
-            <Field label="Mağaza">
-              <Input {...register("store")} />
-            </Field>
-            <Field label="Rəf">
-              <Input {...register("shelf")} placeholder="3" />
-            </Field>
-            <Field label="Qutu nömrəsi">
-              <Input {...register("box")} placeholder="12" />
-            </Field>
+                  Xüsusiyyət əlavə et
+                </Button>
+              </div>
+
+              <Field label="Barkod">
+                <Input {...register("barcode")} placeholder="SDK1001" />
+              </Field>
+            </Section>
+
+            {/* ② Qiymət və say */}
+            <Section
+              icon={Coins}
+              title="Qiymət və say"
+              desc="Neçəyə aldın, neçəyə satırsan və neçə ədəd"
+            >
+              <div className="grid grid-cols-3 gap-3">
+                <PriceField
+                  label="Alış"
+                  hint="aldığın qiymət"
+                  error={errors.purchasePrice?.message}
+                >
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...register("purchasePrice")}
+                  />
+                </PriceField>
+                <PriceField
+                  label="Satış"
+                  hint="satacağın qiymət"
+                  error={errors.salePrice?.message}
+                  extra={
+                    perUnit > 0 && !errors.salePrice ? (
+                      <p className="mt-0.5 text-xs font-semibold text-emerald-700">
+                        +{fmtMoney(perUnit)} qazanc
+                      </p>
+                    ) : null
+                  }
+                >
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...register("salePrice")}
+                  />
+                </PriceField>
+                <PriceField
+                  label="Miqdar"
+                  hint="neçə ədəd"
+                  error={errors.quantity?.message}
+                >
+                  <Input type="number" min="0" {...register("quantity")} />
+                </PriceField>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Valyuta">
+                  <Controller
+                    name="currency"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        name={field.name}
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      >
+                        <option>AZN</option>
+                        <option>USD</option>
+                        <option>TRY</option>
+                      </Select>
+                    )}
+                  />
+                </Field>
+                <Field
+                  label="Minimum stok"
+                  hint="bu saydan aşağı düşəndə xəbərdarlıq"
+                >
+                  <Input type="number" min="0" {...register("minStock")} />
+                </Field>
+              </div>
+            </Section>
           </div>
-        </Section>
 
-        {/* ④ Əlavə */}
-        <Section
-          icon={ClipboardList}
-          title="Əlavə"
-          desc="Qeyd və partiya xərcləri — istəyə bağlı"
-        >
-          <Field label="Qeyd">
-            <Textarea {...register("note")} />
-          </Field>
+          <div className="space-y-4">
+            {/* ③ Yer */}
+            <LocationSection
+              key={initial?.id ?? "new"}
+              icon={MapPin}
+              title="Yer"
+              desc="Təchizatçı və anbardakı yeri"
+              summary={locationSummary}
+              defaultOpen={locationDefaultOpen}
+            >
+              <Field label="Təchizatçı">
+                <Controller
+                  name="supplierId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      name={field.name}
+                      value={field.value}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    >
+                      <option value="">Seçin...</option>
+                      {(suppliers.data ?? []).map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Anbar">
+                  <Input {...register("warehouse")} />
+                </Field>
+                <Field label="Mağaza">
+                  <Input {...register("store")} />
+                </Field>
+                <Field label="Rəf">
+                  <Input {...register("shelf")} placeholder="3" />
+                </Field>
+                <Field label="Qutu nömrəsi">
+                  <Input {...register("box")} placeholder="12" />
+                </Field>
+              </div>
+            </LocationSection>
 
-          <ExpenseRows
-            key={initial?.id ?? "new"}
-            value={w.expenses ?? []}
-            error={expenseError}
-            onChange={(rows) => {
-              setExpenseError("");
-              setValue("expenses", rows, { shouldDirty: true });
-            }}
-          />
-        </Section>
+            {/* ④ Əlavə */}
+            <Section
+              icon={ClipboardList}
+              title="Əlavə"
+              desc="Qeyd və partiya xərcləri — istəyə bağlı"
+            >
+              <Field label="Qeyd">
+                <Textarea {...register("note")} />
+              </Field>
+
+              <ExpenseRows
+                key={initial?.id ?? "new"}
+                value={w.expenses ?? []}
+                error={expenseError}
+                onChange={(rows) => {
+                  setExpenseError("");
+                  setValue("expenses", rows, { shouldDirty: true });
+                }}
+              />
+            </Section>
+          </div>
+        </div>
       </form>
     </Drawer>
   );
