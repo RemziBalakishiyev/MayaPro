@@ -135,6 +135,56 @@ async function requestBlob(
   };
 }
 
+/**
+ * Multipart form-data yükləmə (məs. Excel import faylı).
+ * Content-Type header-i qəsdən qoyulmur — brauzer boundary ilə özü əlavə edir.
+ */
+async function requestForm<T>(path: string, form: FormData): Promise<T> {
+  const token = useAuthStore.getState().token;
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+
+  if (res.status === 401) {
+    useAuthStore.getState().logout();
+    if (unauthorizedHandler) unauthorizedHandler();
+    else if (typeof window !== "undefined") window.location.assign("/login");
+    throw new ApiError(
+      "Sessiya bitib. Yenidən daxil olun.",
+      "Auth.Unauthorized",
+      401,
+    );
+  }
+
+  if (res.status === 204) return null as T;
+
+  const text = await res.text();
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
+
+  if (!res.ok) {
+    const err = (data ?? {}) as { code?: string; message?: string };
+    throw new ApiError(
+      err.message ?? "Serverlə əlaqədə xəta baş verdi.",
+      err.code ?? "General.Error",
+      res.status,
+    );
+  }
+
+  return data as T;
+}
+
 export const apiClient = {
   get: <T>(path: string): Promise<T> => request<T>("GET", path),
   post: <T>(path: string, body?: unknown): Promise<T> =>
@@ -146,4 +196,7 @@ export const apiClient = {
     path: string,
   ): Promise<{ blob: Blob; contentDisposition: string | null }> =>
     requestBlob(path),
+  /** FormData göndərir (məs. Excel fayl yükləmə) — JSON body deyil. */
+  postForm: <T>(path: string, form: FormData): Promise<T> =>
+    requestForm<T>(path, form),
 };
