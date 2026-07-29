@@ -39,6 +39,7 @@ export function Drawer({
 
   if (!open) return null;
 
+  // `maximized` → `wide`-dan üstündür (tam ekran eni).
   const panelWidth = maximized
     ? "sm:max-w-full"
     : wide
@@ -53,6 +54,7 @@ export function Drawer({
       <div className="flex shrink-0 items-center gap-1">
         {headerExtra}
         <button
+          type="button"
           onClick={onClose}
           aria-label="Bağla"
           className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
@@ -70,7 +72,7 @@ export function Drawer({
         <div className="absolute inset-0 bg-stone-900/60" onClick={onClose} />
         <div
           className={cn(
-            "absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-2xl",
+            "absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-2xl transition-[max-width] duration-200 ease-out",
             panelWidth,
           )}
         >
@@ -88,7 +90,7 @@ export function Drawer({
       <div className="absolute inset-0 bg-stone-900/60" onClick={onClose} />
       <div
         className={cn(
-          "absolute right-0 top-0 h-full w-full overflow-y-auto bg-white shadow-2xl",
+          "absolute right-0 top-0 h-full w-full overflow-y-auto bg-white shadow-2xl transition-[max-width] duration-200 ease-out",
           panelWidth,
         )}
       >
@@ -99,6 +101,7 @@ export function Drawer({
           <div className="flex shrink-0 items-center gap-1">
             {headerExtra}
             <button
+              type="button"
               onClick={onClose}
               aria-label="Bağla"
               className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"

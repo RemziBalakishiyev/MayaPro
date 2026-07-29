@@ -2,14 +2,12 @@ import { useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ChevronDown,
   Eye,
   FileText,
   Loader2,
   Pencil,
   Receipt,
   Search,
-  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
@@ -17,6 +15,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { DataTable } from "@/components/ui/DataTable";
+import { EmptyValue } from "@/components/ui/EmptyValue";
+import { FilterPanel } from "@/components/ui/FilterPanel";
 import { inputCls } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-store";
@@ -52,14 +52,6 @@ const saleTime = (iso: string): string => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return fmtDate(iso, "dd.MM");
   return fmtDate(iso, "HH:mm");
 };
-
-/** Hesablana bilməyən (naməlum) pul dəyəri üçün vahid boş göstərici. */
-const EmptyValue = () => (
-  <span className="text-stone-300">
-    <span aria-hidden="true">—</span>
-    <span className="sr-only">məlum deyil</span>
-  </span>
-);
 
 /** Cədvəldəki ikinci dərəcəli pul sütunları üçün eyni tipoqrafiya. */
 const moneyCls = "tabular-nums text-sm text-stone-700";
@@ -107,9 +99,6 @@ export function SalesJournal() {
     maxQty != null,
   ].filter(Boolean).length;
 
-  const [filtersOpen, setFiltersOpen] = useState(
-    () => activeFilterCount > 0,
-  );
   const [exportingPdf, setExportingPdf] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -404,6 +393,7 @@ export function SalesJournal() {
                   }),
                 })
               }
+              aria-label="Satış axtar"
               placeholder="Axtar..."
               className={cn(inputCls, "h-9 pl-8 text-sm")}
             />
@@ -411,196 +401,166 @@ export function SalesJournal() {
         </div>
 
         <div className="flex flex-wrap items-stretch gap-2">
-          <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-stone-200 bg-stone-50/60">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((o) => !o)}
-              className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
-            >
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-stone-700">
-                <SlidersHorizontal size={16} className="text-stone-500" />
-                Filterlər
-                {activeFilterCount > 0 && (
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </span>
-              <ChevronDown
-                size={18}
-                className={cn(
-                  "shrink-0 text-stone-400 transition-transform",
-                  filtersOpen && "rotate-180",
-                )}
-              />
-            </button>
-
-          {filtersOpen && (
-            <div className="space-y-3 border-t border-stone-200 px-3 py-3">
-              <div>
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
-                  Dövr
-                </p>
-                <div
-                  role="tablist"
-                  aria-label="Dövr"
-                  className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
-                >
-                  {PERIODS.map((p) => {
-                    const active = period === p;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() =>
-                          navigate({
-                            search: (prev) => ({ ...prev, period: p }),
-                          })
-                        }
-                        className={cn(
-                          "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                          active
-                            ? "bg-emerald-700 text-white shadow-sm"
-                            : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
-                        )}
-                      >
-                        {PERIOD_LABELS[p]}
-                      </button>
-                    );
-                  })}
-                </div>
+          <FilterPanel
+            className="min-w-0 flex-1"
+            activeCount={activeFilterCount}
+            onClear={clearFilters}
+          >
+            <div>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
+                Dövr
+              </p>
+              <div
+                role="tablist"
+                aria-label="Dövr"
+                className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
+              >
+                {PERIODS.map((p) => {
+                  const active = period === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() =>
+                        navigate({
+                          search: (prev) => ({ ...prev, period: p }),
+                        })
+                      }
+                      className={cn(
+                        "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-emerald-700 text-white shadow-sm"
+                          : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+                      )}
+                    >
+                      {PERIOD_LABELS[p]}
+                    </button>
+                  );
+                })}
               </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Ödəniş
-                  </label>
-                  <Select
-                    value={pay ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.value as PaymentType | "";
-                      navigate({
-                        search: (prev) => ({
-                          ...prev,
-                          pay: v || undefined,
-                        }),
-                      });
-                    }}
-                    className="h-9 w-full text-sm"
-                  >
-                    <option value="">Hamısı</option>
-                    <option value="Nağd">Nağd</option>
-                    <option value="Kart">Kart</option>
-                    <option value="Nisyə">Nisyə</option>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Min qazanc
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={minProfit ?? ""}
-                    onChange={(e) =>
-                      navigate({
-                        search: (prev) => ({
-                          ...prev,
-                          minProfit: parseNum(e.target.value),
-                        }),
-                      })
-                    }
-                    placeholder="0"
-                    className={cn(inputCls, "h-9 px-3 text-sm")}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Max qazanc
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={maxProfit ?? ""}
-                    onChange={(e) =>
-                      navigate({
-                        search: (prev) => ({
-                          ...prev,
-                          maxProfit: parseNum(e.target.value),
-                        }),
-                      })
-                    }
-                    placeholder="∞"
-                    className={cn(inputCls, "h-9 px-3 text-sm")}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Min say
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    step={1}
-                    value={minQty ?? ""}
-                    onChange={(e) =>
-                      navigate({
-                        search: (prev) => ({
-                          ...prev,
-                          minQty: parseNum(e.target.value),
-                        }),
-                      })
-                    }
-                    placeholder="1"
-                    className={cn(inputCls, "h-9 px-3 text-sm")}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Max say
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    step={1}
-                    value={maxQty ?? ""}
-                    onChange={(e) =>
-                      navigate({
-                        search: (prev) => ({
-                          ...prev,
-                          maxQty: parseNum(e.target.value),
-                        }),
-                      })
-                    }
-                    placeholder="∞"
-                    className={cn(inputCls, "h-9 px-3 text-sm")}
-                  />
-                </div>
-              </div>
-
-              {activeFilterCount > 0 && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="text-sm font-semibold text-stone-500 hover:text-emerald-700"
-                  >
-                    Filterləri sıfırla
-                  </button>
-                </div>
-              )}
             </div>
-          )}
-          </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="col-span-2 sm:col-span-1">
+                <label className="mb-1 block text-xs font-semibold text-stone-500">
+                  Ödəniş
+                </label>
+                <Select
+                  aria-label="Ödəniş"
+                  value={pay ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value as PaymentType | "";
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        pay: v || undefined,
+                      }),
+                    });
+                  }}
+                  className="h-9 w-full text-sm"
+                >
+                  <option value="">Hamısı</option>
+                  <option value="Nağd">Nağd</option>
+                  <option value="Kart">Kart</option>
+                  <option value="Nisyə">Nisyə</option>
+                </Select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">
+                  Min qazanc
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  aria-label="Min qazanc"
+                  value={minProfit ?? ""}
+                  onChange={(e) =>
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        minProfit: parseNum(e.target.value),
+                      }),
+                    })
+                  }
+                  placeholder="0"
+                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">
+                  Max qazanc
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  aria-label="Max qazanc"
+                  value={maxProfit ?? ""}
+                  onChange={(e) =>
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        maxProfit: parseNum(e.target.value),
+                      }),
+                    })
+                  }
+                  placeholder="∞"
+                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">
+                  Min say
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  aria-label="Min say"
+                  value={minQty ?? ""}
+                  onChange={(e) =>
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        minQty: parseNum(e.target.value),
+                      }),
+                    })
+                  }
+                  placeholder="1"
+                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">
+                  Max say
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  aria-label="Max say"
+                  value={maxQty ?? ""}
+                  onChange={(e) =>
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        maxQty: parseNum(e.target.value),
+                      }),
+                    })
+                  }
+                  placeholder="∞"
+                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                />
+              </div>
+            </div>
+          </FilterPanel>
 
           <Button
             variant="secondary"

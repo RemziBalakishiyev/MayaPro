@@ -4,18 +4,23 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Package, Plus, Minus, Pencil, Eye, Trash2 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { DataTable } from "@/components/ui/DataTable";
+import { EmptyValue } from "@/components/ui/EmptyValue";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
-import { profitPercent, firstAttrValue } from "../lib";
+import { profitPercent, firstAttrValue, hasNoBatchExpense } from "../lib";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import type { Product } from "@/types";
 
 export type StockMode = "add" | "sub";
 
-/** Alış qiyməti real mayaya (epsilon dəqiqliklə) bərabərdirsə — xərc yoxdur. */
-const EPS = 0.005;
-const hasNoExpense = (p: Product): boolean =>
-  Math.abs(p.purchasePrice - p.realCostPerUnit) < EPS;
+const NO_EXPENSE_HINT = "Xərc yoxdur — maya alış qiymətinə bərabərdir";
+
+/**
+ * Mal xanasının tooltip-i: kəsilmiş ad + anbar yeri
+ * (yer sütunu cədvəldən çıxarıldığı üçün burada göstərilir).
+ */
+const productTooltip = (p: Product): string =>
+  [p.name, p.location].filter(Boolean).join("\n");
 
 interface Props {
   products: Product[];
@@ -113,7 +118,7 @@ export function ProductsTable({
               to="/mallar/$id"
               params={{ id: p.id }}
               className="flex items-center gap-2.5 hover:opacity-80"
-              title={p.location || undefined}
+              title={productTooltip(p)}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-400">
                 {p.image ? (
@@ -147,18 +152,10 @@ export function ProductsTable({
         accessorKey: "purchasePrice",
         header: "Alış",
         cell: ({ row, getValue }) => {
-          const p = row.original;
-          if (hasNoExpense(p)) {
+          // Xərc yoxdursa alış = real maya → dəyəri iki sütunda təkrarlamırıq.
+          if (hasNoBatchExpense(row.original)) {
             return (
-              <span
-                className="text-stone-300"
-                title="Xərc yoxdur — maya alış qiymətinə bərabərdir"
-              >
-                <span aria-hidden="true">—</span>
-                <span className="sr-only">
-                  Xərc yoxdur — maya alış qiymətinə bərabərdir
-                </span>
-              </span>
+              <EmptyValue label={NO_EXPENSE_HINT} title={NO_EXPENSE_HINT} />
             );
           }
           return (
@@ -280,7 +277,7 @@ export function ProductsTable({
                 to="/mallar/$id"
                 params={{ id: p.id }}
                 className="min-w-0"
-                title={p.location || undefined}
+                title={productTooltip(p)}
               >
                 <p className="truncate text-lg font-bold text-stone-900">
                   {p.name}

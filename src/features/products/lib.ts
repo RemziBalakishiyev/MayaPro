@@ -43,6 +43,16 @@ export const calcRealCost = (
 export const profitPerUnit = (salePrice: number, realCost: number): number =>
   Number(salePrice) - Number(realCost);
 
+/** Pul müqayisəsi üçün yuvarlaqlaşdırma dözümü (0.5 qəpik). */
+const MONEY_EPS = 0.005;
+
+/**
+ * Partiya xərci yoxdur → real maya alış qiymətinə bərabərdir.
+ * Belə hallarda cədvəldə "Alış" dəyəri təkrarlanmır.
+ */
+export const hasNoBatchExpense = (p: Product): boolean =>
+  Math.abs(Number(p.purchasePrice) - Number(p.realCostPerUnit)) < MONEY_EPS;
+
 /** Mənfəət faizi (real mayaya nisbətən). */
 export const profitPercent = (salePrice: number, realCost: number): number =>
   realCost > 0 ? ((Number(salePrice) - realCost) / realCost) * 100 : 0;

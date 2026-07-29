@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -99,9 +99,45 @@ const toFormValues = (p: Product | null): ProductFormValues => {
   };
 };
 
+/** Anbar yerinin oxunaqlı forması: "Anbar A / Rəf 3 / Qutu 12". */
+const buildLocation = (v: ProductFormValues): string =>
+  [v.warehouse, v.shelf && `Rəf ${v.shelf}`, v.box && `Qutu ${v.box}`]
+    .filter(Boolean)
+    .join(" / ");
+
+/** Bölmə başlığı: ikon + ad (+ opsional xülasə) + bir cümlə izah. */
+function SectionHeading({
+  icon: Icon,
+  title,
+  desc,
+  summary,
+}: {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  summary?: string | null;
+}) {
+  return (
+    <>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+        <Icon size={16} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-sm font-bold text-stone-900">
+          {title}
+          {summary && (
+            <span className="font-normal text-stone-500"> · {summary}</span>
+          )}
+        </h3>
+        <p className="text-xs text-stone-500">{desc}</p>
+      </div>
+    </>
+  );
+}
+
 /** Bölmə kartı: yumşaq fon + başlıq + ikon + bir cümlə izah. */
 function Section({
-  icon: Icon,
+  icon,
   title,
   desc,
   tone = "muted",
@@ -121,13 +157,7 @@ function Section({
       )}
     >
       <div className="mb-3 flex items-start gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-          <Icon size={16} />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-stone-900">{title}</h3>
-          <p className="text-xs text-stone-500">{desc}</p>
-        </div>
+        <SectionHeading icon={icon} title={title} desc={desc} />
       </div>
       <div className="space-y-3">{children}</div>
     </section>
@@ -135,11 +165,12 @@ function Section({
 }
 
 /**
- * "Yer" kartı — partiya xərcləri accordion-u ilə eyni açılıb-bağlanma naxışı:
+ * Açılıb-bağlanan bölmə kartı — partiya xərcləri accordion-u ilə eyni naxış:
  * default bağlı, doludursa başlıqda xülasə, klikləyəndə açılır/bağlanır.
+ * Məzmun DOM-da qalır (`hidden`) — belədə RHF sahələri unmount olmur.
  */
-function LocationSection({
-  icon: Icon,
+function CollapsibleSection({
+  icon,
   title,
   desc,
   summary,
@@ -153,26 +184,23 @@ function LocationSection({
   defaultOpen: boolean;
   children: ReactNode;
 }) {
+  const bodyId = useId();
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section className="rounded-2xl border border-stone-200 bg-stone-50">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-start gap-2.5 p-4 text-left"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        className="flex w-full items-start gap-2.5 rounded-2xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-          <Icon size={16} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-bold text-stone-900">
-            {title}
-            {summary && (
-              <span className="font-normal text-stone-500"> · {summary}</span>
-            )}
-          </h3>
-          <p className="text-xs text-stone-500">{desc}</p>
-        </div>
+        <SectionHeading
+          icon={icon}
+          title={title}
+          desc={desc}
+          summary={summary}
+        />
         <ChevronDown
           size={18}
           className={cn(
@@ -181,7 +209,9 @@ function LocationSection({
           )}
         />
       </button>
-      {open && <div className="space-y-3 px-4 pb-4">{children}</div>}
+      <div id={bodyId} hidden={!open} className="space-y-3 px-4 pb-4">
+        {children}
+      </div>
     </section>
   );
 }
@@ -266,20 +296,19 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const percent = profitPercent(sp, realCost);
   const loss = sp > 0 && realCost > 0 && sp < realCost;
 
-  const buildLocation = (v: ProductFormValues) =>
-    [v.warehouse, v.shelf && `Rəf ${v.shelf}`, v.box && `Qutu ${v.box}`]
-      .filter(Boolean)
-      .join(" / ");
-
   // "Yer" accordion-unun xülasəsi — canlı doldurulan dəyərlərdən qurulur.
-  const liveLocation = buildLocation(w);
   const supplierName = (suppliers.data ?? []).find(
     (s) => s.id === w.supplierId,
   )?.name;
   const locationSummary =
-    [liveLocation || null, supplierName ? `Təchizatçı: ${supplierName}` : null]
+    [
+      buildLocation(w) || null,
+      w.store?.trim() ? `Mağaza: ${w.store.trim()}` : null,
+      supplierName ? `Təchizatçı: ${supplierName}` : null,
+    ]
       .filter(Boolean)
       .join(" · ") || null;
+  // Redaktədə sahələr doludursa accordion açıq başlayır.
   const locationDefaultOpen = !!(
     initial &&
     (initial.supplierId ||
@@ -371,8 +400,12 @@ export function ProductForm({ open, onClose, initial }: Props) {
       type="button"
       onClick={() => setMaximized((m) => !m)}
       aria-label={maximized ? "Formu kiçilt" : "Formu böyüt"}
+      aria-pressed={maximized}
       title={maximized ? "Kiçilt" : "Böyüt"}
-      className="hidden h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700 sm:flex"
+      className={cn(
+        "hidden h-10 w-10 items-center justify-center rounded-xl transition-colors hover:bg-stone-100 hover:text-stone-700 sm:flex",
+        maximized ? "bg-stone-100 text-stone-600" : "text-stone-400",
+      )}
     >
       {maximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
     </button>
@@ -391,8 +424,9 @@ export function ProductForm({ open, onClose, initial }: Props) {
       <form id="product-form" onSubmit={handleSubmit(onValid)}>
         <div
           className={cn(
-            "grid grid-cols-1 gap-4",
-            maximized && "sm:grid-cols-2",
+            "grid grid-cols-1 items-start gap-4",
+            // 2 sütun yalnız real yer olduqda (lg+) — kiçik ekranda sahələr sıxılmasın.
+            maximized && "lg:grid-cols-2",
           )}
         >
           <div className="space-y-4">
@@ -556,7 +590,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
 
           <div className="space-y-4">
             {/* ③ Yer */}
-            <LocationSection
+            <CollapsibleSection
               key={initial?.id ?? "new"}
               icon={MapPin}
               title="Yer"
@@ -600,7 +634,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
                   <Input {...register("box")} placeholder="12" />
                 </Field>
               </div>
-            </LocationSection>
+            </CollapsibleSection>
 
             {/* ④ Əlavə */}
             <Section
