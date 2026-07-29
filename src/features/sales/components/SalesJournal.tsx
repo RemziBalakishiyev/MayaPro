@@ -672,8 +672,7 @@ export function SalesJournal() {
                         s.profit < 0 ? "text-red-600" : "text-emerald-700",
                       )}
                     >
-                      {s.profit >= 0 ? "+" : ""}
-                      {fmtMoney(s.profit)}
+                      {fmtMoneySigned(s.profit)}
                     </span>
                   )}
                 </span>

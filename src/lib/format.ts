@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 
-/** Pul formatı: 1250 → "1,250.00 ₼" */
-export const fmtMoney = (value: number | string | null | undefined): string => {
+/** Pul dəyərini təhlükəsiz ədədə çevirir: null / undefined / NaN → 0 */
+const toAmount = (value: number | string | null | undefined): number => {
   const n = typeof value === "string" ? Number(value) : (value ?? 0);
   return Number.isFinite(n) ? n : 0;
 };

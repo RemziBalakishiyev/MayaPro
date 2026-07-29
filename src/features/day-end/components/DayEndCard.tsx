@@ -117,12 +117,12 @@ export function DayEndCard() {
         <Row label="Başlanğıc kassa" value={fmtMoney(todayClosing.openingCash)} />
         <Row
           label="Nağd satış"
-          value={`+ ${fmtMoney(todayClosing.cashSales)}`}
+          value={`+\u00A0${fmtMoney(todayClosing.cashSales)}`}
           tone="text-emerald-700"
         />
         <Row
           label="Günlük xərclər"
-          value={`− ${fmtMoney(todayClosing.expenses)}`}
+          value={`−\u00A0${fmtMoney(todayClosing.expenses)}`}
           tone="text-red-600"
         />
         <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
@@ -151,7 +151,7 @@ export function DayEndCard() {
         />
         <Row
           label="Nağd satış"
-          value={`+ ${fmtMoney(cashSales)}`}
+          value={`+\u00A0${fmtMoney(cashSales)}`}
           tone="text-emerald-700"
         />
         <Row
@@ -166,7 +166,7 @@ export function DayEndCard() {
         />
         <Row
           label="Günlük xərclər"
-          value={`− ${fmtMoney(todayExpenses)}`}
+          value={`−\u00A0${fmtMoney(todayExpenses)}`}
           tone="text-red-600"
         />
         <Row
@@ -220,7 +220,7 @@ export function DayEndCard() {
               ? `Kassada çatışmayan məbləğ: ${fmtMoney(Math.abs(diff))}`
               : diff > 0
                 ? `Kassada artıq məbləğ: ${fmtMoney(diff)}`
-                : "Kassa düz gəlir. Fərq: 0.00 ₼"}
+                : `Kassa düz gəlir. Fərq: ${fmtMoney(0)}`}
           </div>
         )}
 
