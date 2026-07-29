@@ -10,10 +10,13 @@ import {
   Tags,
   CheckCircle2,
   Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/ui/StatCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/toast-store";
 import { ApiError } from "@/lib/api-client";
 import { downloadFile } from "@/lib/download";
@@ -23,29 +26,29 @@ import {
   useImportCommit,
   useInvalidateAfterImport,
 } from "../queries";
-import type { ImportPreviewResponse, ImportRowStatus } from "../types";
+import type {
+  ImportCommitResponse,
+  ImportPreviewResponse,
+  ImportRowStatus,
+} from "../types";
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+/** Backend limiti ilə eyni: 5 MB. */
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-/** Sətir statusuna görə rəng — create=yaşıl, update=mavi, error=qırmızı. */
-const ROW_STATUS: Record<ImportRowStatus, { label: string; className: string }> = {
-  create: {
-    label: "Yeni",
-    className: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
-  },
-  update: {
-    label: "Yenilənəcək",
-    className: "bg-sky-50 text-sky-700 ring-sky-200/70",
-  },
-  error: {
-    label: "Xəta",
-    className: "bg-red-50 text-red-700 ring-red-200/70",
-  },
+/** .xlsx faylının MIME tipi — fayl seçim dialoqunda filtr üçün. */
+const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+/** Sətir statusu → Az etiket + Badge rəng açarı (yaşıl / mavi / qırmızı). */
+const ROW_STATUS: Record<ImportRowStatus, { label: string; tone: string }> = {
+  create: { label: "Yeni", tone: "İdxal: Yeni" },
+  update: { label: "Yenilənəcək", tone: "İdxal: Yenilənəcək" },
+  error: { label: "Xəta", tone: "İdxal: Xəta" },
 };
 
 /** Önizləmə sətrindəki geniş `data` obyektindən göstərmək üçün mal adını çıxarır. */
@@ -63,60 +66,70 @@ const rowDisplayName = (data: Record<string, unknown>): string => {
 export function ExcelImportModal({ open, onClose }: Props) {
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** Modal bağlandıqdan sonra gələn cavab state-i yenidən yazmasın. */
+  const closedRef = useRef(false);
+  /** Yalnız ən son fayl seçiminin cavabı qəbul edilsin (köhnə cavab atılır). */
+  const requestIdRef = useRef(0);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
-  const [commitResult, setCommitResult] = useState<{
-    created: number;
-    updated: number;
-  } | null>(null);
+  const [commitResult, setCommitResult] = useState<ImportCommitResponse | null>(
+    null,
+  );
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
   const previewMut = useImportPreview();
   const commitMut = useImportCommit();
   const invalidateAfterImport = useInvalidateAfterImport();
 
-  // Modal hər açılışda təmiz vəziyyətdən başlasın.
-  useEffect(() => {
-    if (!open) return;
+  /** Addım 1-ə tam sıfırlama: fayl, önizləmə və gözləyən cavablar ləğv olunur. */
+  const resetToStep1 = () => {
+    requestIdRef.current += 1;
     setStep(1);
     setFileError(null);
     setDragActive(false);
-    setPreview(null);
-    setCommitResult(null);
-    previewMut.reset();
-    commitMut.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const resetToStep1 = () => {
-    setStep(1);
-    setFileError(null);
     setPreview(null);
     previewMut.reset();
     commitMut.reset();
   };
 
+  // Modal hər açılışda təmiz vəziyyətdən başlasın.
+  useEffect(() => {
+    if (!open) return;
+    closedRef.current = false;
+    resetToStep1();
+    setCommitResult(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const handleClose = () => {
-    // AC-11: nəticə uğurla göstərilib bağlanandan sonra keş təzələnir.
-    if (step === 3 && commitResult) {
-      invalidateAfterImport();
-    }
+    closedRef.current = true;
+    // AC-11: yalnız uğurlu idxaldan (Addım 3) sonra keş təzələnir —
+    // uğursuz commit-dən sonra bağlananda lazımsız invalidasiya olmur.
+    if (step === 3 && commitResult) invalidateAfterImport();
     resetToStep1();
     setCommitResult(null);
     onClose();
   };
 
   const runPreview = async (file: File) => {
+    const reqId = ++requestIdRef.current;
+    /** Cavab köhnədirsə (modal bağlanıb / yeni fayl seçilib) state-ə yazılmır. */
+    const stale = () => closedRef.current || reqId !== requestIdRef.current;
     try {
       const res = await previewMut.mutateAsync(file);
+      if (stale()) return;
       setPreview(res);
       setStep(2);
     } catch (e) {
+      if (stale()) return;
+      // 400 (boş fayl / 1000+ sətir / yanlış başlıqlar) və 410 mesajları
+      // backend-dən gəlir — həm inline, həm toast kimi göstərilir.
       const message =
         e instanceof Error ? e.message : "Fayl oxunmadı, yenidən cəhd edin";
+      setFileError(message);
       toast.error(message);
     }
   };
@@ -124,14 +137,18 @@ export function ExcelImportModal({ open, onClose }: Props) {
   const handleFileSelected = (file: File | null) => {
     setFileError(null);
     if (!file) return;
+    // AC-5: uzantı yoxlanışı hərf registrindən asılı deyil (.XLSX də keçir).
     if (!file.name.toLowerCase().endsWith(".xlsx")) {
       setFileError("Yalnız .xlsx faylları qəbul olunur");
       return;
     }
+    // AC-4: limitdən böyük fayl üçün şəbəkə sorğusu getmir.
     if (file.size > MAX_FILE_SIZE) {
-      setFileError("Fayl 5MB-dan böyük ola bilməz");
+      setFileError("Fayl 5 MB-dan böyük ola bilməz");
       return;
     }
+    // Qeyd: boş fayl / 1000+ sətir / yanlış başlıq yoxlanışları backend-dədir,
+    // mesajlar 400 cavabından gəldiyi kimi göstərilir.
     void runPreview(file);
   };
 
@@ -141,7 +158,7 @@ export function ExcelImportModal({ open, onClose }: Props) {
     handleFileSelected(file);
   };
 
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+  const onDrop = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setDragActive(false);
     if (previewMut.isPending) return;
@@ -166,31 +183,56 @@ export function ExcelImportModal({ open, onClose }: Props) {
     if (!preview) return;
     try {
       const res = await commitMut.mutateAsync(preview.importToken);
+      if (closedRef.current) {
+        // İstifadəçi gözləmə anında modalı bağladı: nəticə ekranı göstərilmir,
+        // amma məlumat dəyişdiyi üçün keş yenə də təzələnməlidir.
+        invalidateAfterImport();
+        return;
+      }
       setCommitResult(res);
       setStep(3);
     } catch (e) {
+      if (closedRef.current) return;
+      // AC-12: token vaxtı keçib → avtomatik Addım 1, state sıfırlanır.
       if (e instanceof ApiError && e.status === 410) {
         toast.error(e.message);
         resetToStep1();
+        setFileError(e.message);
         return;
       }
       toast.error(e instanceof Error ? e.message : "İdxal tamamlanmadı");
     }
   };
 
-  const title =
-    step === 1
-      ? "Excel ilə mal idxalı — Addım 1/3"
-      : step === 2
-        ? "Excel ilə mal idxalı — Addım 2/3"
-        : "Excel ilə mal idxalı — Addım 3/3";
+  /** AC-9: yalnız yaradılacaq/yenilənəcək sətirlər idxal olunur. */
+  const importableCount = preview
+    ? preview.summary.creates + preview.summary.updates
+    : 0;
 
   return (
-    <Modal open={open} onClose={handleClose} title={title} wide>
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title={`Excel ilə mal idxalı — Addım ${step}/3`}
+      wide
+    >
       {step === 1 && (
         <div>
-          <div
-            onClick={() => !previewMut.isPending && fileInputRef.current?.click()}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={`.xlsx,${XLSX_MIME}`}
+            className="hidden"
+            onChange={onInputChange}
+          />
+
+          {/* Klaviatura ilə əlçatan olsun deyə div yox, real <button>. */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={previewMut.isPending}
+            aria-busy={previewMut.isPending}
+            aria-describedby="import-file-hint"
             onDragOver={(e) => {
               e.preventDefault();
               if (!previewMut.isPending) setDragActive(true);
@@ -198,39 +240,40 @@ export function ExcelImportModal({ open, onClose }: Props) {
             onDragLeave={() => setDragActive(false)}
             onDrop={onDrop}
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors",
+              "flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors",
+              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20",
+              "disabled:cursor-not-allowed disabled:opacity-60",
               dragActive
                 ? "border-emerald-400 bg-emerald-50/40"
                 : "border-stone-300 bg-stone-50 hover:border-emerald-400 hover:bg-emerald-50/40",
-              previewMut.isPending && "pointer-events-none opacity-60",
             )}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx"
-              className="hidden"
-              onChange={onInputChange}
-            />
             {previewMut.isPending ? (
               <>
-                <Loader2 size={28} className="animate-spin text-emerald-600" />
-                <p className="text-sm font-semibold text-stone-600">
+                <Loader2
+                  size={28}
+                  aria-hidden
+                  className="animate-spin text-emerald-600"
+                />
+                <span
+                  role="status"
+                  className="text-sm font-semibold text-stone-600"
+                >
                   Fayl yoxlanılır...
-                </p>
+                </span>
               </>
             ) : (
               <>
-                <UploadCloud size={28} className="text-stone-400" />
-                <p className="text-sm font-semibold text-stone-700">
+                <UploadCloud size={28} aria-hidden className="text-stone-400" />
+                <span className="text-sm font-semibold text-stone-700">
                   Faylı bura sürüşdürün və ya seçmək üçün klikləyin
-                </p>
-                <p className="text-xs text-stone-400">
-                  Yalnız .xlsx formatı, maksimum 5MB
-                </p>
+                </span>
               </>
             )}
-          </div>
+            <span id="import-file-hint" className="text-xs text-stone-400">
+              Yalnız .xlsx formatı, maksimum 5 MB
+            </span>
+          </button>
 
           {fileError && (
             <p role="alert" className="mt-2 text-sm font-medium text-red-600">
@@ -242,12 +285,12 @@ export function ExcelImportModal({ open, onClose }: Props) {
             type="button"
             onClick={() => void downloadTemplate()}
             disabled={downloadingTemplate || previewMut.isPending}
-            className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-4 inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-1 text-sm font-semibold text-emerald-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {downloadingTemplate ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={14} aria-hidden className="animate-spin" />
             ) : (
-              <Download size={14} />
+              <Download size={14} aria-hidden />
             )}
             Şablonu endir
           </button>
@@ -266,7 +309,7 @@ export function ExcelImportModal({ open, onClose }: Props) {
             <StatCard
               label="Yenilənəcək"
               value={preview.summary.updates}
-              tone="indigo"
+              tone="sky"
               icon={RefreshCcw}
             />
             <StatCard
@@ -288,60 +331,83 @@ export function ExcelImportModal({ open, onClose }: Props) {
             />
           </div>
 
-          <div className="mt-4 max-h-72 overflow-y-auto rounded-2xl border border-stone-200">
-            <table className="min-w-full divide-y divide-stone-200 text-sm">
-              <thead className="sticky top-0 bg-stone-50">
-                <tr>
-                  <th className="px-3 py-2 text-left font-bold text-stone-500">
-                    Sətir
-                  </th>
-                  <th className="px-3 py-2 text-left font-bold text-stone-500">
-                    Status
-                  </th>
-                  <th className="px-3 py-2 text-left font-bold text-stone-500">
-                    Mal
-                  </th>
-                  <th className="px-3 py-2 text-left font-bold text-stone-500">
-                    Qeyd
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {preview.rows.map((row) => (
-                  <tr
-                    key={row.rowNumber}
-                    className={row.status === "error" ? "bg-red-50/30" : undefined}
-                  >
-                    <td className="px-3 py-2 tabular-nums text-stone-500">
-                      {row.rowNumber}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={cn(
-                          "inline-flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                          ROW_STATUS[row.status].className,
-                        )}
-                      >
-                        {ROW_STATUS[row.status].label}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-stone-700">
-                      {rowDisplayName(row.data)}
-                    </td>
-                    <td className="px-3 py-2">
-                      {row.status === "error" && row.error ? (
-                        <span className="font-medium text-red-600">
-                          {row.error}
-                        </span>
-                      ) : (
-                        <span className="text-stone-300">—</span>
-                      )}
-                    </td>
+          {preview.rows.length === 0 ? (
+            <div className="mt-4">
+              <EmptyState
+                icon={FileSpreadsheet}
+                title="Faylda sətir tapılmadı"
+                hint="Şablonu endirib məlumatları doldurun, sonra yenidən yükləyin."
+              />
+            </div>
+          ) : (
+            // Uzun cədvəl: hər iki oxda sürüşdürmə + sabit başlıq (mobil daşma olmasın).
+            <div className="mt-4 max-h-72 overflow-auto rounded-2xl border border-stone-200">
+              <table className="min-w-full divide-y divide-stone-200 text-sm">
+                <caption className="sr-only">
+                  İdxal önizləməsi: sətir nömrəsi, status, mal adı və qeyd
+                </caption>
+                <thead className="sticky top-0 z-10 bg-stone-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="whitespace-nowrap border-b border-stone-200 px-3 py-2 text-left font-bold text-stone-500"
+                    >
+                      Sətir
+                    </th>
+                    <th
+                      scope="col"
+                      className="whitespace-nowrap border-b border-stone-200 px-3 py-2 text-left font-bold text-stone-500"
+                    >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="whitespace-nowrap border-b border-stone-200 px-3 py-2 text-left font-bold text-stone-500"
+                    >
+                      Mal
+                    </th>
+                    <th
+                      scope="col"
+                      className="whitespace-nowrap border-b border-stone-200 px-3 py-2 text-left font-bold text-stone-500"
+                    >
+                      Qeyd
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {preview.rows.map((row) => (
+                    <tr
+                      key={row.rowNumber}
+                      className={
+                        row.status === "error" ? "bg-red-50/30" : undefined
+                      }
+                    >
+                      <td className="px-3 py-2 align-top tabular-nums text-stone-500">
+                        {row.rowNumber}
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <Badge tone={ROW_STATUS[row.status].tone}>
+                          {ROW_STATUS[row.status].label}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 align-top text-stone-700">
+                        {rowDisplayName(row.data)}
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        {row.status === "error" && row.error ? (
+                          <span className="font-medium break-words text-red-600">
+                            {row.error}
+                          </span>
+                        ) : (
+                          <span className="text-stone-300">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {preview.summary.errors > 0 && (
             <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 ring-1 ring-inset ring-amber-200/70">
@@ -349,26 +415,29 @@ export function ExcelImportModal({ open, onClose }: Props) {
             </p>
           )}
 
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={resetToStep1}>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            {/* Commit gedərkən geri qayıtmaq state-i pozar → deaktiv. */}
+            <Button
+              variant="secondary"
+              onClick={resetToStep1}
+              disabled={commitMut.isPending}
+            >
               Geri
             </Button>
             <Button
               onClick={() => void handleCommit()}
-              disabled={
-                commitMut.isPending ||
-                preview.summary.creates + preview.summary.updates === 0
-              }
+              disabled={commitMut.isPending || importableCount === 0}
               icon={
                 commitMut.isPending ? (
-                  <Loader2 size={15} className="animate-spin" />
+                  <Loader2 size={15} aria-hidden className="animate-spin" />
                 ) : (
-                  <Upload size={15} />
+                  <Upload size={15} aria-hidden />
                 )
               }
             >
-              {preview.summary.creates + preview.summary.updates} sətri idxal
-              et
+              {importableCount > 0
+                ? `${importableCount} sətri idxal et`
+                : "İdxal et"}
             </Button>
           </div>
         </div>
@@ -377,13 +446,15 @@ export function ExcelImportModal({ open, onClose }: Props) {
       {step === 3 && (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <CheckCircle2 size={30} />
+            <CheckCircle2 size={30} aria-hidden />
           </div>
-          <p className="text-lg font-bold text-stone-900">İdxal tamamlandı</p>
-          <p className="text-sm text-stone-600">
-            {commitResult?.created ?? 0} yeni mal, {commitResult?.updated ?? 0}{" "}
-            yenilənmə
-          </p>
+          <div role="status">
+            <p className="text-lg font-bold text-stone-900">İdxal tamamlandı</p>
+            <p className="mt-1 text-sm text-stone-600">
+              {commitResult?.created ?? 0} yeni mal,{" "}
+              {commitResult?.updated ?? 0} yenilənmə
+            </p>
+          </div>
           <Button onClick={handleClose} className="mt-2">
             Bağla
           </Button>

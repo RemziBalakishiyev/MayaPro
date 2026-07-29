@@ -2,7 +2,13 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-export type StatTone = "default" | "green" | "red" | "amber" | "indigo";
+export type StatTone =
+  | "default"
+  | "green"
+  | "red"
+  | "amber"
+  | "indigo"
+  | "sky";
 
 const TONE: Record<StatTone, string> = {
   default: "text-stone-900",
@@ -10,6 +16,8 @@ const TONE: Record<StatTone, string> = {
   red: "text-red-600",
   amber: "text-amber-600",
   indigo: "text-indigo-600",
+  /** Badge-dəki "mavi" status rəngi ilə eyni (məs. idxalda yenilənəcək sətirlər). */
+  sky: "text-sky-700",
 };
 
 export interface StatCardProps {

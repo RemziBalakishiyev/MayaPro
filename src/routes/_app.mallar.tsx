@@ -120,6 +120,7 @@ function MallarPage() {
 
   const uiOnly = () => toast.info("Bu funksiya backend ilə əlavə olunacaq");
 
+  // AC-2: mock/demo rejimində modal açılmır (şəbəkə sorğusu yoxdur).
   const openImport = () => {
     if (USE_MOCK) {
       toast.info("Excel import real backend rejimində işləyir");
@@ -150,14 +151,17 @@ function MallarPage() {
         subtitle={`${products.length} mal · Anbar dəyəri: ${fmtMoney(stockValue)}`}
         actions={
           <>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Upload size={14} />}
-              onClick={openImport}
-            >
-              Excel import
-            </Button>
+            {/* İdxal mal yazır → yalnız products.write icazəsi olanlara. */}
+            {canWrite && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Upload size={14} />}
+                onClick={openImport}
+              >
+                Excel import
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
