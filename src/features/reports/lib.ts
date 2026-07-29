@@ -204,10 +204,11 @@ export const PERIOD_LABELS: Record<Period, string> = {
 };
 
 /**
- * ISO tarix seçilmiş dövrə düşürmü. Backend `ReportPeriod` ilə eyni pəncərələr:
+ * ISO tarix seçilmiş dövrə düşürmü. Backend `ReportPeriod` ilə eyni pəncərələr —
+ * hamısı BU GÜNLƏ bitir, hər iki sərhəd daxildir:
  * - "today" → yalnız bu gün;
- * - "week"  → son 7 gün (bu gün daxil), backend `today.AddDays(-6)` ilə eyni;
- * - "month" → TƏQVİM AYI, backend `new DateOnly(year, month, 1)..today` ilə eyni;
+ * - "week"  → son 7 gün (bu gün daxil), backend `today.AddDays(-6)..today`;
+ * - "month" → təqvim ayının 1-i … bu gün, backend `new DateOnly(y, m, 1)..today`;
  * - "all"   → sərhədsiz.
  *
  * "month" əvvəllər "son 30 gün" (`daysBetween <= 29`) idi — bu, ay sərhədində
@@ -215,18 +216,26 @@ export const PERIOD_LABELS: Record<Period, string> = {
  * (FE#9). İndi PERIOD_LABELS-dəki "Bu ay" mətni ilə də üst-üstə düşür və Xərclər
  * səhifəsinin `input[type=month]` filtri ilə eyni ayı əhatə edir.
  *
- * Qeyd: backend pəncərəsi bu günlə BİTİR, buradakı "week"/"month" isə gələcək
- * tarixli qeydi də sayır. Real datada satış/ödəniş tarixi gələcək ola bilmir,
- * ona görə bu fərq yalnız əl ilə gələcək tarix yazılmış xərcdə görünə bilər.
+ * "week"/"month" əvvəl gələcək tarixli qeydi də sayırdı (backend saymır) —
+ * mock rejimdə `mockSummary` bu funksiya üzərindən işlədiyi üçün Hesabatlar
+ * səhifəsi Xərclər səhifəsindən BÖYÜK "Xərc" göstərirdi (FE#11). İndi yuxarı
+ * sərhəd hər iki dövr üçün bu gündür.
+ *
+ * `iso` "YYYY-MM-DD" və ya ISO datetime ola bilər → gün hissəsi kəsilir; ISO
+ * formatda leksikoqrafik müqayisə xronoloji müqayisə ilə eynidir.
  */
 export const inPeriod = (iso: string, period: Period): boolean => {
+  const day = iso.slice(0, 10);
+  const today = todayISO();
   switch (period) {
     case "today":
-      return iso.slice(0, 10) === todayISO();
-    case "week":
-      return daysBetween(iso) <= 6;
+      return day === today;
+    case "week": {
+      const diff = daysBetween(day);
+      return diff >= 0 && diff <= 6;
+    }
     case "month":
-      return iso.slice(0, 7) === todayISO().slice(0, 7);
+      return day.slice(0, 7) === today.slice(0, 7) && day <= today;
     case "all":
     default:
       return true;
