@@ -74,7 +74,7 @@ export function ClosingHistory() {
                     : "text-stone-700"
               }`}
             >
-              {d === 0 ? "±0.00 ₼" : `${d > 0 ? "+" : ""}${fmtMoney(d)}`}
+              {fmtMoneySigned(d, "±")}
             </span>
           );
         },

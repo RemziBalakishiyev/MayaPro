@@ -220,7 +220,7 @@ export function DayEndCard() {
               ? `Kassada çatışmayan məbləğ: ${fmtMoney(Math.abs(diff))}`
               : diff > 0
                 ? `Kassada artıq məbləğ: ${fmtMoney(diff)}`
-                : "Kassa düz gəlir. Fərq: 0.00 ₼"}
+                : `Kassa düz gəlir. Fərq: ${fmtMoney(0)}`}
           </div>
         )}
 
