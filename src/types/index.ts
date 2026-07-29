@@ -9,13 +9,11 @@ export type ProductStatus =
   | "Satılmır"
   | "Ziyana satılır";
 
-export type ExpenseCategory =
-  | "Yol"
-  | "Fəhlə"
-  | "Anbar/Yer"
-  | "Paket/Qutu"
-  | "Mağaza"
-  | "Digər";
+/**
+ * Xərc mənbəyi: "general" — satışa bağlı olmayan ümumi xərc (mala təsir etmir);
+ * "product" — malın mayasına əlavə olunan xərc (productId mütləqdir).
+ */
+export type ExpenseSource = "general" | "product";
 
 /** Auth istifadəçisinin rolu. */
 export type Role = "sahib" | "menecer" | "satici";
@@ -28,6 +26,12 @@ export interface ProductExpenseLine {
 
 /** Məhsul kateqoriyası. */
 export interface Category {
+  id: string;
+  name: string;
+}
+
+/** Mərkəzi xərc növü (məs. "Yol pulu", "Mağaza xərci", "İşçi pulu") — GET/POST /api/expense-types. */
+export interface ExpenseType {
   id: string;
   name: string;
 }
@@ -190,11 +194,14 @@ export interface Employee {
 export interface Expense {
   id: string;
   title: string;
-  category: ExpenseCategory;
+  /** Mərkəzi xərc növləri siyahısından seçilən ad (sərbəst mətn, əvvəlki sabit enum əvəzinə). */
+  category: string;
   amount: number;
   productId: string | null;
   date: string;
   note: string;
+  /** Ümumi (satışa bağlı olmayan) və ya mala bağlı xərc. */
+  source: ExpenseSource;
 }
 
 export interface CustomerPayment {

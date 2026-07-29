@@ -7,12 +7,20 @@ import { Badge } from "@/components/ui/Badge";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import type { Expense } from "@/types";
 
+/** Xərc mənbəyi → badge mətni ("source" sahəsi backend/mock-dan). */
+const SOURCE_LABEL: Record<Expense["source"], string> = {
+  general: "Ümumi",
+  product: "Mala bağlı",
+};
+
 interface Props {
   expenses: Expense[];
   isLoading?: boolean;
   canWrite?: boolean;
   /** productId → mal adı (bağlı mal sütunu üçün) */
   productName: (id: string | null) => string;
+  /** Boş nəticə mətni (aktiv filtrə görə dəyişir). */
+  emptyState?: { title: string; description?: string };
   onEdit?: (expense: Expense) => void;
   onDelete?: (expense: Expense) => void;
 }
@@ -64,6 +72,7 @@ export function ExpensesTable({
   isLoading,
   canWrite = false,
   productName,
+  emptyState,
   onEdit,
   onDelete,
 }: Props) {
@@ -85,8 +94,22 @@ export function ExpensesTable({
       },
       {
         accessorKey: "category",
-        header: "Kateqoriya",
-        cell: ({ getValue }) => <Badge>{getValue() as string}</Badge>,
+        header: "Növ",
+        cell: ({ getValue }) => {
+          const name = (getValue() as string)?.trim();
+          return name ? (
+            <Badge>{name}</Badge>
+          ) : (
+            <span className="text-xs text-stone-400">—</span>
+          );
+        },
+      },
+      {
+        accessorKey: "source",
+        header: "Mənbə",
+        cell: ({ getValue }) => (
+          <Badge>{SOURCE_LABEL[getValue() as Expense["source"]] ?? "Ümumi"}</Badge>
+        ),
       },
       {
         id: "product",
@@ -114,6 +137,9 @@ export function ExpensesTable({
         accessorKey: "note",
         header: "Qeyd",
         enableSorting: false,
+        // Mənbə sütunu əlavə olunduğu üçün ən az prioritetli sütun dar
+        // ekranlarda gizlədilir (mobil kartda onsuz da görünür).
+        meta: { className: "hidden xl:table-cell" },
         cell: ({ getValue }) => (
           <span className="text-xs text-stone-400">
             {(getValue() as string) || "—"}
@@ -145,10 +171,12 @@ export function ExpensesTable({
       columns={columns}
       data={expenses}
       isLoading={isLoading}
-      emptyState={{
-        title: "Bu ay xərc yoxdur",
-        description: "«Yeni xərc» düyməsi ilə ilk xərci əlavə edin.",
-      }}
+      emptyState={
+        emptyState ?? {
+          title: "Bu ay xərc yoxdur",
+          description: "«Yeni xərc» düyməsi ilə ilk xərci əlavə edin.",
+        }
+      }
       mobileCard={(e) => (
         <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
           <div className="flex items-start justify-between gap-3">
@@ -163,7 +191,8 @@ export function ExpensesTable({
             </span>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge>{e.category}</Badge>
+            {e.category?.trim() && <Badge>{e.category.trim()}</Badge>}
+            <Badge>{SOURCE_LABEL[e.source] ?? "Ümumi"}</Badge>
             {e.productId && (
               <span className="text-sm font-medium text-emerald-700">
                 {productName(e.productId)}

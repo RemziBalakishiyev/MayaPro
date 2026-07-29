@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { StatCard } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/toast-store";
+import { cn } from "@/lib/cn";
 import { fmtMoney, todayISO } from "@/lib/format";
 import {
   useExpenses,
@@ -14,12 +15,29 @@ import {
 } from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
+import {
+  expenseBySource,
+  expenseSourceSummaryText,
+} from "@/features/expenses/lib";
 import { useProducts } from "@/features/products/queries";
 import { useCan } from "@/features/auth/store";
-import type { Expense } from "@/types";
+import type { Expense, ExpenseSource } from "@/types";
+
+type SourceFilter = "all" | ExpenseSource;
+
+const SOURCE_FILTERS: { key: SourceFilter; label: string }[] = [
+  { key: "all", label: "Hamısı" },
+  { key: "general", label: "Ümumi" },
+  { key: "product", label: "Mala bağlı" },
+];
 
 const searchSchema = z.object({
   month: z.string().optional(), // "YYYY-MM"
+  /**
+   * Filter çipi URL-də saxlanılır (F5-dən sonra itmir).
+   * `.catch` → keçərsiz dəyər (məs. ?source=xyz) route xətası vermir, "all"-a düşür.
+   */
+  source: z.enum(["all", "general", "product"]).default("all").catch("all"),
 });
 
 export const Route = createFileRoute("/_app/xercler")({
@@ -40,15 +58,31 @@ function XerclerPage() {
   const [deleteFor, setDeleteFor] = useState<Expense | null>(null);
 
   const month = search.month ?? todayISO().slice(0, 7);
+  const sourceFilter = search.source;
 
-  const filtered = useMemo(
+  // Bütün ay xərcləri (xülasə kartı bunun üzərində hesablanır, çip filtri bunu dəyişmir).
+  const monthExpenses = useMemo(
     () => expenses.filter((e) => e.date.slice(0, 7) === month),
     [expenses, month],
   );
 
   const monthTotal = useMemo(
-    () => filtered.reduce((s, e) => s + e.amount, 0),
-    [filtered],
+    () => monthExpenses.reduce((s, e) => s + e.amount, 0),
+    [monthExpenses],
+  );
+
+  const sourceTotals = useMemo(
+    () => expenseBySource(monthExpenses),
+    [monthExpenses],
+  );
+
+  // Cədvəldə görünən sətirlər — ay + mənbə çipi.
+  const visibleExpenses = useMemo(
+    () =>
+      sourceFilter === "all"
+        ? monthExpenses
+        : monthExpenses.filter((e) => e.source === sourceFilter),
+    [monthExpenses, sourceFilter],
   );
 
   const productName = useMemo(() => {
@@ -56,6 +90,15 @@ function XerclerPage() {
     return (id: string | null) =>
       id ? (map.get(id) ?? "—") : "Ümumi xərc";
   }, [products]);
+
+  const setSourceFilter = (next: SourceFilter) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        source: next,
+      }),
+    });
+  };
 
   const handleDelete = async () => {
     if (!deleteFor) return;
@@ -106,22 +149,57 @@ function XerclerPage() {
             className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
           />
         </label>
-        <div className="w-full sm:w-56">
+        <div className="w-full sm:w-72">
           <StatCard
             label="Bu ay üzrə cəmi xərc"
             value={fmtMoney(monthTotal)}
-            sub={`${filtered.length} qeyd`}
+            sub={expenseSourceSummaryText(sourceTotals)}
             icon={Receipt}
             tone="red"
           />
         </div>
       </div>
 
+      <div
+        role="tablist"
+        aria-label="Xərc mənbəyi"
+        className="mb-3 flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1 sm:w-fit"
+      >
+        {SOURCE_FILTERS.map(({ key, label }) => {
+          const active = sourceFilter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setSourceFilter(key)}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                active
+                  ? "bg-emerald-700 text-white shadow-sm"
+                  : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
       <ExpensesTable
-        expenses={filtered}
+        expenses={visibleExpenses}
         isLoading={isLoading}
         canWrite={canWrite}
         productName={productName}
+        emptyState={
+          sourceFilter === "all"
+            ? undefined
+            : {
+                title: `Bu ay «${SOURCE_FILTERS.find((f) => f.key === sourceFilter)?.label}» xərc yoxdur`,
+                description: "Filtri «Hamısı»na keçirin və ya yeni xərc əlavə edin.",
+              }
+        }
         onEdit={(e) => {
           setEditing(e);
           setFormOpen(true);

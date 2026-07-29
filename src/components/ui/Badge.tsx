@@ -16,6 +16,9 @@ export const STATUS_STYLE: Record<string, string> = {
   Sərbəst: "bg-stone-100 text-stone-600 ring-stone-200/80",
   Borclu: "bg-red-50 text-red-700 ring-red-200/70",
   Ödənilib: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+  /** Xərc mənbəyi (Xərclər cədvəli): Ümumi — boz, Mala bağlı — yaşıl. */
+  Ümumi: "bg-stone-100 text-stone-600 ring-stone-200/80",
+  "Mala bağlı": "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
 };
 
 const FALLBACK = "bg-stone-50 text-stone-600 ring-stone-200/80";

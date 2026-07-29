@@ -72,6 +72,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       onBlur,
       name,
       id,
+      "aria-label": ariaLabel,
+      "aria-labelledby": ariaLabelledBy,
       ...rest
     },
     ref,
@@ -363,6 +365,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={open ? listboxId : undefined}
+          // Görünən element trigger düymədir → əlçatan ad ona verilməlidir
+          // (gizli <select> aria-hidden olduğu üçün ekran oxuyucusuna düşmür).
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           onClick={() => !disabled && setOpen((o) => !o)}
           onKeyDown={onTriggerKeyDown}
           onBlur={onBlur as unknown as FocusEventHandler<HTMLButtonElement>}
