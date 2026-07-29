@@ -17,6 +17,7 @@ import { salesApi } from "@/features/sales/api";
 import { customersApi } from "@/features/customers/api";
 import { suppliersApi } from "@/features/suppliers/api";
 import { expensesApi } from "@/features/expenses/api";
+import { expenseBySource } from "@/features/expenses/lib";
 import { employeesApi } from "@/features/employees/api";
 import { closingsApi } from "@/features/day-end/api";
 import { inPeriod, sumBy, type Period } from "./lib";
@@ -107,6 +108,14 @@ export interface SummaryData {
   cashSales: number;
   cardSales: number;
   creditSales: number;
+  /**
+   * Xərc mənbəyi bölgüsü (Ümumi / Mala bağlı). `generalExpenses + productExpenses`
+   * həmişə `expenses`-ə bərabərdir (backend invariantı, BE#6). OPTIONAL — köhnə
+   * backend bu sahələri qaytarmaya bilər, çağıran tərəf lokal hesablamaya
+   * (`expenseBySource`) fallback etməlidir (FE#9, AC3).
+   */
+  generalExpenses?: number;
+  productExpenses?: number;
 }
 
 /** Hesabatlar səhifəsi üçün xam kolleksiyalar. */
@@ -136,7 +145,12 @@ async function mockSummary(period: Period): Promise<SummaryData> {
     );
   const salesTotal = sumBy(ps, (s) => s.totalAmount);
   const profit = sumBy(ps, (s) => s.profit ?? 0);
-  const exp = sumBy(pe, (e) => e.amount);
+  // Mənbə bölgüsü — real backend summary ilə eyni sahələr (BE#6 kontraktı),
+  // Hesabatlar səhifəsi bunları lokal hesablama əvəzinə istifadə edə bilsin.
+  // Ümumi xərc elə bölgünün cəmidir (backend-dəki kimi struktur invariant:
+  // generalExpenses + productExpenses === expenses).
+  const expBySource = expenseBySource(pe);
+  const exp = expBySource.general + expBySource.product;
   return {
     period,
     from: null,
@@ -149,6 +163,8 @@ async function mockSummary(period: Period): Promise<SummaryData> {
     cashSales: byPt("Nağd"),
     cardSales: byPt("Kart"),
     creditSales: byPt("Nisyə"),
+    generalExpenses: expBySource.general,
+    productExpenses: expBySource.product,
   };
 }
 

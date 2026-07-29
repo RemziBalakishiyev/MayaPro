@@ -203,7 +203,22 @@ export const PERIOD_LABELS: Record<Period, string> = {
   all: "Hamısı",
 };
 
-/** ISO tarix seçilmiş dövrə düşürmü. */
+/**
+ * ISO tarix seçilmiş dövrə düşürmü. Backend `ReportPeriod` ilə eyni pəncərələr:
+ * - "today" → yalnız bu gün;
+ * - "week"  → son 7 gün (bu gün daxil), backend `today.AddDays(-6)` ilə eyni;
+ * - "month" → TƏQVİM AYI, backend `new DateOnly(year, month, 1)..today` ilə eyni;
+ * - "all"   → sərhədsiz.
+ *
+ * "month" əvvəllər "son 30 gün" (`daysBetween <= 29`) idi — bu, ay sərhədində
+ * Hesabatlar və Xərclər səhifələrindəki rəqəmlərin fərqlənməsinə səbəb olurdu
+ * (FE#9). İndi PERIOD_LABELS-dəki "Bu ay" mətni ilə də üst-üstə düşür və Xərclər
+ * səhifəsinin `input[type=month]` filtri ilə eyni ayı əhatə edir.
+ *
+ * Qeyd: backend pəncərəsi bu günlə BİTİR, buradakı "week"/"month" isə gələcək
+ * tarixli qeydi də sayır. Real datada satış/ödəniş tarixi gələcək ola bilmir,
+ * ona görə bu fərq yalnız əl ilə gələcək tarix yazılmış xərcdə görünə bilər.
+ */
 export const inPeriod = (iso: string, period: Period): boolean => {
   switch (period) {
     case "today":
@@ -211,7 +226,7 @@ export const inPeriod = (iso: string, period: Period): boolean => {
     case "week":
       return daysBetween(iso) <= 6;
     case "month":
-      return daysBetween(iso) <= 29;
+      return iso.slice(0, 7) === todayISO().slice(0, 7);
     case "all":
     default:
       return true;
