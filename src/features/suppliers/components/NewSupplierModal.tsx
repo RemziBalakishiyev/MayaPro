@@ -19,20 +19,32 @@ export function NewSupplierModal({ open, onClose }: Props) {
   const createMut = useCreateSupplier();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [initialDebt, setInitialDebt] = useState("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (open) {
       setName("");
       setPhone("");
+      setInitialDebt("");
       setNote("");
     }
   }, [open]);
 
+  const debtNum = Number(initialDebt);
+  const debtInvalid =
+    initialDebt.trim() !== "" && (!Number.isFinite(debtNum) || debtNum < 0);
+
   const save = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || debtInvalid) return;
     try {
-      await createMut.mutateAsync({ name, phone, note: note.trim() || undefined });
+      await createMut.mutateAsync({
+        name,
+        phone,
+        note: note.trim() || undefined,
+        initialDebt:
+          initialDebt.trim() === "" ? 0 : Math.max(0, debtNum),
+      });
       toast.success("Təchizatçı əlavə edildi");
       onClose();
     } catch {
@@ -49,6 +61,21 @@ export function NewSupplierModal({ open, onClose }: Props) {
         <Field label="Telefon">
           <PhoneInput value={phone} onChange={setPhone} />
         </Field>
+        <Field
+          label="İlkin borc (varsa)"
+          hint="Bu təchizatçıya köhnədən qalan borcun — tarixçədə 'İlkin borc' kimi görünəcək"
+          error={debtInvalid ? "İlkin borc 0 və ya daha böyük olmalıdır" : undefined}
+        >
+          <Input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            placeholder="0"
+            value={initialDebt}
+            onChange={(e) => setInitialDebt(e.target.value)}
+          />
+        </Field>
         <Field label="Qeyd">
           <Textarea
             value={note}
@@ -63,7 +90,7 @@ export function NewSupplierModal({ open, onClose }: Props) {
         </Button>
         <Button
           onClick={save}
-          disabled={createMut.isPending}
+          disabled={createMut.isPending || !name.trim() || debtInvalid}
           icon={<Plus size={15} />}
         >
           Əlavə et

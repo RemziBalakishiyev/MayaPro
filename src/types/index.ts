@@ -154,8 +154,29 @@ export interface Supplier {
   totalDebt: number;
   paidAmount: number;
   remainingDebt: number;
+  /**
+   * Sistemə keçid zamanı yazılan ilkin (açılış) borcu.
+   * ⚠️ Yalnız mock rejimdə etibarlıdır: real `SupplierDto` bu sahəni ayrıca
+   * qaytarmır (ilkin borc `debt`-in içindədir) → real rejimdə həmişə 0 olur.
+   * İlkin borc sətrini göstərmək üçün `useSupplierHistory` istifadə edin.
+   */
+  initialDebt: number;
   itemCount: number;
   lastPaymentDate: string;
+  /** Mock tarixçə / sıralama üçün; real API-də də mövcuddur */
+  createdAt?: string;
+}
+
+/**
+ * GET /api/suppliers/{id}/history — ilkin borc + ödəniş tarixçəsi.
+ * Sıra xronolojidir (köhnədən yeniyə); ilkin borc həmişə birinci sətirdir.
+ */
+export interface SupplierHistoryEntry {
+  date: string;
+  type: "initialDebt" | "payment";
+  amount: number;
+  /** İlkin borc / ödənişdə qeyd mətni */
+  note: string | null;
 }
 
 export interface Employee {

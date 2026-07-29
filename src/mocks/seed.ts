@@ -70,7 +70,9 @@ const buildSuppliers = (): Supplier[] =>
   ].map((s) => ({
     ...s,
     remainingDebt: s.totalDebt - s.paidAmount,
+    initialDebt: 0,
     lastPaymentDate: daysAgoISO(6),
+    createdAt: daysAgoISO(60),
   }));
 
 interface RawProduct {

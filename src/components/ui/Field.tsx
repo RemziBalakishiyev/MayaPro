@@ -20,7 +20,11 @@ export function Field({ label, children, hint, required, error }: FieldProps) {
       </span>
       {children}
       {error ? (
-        <span className="mt-1.5 block text-sm font-medium text-red-600">
+        // role="alert" → xəta mesajı ekran oxuyucularda dərhal səslənir
+        <span
+          role="alert"
+          className="mt-1.5 block text-sm font-medium text-red-600"
+        >
           {error}
         </span>
       ) : (
