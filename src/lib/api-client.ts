@@ -107,6 +107,32 @@ async function request<T>(
   return data as T;
 }
 
+/**
+ * Multipart form-data POST (fayl yükləmə, məs. Excel import preview).
+ * Content-Type başlığı bilərəkdən qoyulmur — brauzer FormData üçün özü
+ * boundary-li multipart/form-data başlığını təyin edir, əl ilə yazılsa boundary
+ * itir və server body-ni parse edə bilmir.
+ */
+async function requestForm<T>(path: string, formData: FormData): Promise<T> {
+  const token = useAuthStore.getState().token;
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (res.status === 401) throwUnauthorized();
+
+  const data = parseMaybeJson(await res.text());
+
+  if (!res.ok) throw toApiError(data, res.status);
+
+  return data as T;
+}
+
 export interface BlobResponse {
   blob: Blob;
   contentDisposition: string | null;
@@ -153,4 +179,6 @@ export const apiClient = {
   getBlob: (path: string): Promise<BlobResponse> => requestBlob("GET", path),
   postBlob: (path: string, body?: unknown): Promise<BlobResponse> =>
     requestBlob("POST", path, body),
+  postForm: <T>(path: string, formData: FormData): Promise<T> =>
+    requestForm<T>(path, formData),
 };

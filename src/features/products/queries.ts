@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import {
   productsApi,
+  productImportsApi,
   type NewProduct,
   type ProductUpdate,
 } from "./api";
@@ -80,6 +81,39 @@ export const useGenerateBarcode = () => {
     // halında da siyahı təzələnsin ki, sətirdə aktual barkod görünsün.
     onSettled: () => {
       qc.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+};
+
+/**
+ * Excel idxalı — Addım 1: fayl seçilən kimi avtomatik çağırılır, DB-yə heç
+ * nə yazmır (yalnız təsnifat + `importToken`), ona görə invalidate yoxdur.
+ */
+export const usePreviewProductsImport = () =>
+  useMutation({
+    mutationFn: (file: File) => productImportsApi.preview(file),
+  });
+
+/**
+ * Excel idxalı — Addım 2-dəki "N sətri idxal et" düyməsi (nəticə Addım 3-də
+ * göstərilir). Uğurlu commit DB-ni dəyişir, ona görə mallar, kateqoriyalar,
+ * dashboard və fəaliyyət jurnalı invalidasiya olunur.
+ *
+ * Modal bağlansa belə invalidasiya işləyir: `ExcelImportModal` "Mallar"
+ * səhifəsində daim mount olunmuş qalır (yalnız `open` prop-u dəyişir), yəni
+ * sorğu davam edərkən modalı bağlamaq `onSuccess`-i ləğv etmir. Yeganə istisna
+ * — commit gedərkən səhifədən tam çıxmaq; o halda query-lər onsuz da unmount
+ * olunur və 30 saniyəlik `staleTime`-dan sonra qayıdışda yenidən çəkilir.
+ */
+export const useCommitProductsImport = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (importToken: string) => productImportsApi.commit(importToken),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.all });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };

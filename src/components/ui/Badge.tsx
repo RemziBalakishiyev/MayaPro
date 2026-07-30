@@ -19,6 +19,14 @@ export const STATUS_STYLE: Record<string, string> = {
   /** Xərc mənbəyi (Xərclər cədvəli): Ümumi — boz, Mala bağlı — yaşıl. */
   Ümumi: "bg-stone-100 text-stone-600 ring-stone-200/80",
   "Mala bağlı": "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+  /**
+   * Excel idxalı — sətir statusu (önizləmə cədvəli). "Yenilənəcək" indiqo
+   * tonu həm burada, həm də summary kartında (`StatTone="indigo"`) eynidir —
+   * uyğunsuzluq olmasın deyə hər ikisi eyni rəng ailəsindən seçilib.
+   */
+  Yeni: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+  Yenilənəcək: "bg-indigo-50 text-indigo-700 ring-indigo-200/70",
+  Xətalı: "bg-red-50 text-red-700 ring-red-200/70",
 };
 
 const FALLBACK = "bg-stone-50 text-stone-600 ring-stone-200/80";

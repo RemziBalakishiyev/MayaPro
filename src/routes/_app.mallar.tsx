@@ -24,6 +24,7 @@ import {
 import { ProductForm } from "@/features/products/components/ProductForm";
 import { StockAdjustModal } from "@/features/products/components/StockAdjustModal";
 import { LabelPrintModal } from "@/features/products/components/LabelPrintModal";
+import { ExcelImportModal } from "@/features/products/components/ExcelImportModal";
 import type { Product } from "@/types";
 
 const searchSchema = z.object({
@@ -60,6 +61,7 @@ function MallarPage() {
   const [labelModal, setLabelModal] = useState<{
     preselected: Product | null;
   } | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // Kateqoriyalar backend siyahısından; malda olan, lakin siyahıda olmayan
   // köhnə kateqoriyalar da filtrdə görünsün deyə birləşdirilir.
@@ -122,6 +124,16 @@ function MallarPage() {
 
   const uiOnly = () => toast.info("Bu funksiya backend ilə əlavə olunacaq");
 
+  // Mock rejimdə real backend yoxdur — modal açılmır, köhnə info toast qalır
+  // (AC-3). Real rejimdə 3 addımlı modal açılır.
+  const openImportModal = () => {
+    if (USE_MOCK) {
+      uiOnly();
+      return;
+    }
+    setImportModalOpen(true);
+  };
+
   // Mock rejimdə real backend yoxdur — exportExcel() ilə eyni naxış:
   // modal açılmır, info toast göstərilir.
   const openLabelModal = (preselected: Product | null = null) => {
@@ -154,14 +166,16 @@ function MallarPage() {
         subtitle={`${products.length} mal · Anbar dəyəri: ${fmtMoney(stockValue)}`}
         actions={
           <>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Upload size={14} />}
-              onClick={uiOnly}
-            >
-              Excel import
-            </Button>
+            {canWrite && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Upload size={14} />}
+                onClick={openImportModal}
+              >
+                Excel import
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -230,6 +244,10 @@ function MallarPage() {
         onClose={() => setLabelModal(null)}
         products={products}
         preselected={labelModal?.preselected ?? null}
+      />
+      <ExcelImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
       />
       <ConfirmModal
         open={!!deleteFor}
