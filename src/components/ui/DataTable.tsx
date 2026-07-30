@@ -110,6 +110,7 @@ export function DataTable<TData>({
               onKeyDown={
                 onRowClick
                   ? (e) => {
+                      if (e.target !== e.currentTarget) return;
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         onRowClick(row.original);
@@ -117,7 +118,10 @@ export function DataTable<TData>({
                     }
                   : undefined
               }
-              className={cn(onRowClick && "cursor-pointer")}
+              className={cn(
+                onRowClick &&
+                  "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500",
+              )}
             >
               {mobileCard(row.original)}
             </div>
@@ -199,12 +203,26 @@ export function DataTable<TData>({
             {rows.map((row) => (
               <tr
                 key={row.id}
+                role={onRowClick ? "button" : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
                 onClick={
                   onRowClick ? () => onRowClick(row.original) : undefined
                 }
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRowClick(row.original);
+                        }
+                      }
+                    : undefined
+                }
                 className={cn(
                   "transition-colors hover:bg-stone-50",
-                  onRowClick && "cursor-pointer",
+                  onRowClick &&
+                    "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500",
                 )}
               >
                 {row.getVisibleCells().map((cell) => (

@@ -52,6 +52,20 @@ export const saleExpenseItemsTotal = (sale: Sale): number =>
   );
 
 /**
+ * Satış № — qaimə PDF-indəki nömrə ilə eyni format (backend
+ * `ExportSaleInvoicePdfHandler.BuildInvoiceNumber`): "SF-yyyyMMdd-XXXXXX"
+ * (satış tarixi + id-nin ilk 6 hex simvolu, böyük hərflə).
+ */
+export const saleInvoiceNumber = (sale: Pick<Sale, "id" | "createdAt">): string => {
+  const d = new Date(sale.createdAt);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hex = sale.id.replace(/-/g, "").slice(0, 6).toUpperCase();
+  return `SF-${y}${m}${day}-${hex}`;
+};
+
+/**
  * "Xərc" — bu satışa düşən partiya/əlavə xərc (cədvəl və detal drawer üçün
  * tək mənbə):
  * - sərbəst (isManual) satışda: Σ expenseItems (xərc sətri yoxdursa 0 —
