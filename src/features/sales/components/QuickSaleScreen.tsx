@@ -9,13 +9,11 @@ import {
   Loader2,
   Package,
   PackagePlus,
-  Plus,
   Receipt,
   Search,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { CustomerPicker } from "@/components/ui/CustomerPicker";
 import { useToast } from "@/components/ui/toast-store";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
@@ -38,11 +36,12 @@ import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
 import { SalesJournal } from "./SalesJournal";
 import { QtyStepper } from "./QtyStepper";
 import { LossConfirmModal } from "./LossConfirmModal";
+import { CustomerSelectBlock } from "./CustomerSelectBlock";
 import {
   PaymentConfirmModal,
   type PaymentConfirmPayload,
 } from "./PaymentConfirmModal";
-import type { Customer, Product } from "@/types";
+import type { Product } from "@/types";
 
 export function QuickSaleScreen() {
   const toast = useToast();
@@ -658,7 +657,7 @@ export function QuickSaleScreen() {
                       setExpenseRows(rows);
                     }}
                   />
-                  <CustomerOptionalBlock
+                  <CustomerSelectBlock
                     customers={customers}
                     customerId={customerId}
                     setCustomerId={setCustomerId}
@@ -727,7 +726,7 @@ export function QuickSaleScreen() {
                   />
                 </div>
 
-                <CustomerOptionalBlock
+                <CustomerSelectBlock
                   customers={customers}
                   customerId={customerId}
                   setCustomerId={setCustomerId}
@@ -843,60 +842,6 @@ function SaleSection({
   );
 }
 
-/**
- * Müştəri seçimi — FE#25-dən sonra formada həmişə istəyə bağlıdır (ödəniş
- * növü/müştəri məcburiliyi artıq "SATIŞI TAMAMLA" sonrası ödəniş modalında
- * həll olunur, bax `PaymentConfirmModal`). Burada seçilsə, modal onu
- * hazır gətirir.
- */
-function CustomerOptionalBlock({
-  customers,
-  customerId,
-  setCustomerId,
-  onNewCustomer,
-}: {
-  customers: Customer[];
-  customerId: string;
-  setCustomerId: (v: string) => void;
-  onNewCustomer: (prefillName?: string) => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-3">
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold text-stone-600">
-          Müştəri
-          <span className="ml-1 font-normal text-stone-400">
-            (istəyə bağlı)
-          </span>
-        </p>
-        {!!customerId && (
-          <button
-            type="button"
-            onClick={() => setCustomerId("")}
-            className="text-xs font-semibold text-stone-500 hover:text-emerald-700"
-          >
-            Sil
-          </button>
-        )}
-      </div>
-      <CustomerPicker
-        customers={customers}
-        value={customerId}
-        onChange={setCustomerId}
-        onCreateNew={onNewCustomer}
-      />
-      <Button
-        variant="secondary"
-        size="lg"
-        className="mt-2 w-full justify-center"
-        icon={<Plus size={18} />}
-        onClick={() => onNewCustomer()}
-      >
-        Yeni müştəri
-      </Button>
-    </div>
-  );
-}
 
 /** Cəmi + maya + qazanc + "Satışı tamamla". */
 function TotalContent({

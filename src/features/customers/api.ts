@@ -7,7 +7,7 @@
  */
 import { db } from "@/mocks/db";
 import { saleHandlers } from "@/mocks/handlers";
-import { uid, todayISO } from "@/lib/format";
+import { uid, todayISO, fmtMoney } from "@/lib/format";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
 import type {
   Customer,
@@ -208,7 +208,12 @@ async function mockListHistory(
       // tam yekun deyil, yalnız qalıq (remainingAmount) qədərdir (qismən
       // ödənilmiş satışda ödənilən hissə artıq borc deyil).
       amount: s.paymentType === "Nisyə" ? s.remainingAmount : s.totalAmount,
-      note: `${s.productName} × ${s.quantity}`,
+      note:
+        s.paymentType === "Nisyə" && s.paidAmount > 0
+          ? // Qismən ödənişdə sətir borcu (qalıq) göstərir — yekunun nə qədəri
+            // ödənilib, qeyddə açıq yazılır ki, rəqəm "azalmış" görünməsin.
+            `${s.productName} × ${s.quantity} · ${fmtMoney(s.totalAmount)} satış, ${fmtMoney(s.paidAmount)} ödənilib`
+          : `${s.productName} × ${s.quantity}`,
       saleId: s.id,
       paymentType: s.paymentType,
     });

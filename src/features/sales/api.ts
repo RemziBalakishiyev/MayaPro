@@ -9,17 +9,40 @@ import type {
   SalesListParams,
   UpdateSaleInput,
 } from "@/features/sales/types";
-import type { Sale, SaleDetail, SaleExpenseItem } from "@/types";
+import type {
+  PaymentType,
+  Sale,
+  SaleDetail,
+  SaleExpenseItem,
+} from "@/types";
 
 export type { SalesListParams };
 
 /** Backend SaleDto → frontend Sale (null sahələr normallaşdırılır). */
-interface SaleDto extends Omit<Sale, "customerId" | "employeeId" | "isManual" | "expenseItems"> {
+interface SaleDto
+  extends Omit<
+    Sale,
+    | "customerId"
+    | "employeeId"
+    | "isManual"
+    | "expenseItems"
+    | "paidAmount"
+    | "remainingAmount"
+    | "paidVia"
+  > {
   customerId: string | null;
   employeeId: string | null;
   isManual?: boolean;
   soldByName?: string | null;
   expenseItems?: SaleExpenseItem[] | null;
+  /**
+   * BE#15 sahələri — OPTIONAL saxlanılır: bu sahələri hələ qaytarmayan
+   * backend-də UI "0 borc" göstərməsin deyə `toPaymentFields` defolt qaydanı
+   * (Nağd/Kart → tam ödənilib, Nisyə → tam qalıq) tətbiq edir.
+   */
+  paidAmount?: number | null;
+  remainingAmount?: number | null;
+  paidVia?: PaymentType | null;
 }
 
 interface SaleDetailDto extends SaleDto {
@@ -40,8 +63,37 @@ const toExpenseItems = (raw: SaleExpenseItem[] | null | undefined): SaleExpenseI
     amount: Number(e.amount) || 0,
   }));
 
+/**
+ * BE#15 ödəniş sahələrinin normallaşdırılması — sahə gəlmirsə (köhnə backend)
+ * backend `SalePaymentPlan` defoltu ilə eyni nəticə hesablanır ki, Satış
+ * Jurnalı/detal "0.00 ₼ borc" kimi yanlış rəqəm göstərməsin.
+ */
+const toPaymentFields = (
+  d: SaleDto,
+): Pick<Sale, "paidAmount" | "remainingAmount" | "paidVia"> => {
+  const total = Number(d.totalAmount) || 0;
+  const paidAmount =
+    typeof d.paidAmount === "number" && Number.isFinite(d.paidAmount)
+      ? d.paidAmount
+      : d.paymentType === "Nisyə"
+        ? 0
+        : total;
+  const remainingAmount =
+    typeof d.remainingAmount === "number" && Number.isFinite(d.remainingAmount)
+      ? d.remainingAmount
+      : Math.max(0, total - paidAmount);
+  const paidVia: PaymentType =
+    d.paidVia === "Nağd" || d.paidVia === "Kart"
+      ? d.paidVia
+      : d.paymentType === "Nisyə"
+        ? "Nağd"
+        : d.paymentType;
+  return { paidAmount, remainingAmount, paidVia };
+};
+
 const toSale = (d: SaleDto): Sale => ({
   ...d,
+  ...toPaymentFields(d),
   customerId: d.customerId ?? null,
   employeeId: d.employeeId ?? "",
   isManual: d.isManual ?? false,

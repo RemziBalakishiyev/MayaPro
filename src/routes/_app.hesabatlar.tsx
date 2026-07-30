@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { useReportsData, useSummary } from "@/features/reports/queries";
+import { salesMoneySplit } from "@/features/sales/lib";
 import {
   sumBy,
   inPeriod,
@@ -73,6 +74,8 @@ function HesabatlarPage() {
     // ikinci cəm yoxdur ki, ondan fərqlənsin.
     const expensesTotal = expBySource.general + expBySource.product;
 
+    const periodMoney = salesMoneySplit(periodSales);
+
     const frozen = frozenProducts(products, sales);
     const frozenGroups = [30, 60, 90].map((days) => {
       const items = frozen.filter(
@@ -94,14 +97,10 @@ function HesabatlarPage() {
       profit: sumBy(periodSales, (s) => s.profit ?? 0),
       expenses: expensesTotal,
       stockValue: sumBy(products, (p) => p.realCostPerUnit * p.quantity),
-      cashSales: sumBy(
-        periodSales.filter((s) => s.paymentType === "Nağd"),
-        (s) => s.totalAmount,
-      ),
-      creditSales: sumBy(
-        periodSales.filter((s) => s.paymentType === "Nisyə"),
-        (s) => s.totalAmount,
-      ),
+      // BE#19 qaydası: nağd = faktiki alınan pul, nisyə = yalnız qalıq borc
+      // (qismən ödənilmiş satışda tam yekun deyil) — server summary ilə eyni.
+      cashSales: periodMoney.cash,
+      creditSales: periodMoney.credit,
       daily: dailySeries(sales, 14),
       weekly: weeklySeries(sales, 6),
       expByCat: expenseByCategory(periodExpenses),

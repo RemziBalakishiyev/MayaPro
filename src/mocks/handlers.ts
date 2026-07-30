@@ -4,7 +4,7 @@ import { calcRealCost, mergeExpenseLines } from "@/features/products/lib";
 import { uid, todayISO, fmtMoney } from "@/lib/format";
 import type { PagedResult } from "@/lib/paging";
 import { useAuthStore } from "@/features/auth/store";
-import { resolveSalePaymentPlan } from "@/features/sales/lib";
+import { resolveSalePaymentPlan, salesMoneySplit } from "@/features/sales/lib";
 import type { CreateSaleInput, SalesListParams, UpdateSaleInput } from "@/features/sales/types";
 import type {
   Product,
@@ -242,6 +242,11 @@ export const saleHandlers = {
       input.paidVia ?? null,
     );
     const isCredit = plan.remaining > 0;
+    // Backend `SaleWriteValidator` qaydası mock rejimdə də işləsin: qalıq borc
+    // qalan satış müştərisiz yazıla bilməz (UI-dakı blok yan keçilsə belə).
+    if (isCredit && !input.customerId) {
+      throw new Error("Qalıq borc üçün müştəri seçilməlidir");
+    }
 
     // Katalog malı — sərbəst satışda null
     const product = isManual
@@ -776,24 +781,14 @@ export const closingHandlers = {
     const sales = (await db.sales.list()).filter(
       (s) => s.createdAt.slice(0, 10) === t,
     );
-    // BE#15 — qismən ödənilmiş (Nisyə) satışın nağd/kart hissəsi (paidAmount,
-    // paidVia) də faktiki günlük medaxilə düşür; yalnız qalıq (remainingAmount)
-    // nisyə sayılır.
-    const cashSales = sales.reduce((a, s) => {
-      if (s.paymentType === "Nağd") return a + s.totalAmount;
-      if (s.paymentType === "Nisyə" && s.paidAmount > 0 && s.paidVia === "Nağd")
-        return a + s.paidAmount;
-      return a;
-    }, 0);
-    const cardSales = sales.reduce((a, s) => {
-      if (s.paymentType === "Kart") return a + s.totalAmount;
-      if (s.paymentType === "Nisyə" && s.paidAmount > 0 && s.paidVia === "Kart")
-        return a + s.paidAmount;
-      return a;
-    }, 0);
-    const creditSales = sales
-      .filter((s) => s.paymentType === "Nisyə")
-      .reduce((a, s) => a + s.remainingAmount, 0);
+    // BE#15/BE#19 — qismən ödənilmiş (Nisyə) satışın nağd/kart hissəsi də
+    // faktiki günlük medaxilə düşür; nisyə yalnız qalıq qədərdir. Qayda tək
+    // yerdə (`salesMoneySplit`) saxlanılır — hesabat/dashboard ilə eyni.
+    const {
+      cash: cashSales,
+      card: cardSales,
+      credit: creditSales,
+    } = salesMoneySplit(sales);
     const expenses = (await db.expenses.list())
       .filter((e) => e.date.slice(0, 10) === t)
       .reduce((a, e) => a + e.amount, 0);

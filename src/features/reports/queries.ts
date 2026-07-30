@@ -21,6 +21,7 @@ import {
   type MonthPoint,
   type NamedValue,
 } from "./lib";
+import { salesMoneySplit } from "@/features/sales/lib";
 import { todayISO, fmtDate } from "@/lib/format";
 import { USE_MOCK } from "@/lib/api-client";
 import type { Sale, CustomerPayment, ProductStatus, PaymentType } from "@/types";
@@ -64,15 +65,14 @@ export const computeDashboardStats = (data: DashboardData): DashboardStats => {
     data;
 
   const todaySales = sales.filter((s) => s.createdAt.slice(0, 10) === t);
-  const paySum = (pt: string) =>
-    sumBy(
-      todaySales.filter((s) => s.paymentType === pt),
-      (s) => s.totalAmount,
-    );
-
-  const todayCash = paySum("Nağd");
-  const todayCard = paySum("Kart");
-  const todayCredit = paySum("Nisyə");
+  // BE#19 — nağd/kart faktiki alınan pul (qismən ödənişin ilkin hissəsi də
+  // daxil), nisyə isə yalnız ödənilməmiş qalıq. Gözlənilən kassa da bu nağd
+  // rəqəmindən hesablanır ki, gün sonu ekranı ilə fərqlənməsin.
+  const {
+    cash: todayCash,
+    card: todayCard,
+    credit: todayCredit,
+  } = salesMoneySplit(todaySales);
   const todayTotal = sumBy(todaySales, (s) => s.totalAmount);
   // Qazancı naməlum (null) satışlar 0 sayılır, ayrıca sayılır
   const todayProfit = sumBy(todaySales, (s) => s.profit ?? 0);
