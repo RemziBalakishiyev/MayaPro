@@ -92,6 +92,9 @@ export function PaymentConfirmModal({
   const [choice, setChoice] = useState<Choice | null>(null);
   const [via, setVia] = useState<PaidVia | null>(null);
   const [partialRaw, setPartialRaw] = useState("");
+  // Boş sahə mesajı yalnız istifadəçi sahədən çıxandan (blur) və ya
+  // "Təsdiqlə" cəhdindən sonra göstərilir — əvvəlcədən qırmızı görünməsin.
+  const [partialBlurred, setPartialBlurred] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
 
   // Hər açılışda təzə başla — köhnə seçim qalmasın.
@@ -100,6 +103,7 @@ export function PaymentConfirmModal({
       setChoice(null);
       setVia(null);
       setPartialRaw("");
+      setPartialBlurred(false);
     }
   }, [open]);
 
@@ -112,7 +116,9 @@ export function PaymentConfirmModal({
   const partialTouched = partialRaw.trim() !== "";
   const partialValue = parseMoneyInput(partialRaw);
   const partialError: string | null = !partialTouched
-    ? null
+    ? partialBlurred
+      ? "Alınan məbləği yazın"
+      : null
     : partialValue == null
       ? "Yalnız rəqəm yazın (məs. 300 və ya 300,50)"
       : partialValue <= 0
@@ -137,11 +143,13 @@ export function PaymentConfirmModal({
 
   const canConfirm =
     !!choice &&
-    (choice !== "partial" || partialError == null) &&
+    (choice !== "partial" ||
+      (partialTouched && partialValue != null && partialValue > 0)) &&
     (!viaRequired || !!via) &&
     (!customerRequired || !!customerId);
 
   const confirm = () => {
+    if (choice === "partial" && !partialTouched) setPartialBlurred(true);
     if (!canConfirm || !choice || pending) return;
     const fullyPaid = remaining <= 0;
     onConfirm({
@@ -213,6 +221,7 @@ export function PaymentConfirmModal({
                 id="partial-amount"
                 value={partialRaw}
                 onChange={(e) => setPartialRaw(e.target.value)}
+                onBlur={() => setPartialBlurred(true)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
