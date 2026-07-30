@@ -2,7 +2,7 @@
  * Auth-lı fayl endirmə — <a href> işləmir (Bearer lazımdır).
  * apiClient.getBlob → blob → müvəqqəti object URL → click → təmizlə.
  */
-import { apiClient } from "@/lib/api-client";
+import { apiClient, type BlobResponse } from "@/lib/api-client";
 
 /** Content-Disposition-dan filename çıxarır (filename= / filename*=). */
 export const filenameFromContentDisposition = (
@@ -26,17 +26,12 @@ export const filenameFromContentDisposition = (
   return fallback;
 };
 
-/** GET path → blob endirmə. path tam API yolu olmalıdır, məs. /api/exports/products.xlsx */
-export async function downloadFile(
-  url: string,
-  fallbackName: string,
-): Promise<void> {
-  const { blob, contentDisposition } = await apiClient.getBlob(url);
-  const name = filenameFromContentDisposition(
-    contentDisposition,
-    fallbackName,
-  );
-
+/**
+ * Blob-u faylı endirən müvəqqəti <a> ilə browser-ə "sırıyır".
+ * Object URL dərhal deyil, növbəti tick-də azad edilir — Safari/Firefox-da
+ * sinxron revoke bəzən endirməni yarımçıq kəsir.
+ */
+function triggerBlobDownload(blob: Blob, name: string): void {
   const objectUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = objectUrl;
@@ -45,5 +40,37 @@ export async function downloadFile(
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(objectUrl);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+/** Blob cavabını fayl kimi endirir (ad Content-Disposition-dan, yoxdursa fallback). */
+async function saveBlobResponse(
+  responsePromise: Promise<BlobResponse>,
+  fallbackName: string,
+): Promise<void> {
+  const { blob, contentDisposition } = await responsePromise;
+  triggerBlobDownload(
+    blob,
+    filenameFromContentDisposition(contentDisposition, fallbackName),
+  );
+}
+
+/** GET path → blob endirmə. path tam API yolu olmalıdır, məs. /api/exports/products.xlsx */
+export async function downloadFile(
+  url: string,
+  fallbackName: string,
+): Promise<void> {
+  await saveBlobResponse(apiClient.getBlob(url), fallbackName);
+}
+
+/**
+ * POST path + JSON body → blob endirmə (məs. etiket PDF-i:
+ * POST /api/exports/products/labels.pdf).
+ */
+export async function downloadFilePost(
+  url: string,
+  body: unknown,
+  fallbackName: string,
+): Promise<void> {
+  await saveBlobResponse(apiClient.postBlob(url, body), fallbackName);
 }

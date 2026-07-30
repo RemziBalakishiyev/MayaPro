@@ -23,6 +23,7 @@ import {
 } from "@/features/products/components/ProductsTable";
 import { ProductForm } from "@/features/products/components/ProductForm";
 import { StockAdjustModal } from "@/features/products/components/StockAdjustModal";
+import { LabelPrintModal } from "@/features/products/components/LabelPrintModal";
 import type { Product } from "@/types";
 
 const searchSchema = z.object({
@@ -55,6 +56,9 @@ function MallarPage() {
   const [stockModal, setStockModal] = useState<{
     product: Product;
     mode: StockMode;
+  } | null>(null);
+  const [labelModal, setLabelModal] = useState<{
+    preselected: Product | null;
   } | null>(null);
 
   // Kateqoriyalar backend siyahısından; malda olan, lakin siyahıda olmayan
@@ -118,6 +122,16 @@ function MallarPage() {
 
   const uiOnly = () => toast.info("Bu funksiya backend ilə əlavə olunacaq");
 
+  // Mock rejimdə real backend yoxdur — exportExcel() ilə eyni naxış:
+  // modal açılmır, info toast göstərilir.
+  const openLabelModal = (preselected: Product | null = null) => {
+    if (USE_MOCK) {
+      toast.info("Etiket çapı real backend rejimində işləyir");
+      return;
+    }
+    setLabelModal({ preselected });
+  };
+
   const exportExcel = async () => {
     if (USE_MOCK) {
       toast.info("Export real backend rejimində işləyir");
@@ -167,7 +181,7 @@ function MallarPage() {
               variant="secondary"
               size="sm"
               icon={<Printer size={14} />}
-              onClick={uiOnly}
+              onClick={() => openLabelModal()}
             >
               Barkod/QR çap
             </Button>
@@ -197,6 +211,7 @@ function MallarPage() {
         }}
         onAdjust={(product, mode) => setStockModal({ product, mode })}
         onDelete={setDeleteFor}
+        onPrintLabel={(product) => openLabelModal(product)}
       />
 
       <ProductForm
@@ -209,6 +224,12 @@ function MallarPage() {
         onClose={() => setStockModal(null)}
         product={stockModal?.product ?? null}
         mode={stockModal?.mode ?? "add"}
+      />
+      <LabelPrintModal
+        open={!!labelModal}
+        onClose={() => setLabelModal(null)}
+        products={products}
+        preselected={labelModal?.preselected ?? null}
       />
       <ConfirmModal
         open={!!deleteFor}

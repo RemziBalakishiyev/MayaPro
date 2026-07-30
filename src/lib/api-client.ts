@@ -39,94 +39,102 @@ export const setUnauthorizedHandler = (fn: () => void): void => {
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
-async function request<T>(
-  method: Method,
-  path: string,
-  body?: unknown,
-): Promise<T> {
+/** Ortaq fetch başlıqları (token + body varsa Content-Type). */
+function buildInit(method: Method, body: unknown): RequestInit {
   const token = useAuthStore.getState().token;
   const headers: Record<string, string> = {};
   const hasBody = body !== undefined;
   if (hasBody) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${API_URL}${path}`, {
+  return {
     method,
     headers,
     body: hasBody ? JSON.stringify(body) : undefined,
-  });
+  };
+}
 
-  if (res.status === 401) {
-    useAuthStore.getState().logout();
-    if (unauthorizedHandler) unauthorizedHandler();
-    else if (typeof window !== "undefined") window.location.assign("/login");
-    throw new ApiError(
-      "Sessiya bitib. Yenidən daxil olun.",
-      "Auth.Unauthorized",
-      401,
-    );
+/** 401 → logout + login-ə yönləndirmə. Həmişə ApiError atır. */
+function throwUnauthorized(): never {
+  useAuthStore.getState().logout();
+  if (unauthorizedHandler) unauthorizedHandler();
+  else if (typeof window !== "undefined") window.location.assign("/login");
+  throw new ApiError(
+    "Sessiya bitib. Yenidən daxil olun.",
+    "Auth.Unauthorized",
+    401,
+  );
+}
+
+/** Sətri JSON kimi oxumağa çalışır; alınmasa xam sətri qaytarır. */
+function parseMaybeJson(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
   }
+}
+
+/** Backend-in { code, message } xəta bədənindən ApiError qurur. */
+function toApiError(data: unknown, status: number): ApiError {
+  const err = (typeof data === "object" && data !== null ? data : {}) as {
+    code?: string;
+    message?: string;
+  };
+  return new ApiError(
+    err.message ?? "Serverlə əlaqədə xəta baş verdi.",
+    err.code ?? "General.Error",
+    status,
+  );
+}
+
+async function request<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, buildInit(method, body));
+
+  if (res.status === 401) throwUnauthorized();
 
   // 204 No Content (məs. GET /api/closings/today boş olanda)
   if (res.status === 204) return null as T;
 
-  const text = await res.text();
-  let data: unknown = null;
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
-    }
-  }
+  const data = parseMaybeJson(await res.text());
 
-  if (!res.ok) {
-    const err = (data ?? {}) as { code?: string; message?: string };
-    throw new ApiError(
-      err.message ?? "Serverlə əlaqədə xəta baş verdi.",
-      err.code ?? "General.Error",
-      res.status,
-    );
-  }
+  if (!res.ok) throw toApiError(data, res.status);
 
   return data as T;
 }
 
+export interface BlobResponse {
+  blob: Blob;
+  contentDisposition: string | null;
+}
+
 /**
- * Binary cavab (Excel/PDF export) — JSON parse etmir.
+ * Binary cavab (Excel/PDF export) — uğurda JSON parse etmir.
  * Content-Disposition header-i filename üçün saxlanılır.
+ * GET (parametrsiz) və POST (JSON body ilə, məs. etiket PDF-i) hər ikisini dəstəkləyir.
+ *
+ * Xəta halında backend blob yerinə { code, message } JSON-u qaytarır — ona görə
+ * uğursuz cavabın bədəni mətn kimi oxunub JSON-a çevrilir ki, toast-larda
+ * Azərbaycanca mesaj (məs. "Bu malların barkodu yoxdur: ...") görünsün.
  */
 async function requestBlob(
+  method: Method,
   path: string,
-): Promise<{ blob: Blob; contentDisposition: string | null }> {
-  const token = useAuthStore.getState().token;
-  const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  body?: unknown,
+): Promise<BlobResponse> {
+  const res = await fetch(`${API_URL}${path}`, buildInit(method, body));
 
-  const res = await fetch(`${API_URL}${path}`, { method: "GET", headers });
-
-  if (res.status === 401) {
-    useAuthStore.getState().logout();
-    if (unauthorizedHandler) unauthorizedHandler();
-    else if (typeof window !== "undefined") window.location.assign("/login");
-    throw new ApiError(
-      "Sessiya bitib. Yenidən daxil olun.",
-      "Auth.Unauthorized",
-      401,
-    );
-  }
+  if (res.status === 401) throwUnauthorized();
 
   if (!res.ok) {
-    let message = "Serverlə əlaqədə xəta baş verdi.";
-    let code = "General.Error";
-    try {
-      const err = (await res.json()) as { code?: string; message?: string };
-      if (err.message) message = err.message;
-      if (err.code) code = err.code;
-    } catch {
-      /* binary / boş body */
-    }
-    throw new ApiError(message, code, res.status);
+    // Blob cavabında da xəta bədəni JSON-dur; JSON deyilsə (HTML/boş)
+    // toApiError ümumi mesaja düşür.
+    const text = await res.text().catch(() => "");
+    throw toApiError(parseMaybeJson(text), res.status);
   }
 
   return {
@@ -142,8 +150,7 @@ export const apiClient = {
   put: <T>(path: string, body?: unknown): Promise<T> =>
     request<T>("PUT", path, body),
   del: <T>(path: string): Promise<T> => request<T>("DELETE", path),
-  getBlob: (
-    path: string,
-  ): Promise<{ blob: Blob; contentDisposition: string | null }> =>
-    requestBlob(path),
+  getBlob: (path: string): Promise<BlobResponse> => requestBlob("GET", path),
+  postBlob: (path: string, body?: unknown): Promise<BlobResponse> =>
+    requestBlob("POST", path, body),
 };

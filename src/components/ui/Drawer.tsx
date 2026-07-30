@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -28,6 +28,9 @@ export function Drawer({
   maximized,
   headerExtra,
 }: DrawerProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -36,6 +39,22 @@ export function Drawer({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // Açılanda fokus panelə keçir (daxildə autoFocus-lu sahə varsa ona toxunmur),
+  // bağlananda isə paneli açan düyməyə qaytarılır — klaviatura ilə işləyən
+  // istifadəçi siyahıda yerini itirmir.
+  useEffect(() => {
+    if (!open) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    const t = window.setTimeout(() => {
+      const panel = panelRef.current;
+      if (panel && !panel.contains(document.activeElement)) panel.focus();
+    }, 0);
+    return () => {
+      window.clearTimeout(t);
+      if (trigger?.isConnected) trigger.focus();
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -46,9 +65,19 @@ export function Drawer({
       ? "sm:max-w-3xl"
       : "sm:max-w-xl";
 
+  // Footer varsa başlıq flex sütunun sabit sətri, yoxsa scroll edən panelin
+  // sticky sətridir — qalan hər şey eynidir.
   const header = (
-    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
-      <h3 className="min-w-0 flex-1 truncate text-lg font-bold text-stone-900">
+    <div
+      className={cn(
+        "flex items-center justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4",
+        footer ? "shrink-0" : "sticky top-0 z-10",
+      )}
+    >
+      <h3
+        id={titleId}
+        className="min-w-0 flex-1 truncate text-lg font-bold text-stone-900"
+      >
         {title}
       </h3>
       <div className="flex shrink-0 items-center gap-1">
@@ -65,52 +94,35 @@ export function Drawer({
     </div>
   );
 
-  // Footer varsa: flex sütun — başlıq və footer sabit, orta hissə scroll olur.
-  if (footer) {
-    return (
-      <div className="fixed inset-0 z-50">
-        <div className="absolute inset-0 bg-stone-900/60" onClick={onClose} />
-        <div
-          className={cn(
-            "absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-2xl transition-[max-width] duration-200 ease-out",
-            panelWidth,
-          )}
-        >
-          {header}
-          <div className="flex-1 overflow-y-auto p-5">{children}</div>
-          <div className="shrink-0">{footer}</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Footer yoxdursa: köhnə davranış (bütün panel scroll, başlıq sticky).
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-stone-900/60" onClick={onClose} />
       <div
+        aria-hidden
+        className="absolute inset-0 bg-stone-900/60"
+        onClick={onClose}
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
         className={cn(
-          "absolute right-0 top-0 h-full w-full overflow-y-auto bg-white shadow-2xl transition-[max-width] duration-200 ease-out",
+          "absolute right-0 top-0 h-full w-full bg-white shadow-2xl outline-none transition-[max-width] duration-200 ease-out",
+          // Footer varsa: başlıq və footer sabit, yalnız orta hissə scroll olur.
+          footer ? "flex flex-col" : "overflow-y-auto",
           panelWidth,
         )}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
-          <h3 className="min-w-0 flex-1 truncate text-lg font-bold text-stone-900">
-            {title}
-          </h3>
-          <div className="flex shrink-0 items-center gap-1">
-            {headerExtra}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Bağla"
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-            >
-              <X size={20} />
-            </button>
-          </div>
-        </div>
-        <div className="p-5">{children}</div>
+        {header}
+        {footer ? (
+          <>
+            <div className="flex-1 overflow-y-auto p-5">{children}</div>
+            <div className="shrink-0">{footer}</div>
+          </>
+        ) : (
+          <div className="p-5">{children}</div>
+        )}
       </div>
     </div>
   );
