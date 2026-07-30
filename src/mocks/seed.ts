@@ -18,7 +18,20 @@ import type {
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 8;
+export const SEED_VERSION = 9;
+
+/**
+ * BE#15 — qismən ödənişli satış sahələri: seed datasında hər satış tam
+ * ödənilmiş/ödənilməmiş sayılır (nümunə datada qismən ödəniş yoxdur) —
+ * Nağd/Kart → tam ödənilib, Nisyə → tam qalıq.
+ */
+const paymentFields = (
+  paymentType: PaymentType,
+  totalAmount: number,
+): Pick<Sale, "paidAmount" | "remainingAmount" | "paidVia"> =>
+  paymentType === "Nisyə"
+    ? { paidAmount: 0, remainingAmount: totalAmount, paidVia: "Nağd" }
+    : { paidAmount: totalAmount, remainingAmount: 0, paidVia: paymentType };
 
 export interface SeedDatabase {
   products: Product[];
@@ -434,6 +447,7 @@ const buildSales = (
         discount: 0,
         totalAmount: subtotal,
         paymentType: pay,
+        ...paymentFields(pay, subtotal),
         customerId: pay === "Nisyə" ? customers[(d + k) % 3].id : null,
         costPerUnit: p.realCostPerUnit,
         purchasePricePerUnit: p.purchasePrice,
@@ -478,6 +492,7 @@ const buildSales = (
       discount,
       totalAmount: total,
       paymentType: pay,
+      ...paymentFields(pay, total),
       customerId: cus || null,
       costPerUnit: p.realCostPerUnit,
       // i === 1 → snapshot xüsusiyyətindən əvvəlki "köhnə" sətir nümunəsi:
@@ -504,6 +519,7 @@ const buildSales = (
     discount: 0,
     totalAmount: 5,
     paymentType: "Nağd",
+    ...paymentFields("Nağd", 5),
     customerId: null,
     costPerUnit: null,
     purchasePricePerUnit: null,
@@ -526,6 +542,7 @@ const buildSales = (
     discount: 0,
     totalAmount: 30,
     paymentType: "Nağd",
+    ...paymentFields("Nağd", 30),
     customerId: null,
     costPerUnit: 8,
     // costPerUnit = purchasePricePerUnit + ΣexpenseItems/say → 5 + 6/2 = 8
@@ -555,6 +572,7 @@ const buildSales = (
     discount: 0,
     totalAmount: 300,
     paymentType: "Kart",
+    ...paymentFields("Kart", 300),
     customerId: null,
     costPerUnit: 125,
     purchasePricePerUnit: 100,

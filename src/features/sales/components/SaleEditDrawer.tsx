@@ -18,7 +18,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/toast-store";
 import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
-import { fmtMoney } from "@/lib/format";
+import { fmtMoney, roundMoney } from "@/lib/format";
 import { CategoryField } from "@/features/categories/components/CategoryField";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { useCustomers } from "@/features/customers/queries";
@@ -126,6 +126,16 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
       return;
     }
     try {
+      // FE#25 — ödəniş növü dəyişdirilməyib VƏ satış qismən ödənilibsə mövcud
+      // paidAmount/paidVia (yeni yekunə görə məhdudlaşdırılmış) saxlanılır ki,
+      // qismən ödəniş sadəcə say/qiymət düzəlişində sıfırlanmasın.
+      // Tam ödənilmiş satışda paidAmount GÖNDƏRİLMİR: əks halda qiymət
+      // artırılanda köhnə (kiçik) məbləğ qalıb satış öz-özünə nisyəyə çevrilər
+      // və backend "Qalıq borc üçün müştəri seçilməlidir" xətası verərdi.
+      const keepPartialPayment =
+        payType === sale.paymentType &&
+        sale.remainingAmount > 0 &&
+        sale.paidAmount > 0;
       await updateSale.mutateAsync({
         id: sale.id,
         input: {
@@ -140,6 +150,16 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
           discount: 0,
           paymentType: payType,
           customerId: payType === "Nisyə" ? customerId : null,
+          paidAmount: keepPartialPayment
+            ? roundMoney(Math.min(sale.paidAmount, net))
+            : undefined,
+          // paidVia yalnız "Nağd"/"Kart" ola bilər (SaleWriteValidator) —
+          // Sale.paidVia tipi PaymentType-dır, "Nisyə" ehtimalını at.
+          paidVia: keepPartialPayment
+            ? sale.paidVia === "Kart"
+              ? "Kart"
+              : "Nağd"
+            : undefined,
           costPerUnit: isManual ? (sale.costPerUnit ?? null) : undefined,
           purchasePricePerUnit: isManual
             ? (sale.purchasePricePerUnit ?? null)

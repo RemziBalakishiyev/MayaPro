@@ -17,6 +17,26 @@ export const fmtMoney = (value: number | string | null | undefined): string => {
 };
 
 /**
+ * Pul dəyərini 2 onluğa yuvarlaqlaşdırır — float artıqlığını (500 − 300.1 =
+ * 199.89999999999998) backend-ə göndərməmək/ekranda göstərməmək üçün.
+ */
+export const roundMoney = (value: number): number =>
+  Number.isFinite(value) ? Math.round((value + Number.EPSILON) * 100) / 100 : 0;
+
+/**
+ * Kassa üslubu məbləğ inputu: yalnız rəqəm və TƏK onluq ayırıcı (nöqtə və ya
+ * vergül) qəbul edilir — "300,50" → 300.5. Boş, sərbəst mətn ("abc"), mənfi
+ * ("-50"), elmi/hex ("1e3", "0x10") kimi dəyərlər `null` qaytarır ki, çağıran
+ * tərəf sahəni səhv kimi işarələsin (belə dəyər backend-ə heç vaxt getmir).
+ */
+export const parseMoneyInput = (raw: string): number | null => {
+  const s = raw.trim().replace(",", ".");
+  if (s === "" || s === "." || !/^\d*\.?\d*$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? roundMoney(n) : null;
+};
+
+/**
  * İşarəli pul formatı (qazanc, fərq və s.):
  * 120 → "+120.00 ₼", -5.5 → "-5.50 ₼", 0 → "+0.00 ₼".
  * Sıfır üçün işarə `zeroSign` ilə seçilir: fmtMoneySigned(0, "±") → "±0.00 ₼".

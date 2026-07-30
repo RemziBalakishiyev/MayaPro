@@ -1,5 +1,6 @@
 /** Dashboard və Hesabatlar üçün təmiz (pure) hesablamalar. */
 import { productStatus } from "@/features/products/lib";
+import { salesMoneySplit } from "@/features/sales/lib";
 import { daysBetween, daysAgoISO, fmtDate, todayISO } from "@/lib/format";
 import type { Sale, Product, Expense, ProductStatus } from "@/types";
 
@@ -180,15 +181,20 @@ export const expenseByCategory = (expenses: Expense[]): NamedValue[] => {
   return Object.entries(byCat).map(([name, value]) => ({ name, value }));
 };
 
-/** Ödəniş növü bölgüsü (Nağd/Kart/Nisyə). */
-export const paymentBreakdown = (sales: Sale[]): NamedValue[] =>
-  (["Nağd", "Kart", "Nisyə"] as const).map((pt) => ({
-    name: pt,
-    value: sumBy(
-      sales.filter((s) => s.paymentType === pt),
-      (s) => s.totalAmount,
-    ),
-  }));
+/**
+ * Ödəniş növü bölgüsü (Nağd/Kart/Nisyə) — faktiki daxil olan pula görə
+ * (BE#19 qaydası): qismən ödənilmiş satışın nağd/kart hissəsi öz səbətinə,
+ * yalnız ödənilməmiş qalıq isə "Nisyə"yə düşür. Cəm dövrün satış yekununa
+ * bərabər qalır.
+ */
+export const paymentBreakdown = (sales: Sale[]): NamedValue[] => {
+  const { cash, card, credit } = salesMoneySplit(sales);
+  return [
+    { name: "Nağd", value: cash },
+    { name: "Kart", value: card },
+    { name: "Nisyə", value: credit },
+  ];
+};
 
 /** Ziyana satılan mallar (satış qiyməti real mayadan aşağı). */
 export const lossSellers = (products: Product[]): Product[] =>

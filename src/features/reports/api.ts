@@ -18,6 +18,7 @@ import { customersApi } from "@/features/customers/api";
 import { suppliersApi } from "@/features/suppliers/api";
 import { expensesApi } from "@/features/expenses/api";
 import { expenseBySource } from "@/features/expenses/lib";
+import { salesMoneySplit } from "@/features/sales/lib";
 import { employeesApi } from "@/features/employees/api";
 import { closingsApi } from "@/features/day-end/api";
 import { inPeriod, sumBy, type Period } from "./lib";
@@ -138,11 +139,9 @@ async function mockSummary(period: Period): Promise<SummaryData> {
   ]);
   const ps = sales.filter((s) => inPeriod(s.createdAt, period));
   const pe = expenses.filter((e) => inPeriod(e.date, period));
-  const byPt = (pt: string) =>
-    sumBy(
-      ps.filter((s) => s.paymentType === pt),
-      (s) => s.totalAmount,
-    );
+  // BE#19 — nağd/kart faktiki alınan puldur (qismən ödənişin ilkin hissəsi
+  // daxil), nisyə isə yalnız ödənilməmiş qalıqdır.
+  const split = salesMoneySplit(ps);
   const salesTotal = sumBy(ps, (s) => s.totalAmount);
   const profit = sumBy(ps, (s) => s.profit ?? 0);
   // Mənbə bölgüsü — real backend summary ilə eyni sahələr (BE#6 kontraktı),
@@ -160,9 +159,9 @@ async function mockSummary(period: Period): Promise<SummaryData> {
     expenses: exp,
     salesCount: ps.length,
     netProfit: profit - exp,
-    cashSales: byPt("Nağd"),
-    cardSales: byPt("Kart"),
-    creditSales: byPt("Nisyə"),
+    cashSales: split.cash,
+    cardSales: split.card,
+    creditSales: split.credit,
     generalExpenses: expBySource.general,
     productExpenses: expBySource.product,
   };
