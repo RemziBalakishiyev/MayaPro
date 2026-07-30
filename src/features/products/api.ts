@@ -9,6 +9,7 @@ import {
 } from "@/mocks/handlers";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
 import type { Product } from "@/types";
+import type { ImportPreviewResponse } from "./types";
 
 export const productsApi = {
   list: () =>
@@ -51,6 +52,25 @@ export const productsApi = {
    */
   generateBarcode: (id: string) =>
     apiClient.post<Product>(`/api/products/${id}/generate-barcode`),
+};
+
+/**
+ * Excel idxalı (BE#13) — yalnız real backend rejimində açılır (`USE_MOCK`
+ * olanda modal heç açılmır), ona görə mock qatına ehtiyac yoxdur.
+ */
+export const productImportsApi = {
+  /** Multipart fayl yükləməsi — sahə adı backend-in gözlədiyi kimi "file". */
+  preview: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient.postForm<ImportPreviewResponse>(
+      "/api/imports/products/preview",
+      formData,
+    );
+  },
+
+  commit: (importToken: string) =>
+    apiClient.post<void>("/api/imports/products/commit", { importToken }),
 };
 
 export type { NewProduct, ProductUpdate };

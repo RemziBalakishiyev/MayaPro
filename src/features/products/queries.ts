@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import {
   productsApi,
+  productImportsApi,
   type NewProduct,
   type ProductUpdate,
 } from "./api";
@@ -80,6 +81,36 @@ export const useGenerateBarcode = () => {
     // halında da siyahı təzələnsin ki, sətirdə aktual barkod görünsün.
     onSettled: () => {
       qc.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+};
+
+/**
+ * Excel idxalı — Addım 1: fayl seçilən kimi avtomatik çağırılır, DB-yə heç
+ * nə yazmır (yalnız təsnifat + `importToken`), ona görə invalidate yoxdur.
+ */
+export const usePreviewProductsImport = () =>
+  useMutation({
+    mutationFn: (file: File) => productImportsApi.preview(file),
+  });
+
+/**
+ * Excel idxalı — Addım 3: "N sətri idxal et" düyməsi. Uğurlu committdən sonra
+ * mallar, kateqoriyalar, dashboard və fəaliyyət jurnalı köhnəlmiş qalmasın deyə
+ * dörd query key invalidasiya olunur — modal bağlı olsa belə bu callback
+ * mutasiya `mutateAsync`-i çağıran komponentin mount vəziyyətindən asılı
+ * olmadan işə düşür (React Query mutasiyaları komponent life-cycle-dan
+ * müstəqildir).
+ */
+export const useCommitProductsImport = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (importToken: string) => productImportsApi.commit(importToken),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.all });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
 };

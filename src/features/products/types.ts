@@ -38,3 +38,49 @@ export const productSchema = z.object({
 
 /** Form dəyərlərinin tipi. */
 export type ProductFormValues = z.infer<typeof productSchema>;
+
+/**
+ * Excel idxalı (BE#13) — backend kontraktı ilə sətir-sətir üst-üstə düşür.
+ * `ImportRowStatus` kiçik hərflə string-lərdir (enum yox), sətir statusu üçün.
+ */
+export type ImportRowStatusValue = "create" | "update" | "error";
+
+/** Uğurla parse olunmuş sətrin sahələri — `error` sətirlərində `data` `null`-dur. */
+export interface ImportRowData {
+  name: string;
+  category: string;
+  barcode: string;
+  purchasePrice: number;
+  salePrice: number;
+  quantity: number;
+  minStock: number;
+  warehouse: string;
+  store: string;
+  shelf: string;
+  box: string;
+  attributes: { name: string; value: string }[];
+  note: string;
+}
+
+/** Önizləmə cavabının bir sətri. */
+export interface ImportRowResult {
+  rowNumber: number;
+  status: ImportRowStatusValue;
+  data: ImportRowData | null;
+  error: string | null;
+}
+
+/** Sətir sayı təsnifatı + yeni yaradılacaq kateqoriyaların adları. */
+export interface ImportSummary {
+  creates: number;
+  updates: number;
+  errors: number;
+  newCategories: string[];
+}
+
+/** `POST /api/imports/products/preview` cavabı. */
+export interface ImportPreviewResponse {
+  importToken: string;
+  rows: ImportRowResult[];
+  summary: ImportSummary;
+}
