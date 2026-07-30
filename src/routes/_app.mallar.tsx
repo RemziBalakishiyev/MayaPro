@@ -23,6 +23,7 @@ import {
 } from "@/features/products/components/ProductsTable";
 import { ProductForm } from "@/features/products/components/ProductForm";
 import { StockAdjustModal } from "@/features/products/components/StockAdjustModal";
+import { ExcelImportModal } from "@/features/products/components/ExcelImportModal";
 import type { Product } from "@/types";
 
 const searchSchema = z.object({
@@ -52,6 +53,7 @@ function MallarPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [deleteFor, setDeleteFor] = useState<Product | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [stockModal, setStockModal] = useState<{
     product: Product;
     mode: StockMode;
@@ -118,6 +120,15 @@ function MallarPage() {
 
   const uiOnly = () => toast.info("Bu funksiya backend ilə əlavə olunacaq");
 
+  // AC-2: mock/demo rejimində modal açılmır (şəbəkə sorğusu yoxdur).
+  const openImport = () => {
+    if (USE_MOCK) {
+      toast.info("Excel import real backend rejimində işləyir");
+      return;
+    }
+    setImportOpen(true);
+  };
+
   const exportExcel = async () => {
     if (USE_MOCK) {
       toast.info("Export real backend rejimində işləyir");
@@ -140,14 +151,17 @@ function MallarPage() {
         subtitle={`${products.length} mal · Anbar dəyəri: ${fmtMoney(stockValue)}`}
         actions={
           <>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Upload size={14} />}
-              onClick={uiOnly}
-            >
-              Excel import
-            </Button>
+            {/* İdxal mal yazır → yalnız products.write icazəsi olanlara. */}
+            {canWrite && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Upload size={14} />}
+                onClick={openImport}
+              >
+                Excel import
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -210,6 +224,7 @@ function MallarPage() {
         product={stockModal?.product ?? null}
         mode={stockModal?.mode ?? "add"}
       />
+      <ExcelImportModal open={importOpen} onClose={() => setImportOpen(false)} />
       <ConfirmModal
         open={!!deleteFor}
         onClose={() => setDeleteFor(null)}
