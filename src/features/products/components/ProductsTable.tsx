@@ -4,22 +4,23 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Package, Plus, Minus, Pencil, Eye, Trash2 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { DataTable } from "@/components/ui/DataTable";
+import { EmptyValue } from "@/components/ui/EmptyValue";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
-import { profitPercent, firstAttrValue } from "../lib";
+import { profitPercent, firstAttrValue, hasNoBatchExpense } from "../lib";
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import type { Product } from "@/types";
 
 export type StockMode = "add" | "sub";
 
-/** Anbar yerini yığcam formata salır: "Anbar A / Rəf 3 / Qutu 12" → "A / R3 / Q12". */
-const shortLocation = (p: Product): string => {
-  const wh = (p.warehouse || "").split(" ").filter(Boolean).pop() || "";
-  const parts = [wh, p.shelf && `R${p.shelf}`, p.box && `Q${p.box}`].filter(
-    Boolean,
-  );
-  return parts.length ? parts.join(" / ") : p.location || "—";
-};
+const NO_EXPENSE_HINT = "Xərc yoxdur — maya alış qiymətinə bərabərdir";
+
+/**
+ * Mal xanasının tooltip-i: kəsilmiş ad + anbar yeri
+ * (yer sütunu cədvəldən çıxarıldığı üçün burada göstərilir).
+ */
+const productTooltip = (p: Product): string =>
+  [p.name, p.location].filter(Boolean).join("\n");
 
 interface Props {
   products: Product[];
@@ -117,6 +118,7 @@ export function ProductsTable({
               to="/mallar/$id"
               params={{ id: p.id }}
               className="flex items-center gap-2.5 hover:opacity-80"
+              title={productTooltip(p)}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-400">
                 {p.image ? (
@@ -130,10 +132,7 @@ export function ProductsTable({
                 )}
               </div>
               <div className="min-w-0 max-w-[150px]">
-                <p
-                  className="truncate font-semibold text-stone-900 hover:text-emerald-700 hover:underline"
-                  title={p.name}
-                >
+                <p className="truncate font-semibold text-stone-900 hover:text-emerald-700 hover:underline">
                   {p.name}
                 </p>
                 <p className="truncate text-[11px] text-stone-400">
@@ -152,9 +151,19 @@ export function ProductsTable({
       {
         accessorKey: "purchasePrice",
         header: "Alış",
-        cell: ({ getValue }) => (
-          <span className="tabular-nums">{fmtMoney(getValue() as number)}</span>
-        ),
+        cell: ({ row, getValue }) => {
+          // Xərc yoxdursa alış = real maya → dəyəri iki sütunda təkrarlamırıq.
+          if (hasNoBatchExpense(row.original)) {
+            return (
+              <EmptyValue label={NO_EXPENSE_HINT} title={NO_EXPENSE_HINT} />
+            );
+          }
+          return (
+            <span className="tabular-nums">
+              {fmtMoney(getValue() as number)}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "realCostPerUnit",
@@ -227,17 +236,6 @@ export function ProductsTable({
         },
       },
       {
-        accessorKey: "location",
-        header: "Anbar yeri",
-        enableSorting: false,
-        meta: { className: "hidden 2xl:table-cell" },
-        cell: ({ row }) => (
-          <span className="text-xs" title={row.original.location}>
-            {shortLocation(row.original)}
-          </span>
-        ),
-      },
-      {
         id: "status",
         header: "Status",
         enableSorting: false,
@@ -279,6 +277,7 @@ export function ProductsTable({
                 to="/mallar/$id"
                 params={{ id: p.id }}
                 className="min-w-0"
+                title={productTooltip(p)}
               >
                 <p className="truncate text-lg font-bold text-stone-900">
                   {p.name}

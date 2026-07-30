@@ -12,6 +12,10 @@ export interface DrawerProps {
   footer?: ReactNode;
   /** Desktop-da daha geniş panel (məs. mal forması). */
   wide?: boolean;
+  /** Tam ekran eni — `wide`-dan üstündür (məs. mal formunun böyüdülmüş rejimi). */
+  maximized?: boolean;
+  /** Başlıqla bağlama düyməsi arasında əlavə düymə (məs. böyüt/kiçilt). */
+  headerExtra?: ReactNode;
 }
 
 export function Drawer({
@@ -21,6 +25,8 @@ export function Drawer({
   children,
   footer,
   wide,
+  maximized,
+  headerExtra,
 }: DrawerProps) {
   useEffect(() => {
     if (!open) return;
@@ -33,18 +39,29 @@ export function Drawer({
 
   if (!open) return null;
 
-  const panelWidth = wide ? "sm:max-w-3xl" : "sm:max-w-xl";
+  // `maximized` → `wide`-dan üstündür (tam ekran eni).
+  const panelWidth = maximized
+    ? "sm:max-w-full"
+    : wide
+      ? "sm:max-w-3xl"
+      : "sm:max-w-xl";
 
   const header = (
-    <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-white px-5 py-4">
-      <h3 className="text-lg font-bold text-stone-900">{title}</h3>
-      <button
-        onClick={onClose}
-        aria-label="Bağla"
-        className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-      >
-        <X size={20} />
-      </button>
+    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+      <h3 className="min-w-0 flex-1 truncate text-lg font-bold text-stone-900">
+        {title}
+      </h3>
+      <div className="flex shrink-0 items-center gap-1">
+        {headerExtra}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Bağla"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+        >
+          <X size={20} />
+        </button>
+      </div>
     </div>
   );
 
@@ -55,7 +72,7 @@ export function Drawer({
         <div className="absolute inset-0 bg-stone-900/60" onClick={onClose} />
         <div
           className={cn(
-            "absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-2xl",
+            "absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-2xl transition-[max-width] duration-200 ease-out",
             panelWidth,
           )}
         >
@@ -73,19 +90,25 @@ export function Drawer({
       <div className="absolute inset-0 bg-stone-900/60" onClick={onClose} />
       <div
         className={cn(
-          "absolute right-0 top-0 h-full w-full overflow-y-auto bg-white shadow-2xl",
+          "absolute right-0 top-0 h-full w-full overflow-y-auto bg-white shadow-2xl transition-[max-width] duration-200 ease-out",
           panelWidth,
         )}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white px-5 py-4">
-          <h3 className="text-lg font-bold text-stone-900">{title}</h3>
-          <button
-            onClick={onClose}
-            aria-label="Bağla"
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-          >
-            <X size={20} />
-          </button>
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+          <h3 className="min-w-0 flex-1 truncate text-lg font-bold text-stone-900">
+            {title}
+          </h3>
+          <div className="flex shrink-0 items-center gap-1">
+            {headerExtra}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Bağla"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
         <div className="p-5">{children}</div>
       </div>
