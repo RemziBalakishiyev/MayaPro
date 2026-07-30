@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -20,6 +20,7 @@ import { FilterPanel } from "@/components/ui/FilterPanel";
 import { inputCls } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-store";
+import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { useCan } from "@/features/auth/store";
 import { useCustomers } from "@/features/customers/queries";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
@@ -31,9 +32,10 @@ import {
   type Period,
 } from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
-import { periodToRange, saleBatchExpense } from "../lib";
+import { periodToRange, saleBatchExpense, saleDateTime } from "../lib";
 import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
+import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
 import { SaleDetailDrawer } from "./SaleDetailDrawer";
 import { SaleEditDrawer } from "./SaleEditDrawer";
 import type { PaymentType, Sale } from "@/types";
@@ -41,12 +43,6 @@ import type { PaymentType, Sale } from "@/types";
 const routeApi = getRouteApi("/_app/satis");
 
 const PERIODS: Period[] = ["today", "week", "month", "all"];
-
-const saleDateTime = (iso: string): string => {
-  const date = fmtDate(iso, "dd.MM.yyyy");
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return date;
-  return `${date} ${fmtDate(iso, "HH:mm")}`;
-};
 
 const saleTime = (iso: string): string => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return fmtDate(iso, "dd.MM");
@@ -77,8 +73,13 @@ export function SalesJournal() {
     return (s: Sale) =>
       s.customerId ? (map.get(s.customerId) ?? null) : null;
   }, [customersData]);
+  const customerPhone = useMemo(() => {
+    const map = new Map(customersData.map((c) => [c.id, c.phone]));
+    return (s: Sale) => (s.customerId ? (map.get(s.customerId) ?? "") : "");
+  }, [customersData]);
   const { download: downloadInvoice, pendingId: invoicePendingId } =
     useInvoiceDownload();
+  const { send: sendInvoiceWa, pendingId: waPendingId } = useInvoiceWhatsApp();
   const journal = useSalesJournal({
     period,
     paymentType: pay,
@@ -108,6 +109,49 @@ export function SalesJournal() {
     const map = new Map(employees.map((e) => [e.id, e.name]));
     return (s: Sale) => s.soldByName || map.get(s.employeeId) || "—";
   }, [employees]);
+
+  /** Sətir əməliyyat menyusu: WhatsApp (hamıya) + Düzəliş/Sil (yalnız sales.manage). */
+  const buildMenuItems = useCallback(
+    (s: Sale): ActionMenuItem[] => {
+      const phone = customerPhone(s);
+      const canWa = !!s.customerId && !!phone.trim();
+      const waSending = waPendingId === s.id;
+      const items: ActionMenuItem[] = [
+        {
+          label: "WhatsApp-la göndər",
+          icon: waSending ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <WhatsAppIcon size={15} />
+          ),
+          onClick: () => void sendInvoiceWa(s.id, phone, s.createdAt),
+          disabled: !canWa || waSending,
+          title: !s.customerId
+            ? "Müştəri qeyd olunmayıb"
+            : !phone.trim()
+              ? "Müştəri telefonu yoxdur"
+              : undefined,
+        },
+      ];
+      if (canManage) {
+        items.push(
+          {
+            label: "Düzəliş",
+            icon: <Pencil size={15} />,
+            onClick: () => setEditId(s.id),
+          },
+          {
+            label: "Sil",
+            icon: <Trash2 size={15} />,
+            onClick: () => setDeleteTarget(s),
+            tone: "danger",
+          },
+        );
+      }
+      return items;
+    },
+    [canManage, customerPhone, sendInvoiceWa, waPendingId],
+  );
 
   const sales = journal.data ?? [];
   const tableKey = [
@@ -251,24 +295,14 @@ export function SalesJournal() {
         enableSorting: false,
         cell: ({ row }) => {
           const s = row.original;
-          const menuItems: ActionMenuItem[] = canManage
-            ? [
-                {
-                  label: "Düzəliş",
-                  icon: <Pencil size={15} />,
-                  onClick: () => setEditId(s.id),
-                },
-                {
-                  label: "Sil",
-                  icon: <Trash2 size={15} />,
-                  onClick: () => setDeleteTarget(s),
-                  tone: "danger",
-                },
-              ]
-            : [];
           const invoicePending = invoicePendingId === s.id;
           return (
-            <div className="flex items-center justify-end gap-1.5">
+            // Sətir onRowClick ilə detal draweri açır — bu sahədəki düymələr/menyu
+            // öz funksiyasını icra etsin, drawer açmasın deyə bubbling dayandırılır.
+            <div
+              className="flex items-center justify-end gap-1.5"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 onClick={() => setDetailId(s.id)}
@@ -292,7 +326,7 @@ export function SalesJournal() {
                 )}
               </button>
               <ActionMenu
-                items={menuItems}
+                items={buildMenuItems(s)}
                 aria-label={`${s.productName} əməliyyatları`}
               />
             </div>
@@ -300,7 +334,13 @@ export function SalesJournal() {
         },
       },
     ],
-    [canManage, sellerName, downloadInvoice, invoicePendingId, customerName],
+    [
+      buildMenuItems,
+      sellerName,
+      downloadInvoice,
+      invoicePendingId,
+      customerName,
+    ],
   );
 
   const handleDelete = async () => {
@@ -308,6 +348,8 @@ export function SalesJournal() {
     try {
       await deleteSale.mutateAsync(deleteTarget.id);
       toast.success("Satış silindi");
+      // Silinən satış hazırda detal drawerdə açıqdırsa, onu da bağla.
+      if (detailId === deleteTarget.id) setDetailId(null);
       setDeleteTarget(null);
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
@@ -572,6 +614,7 @@ export function SalesJournal() {
           isLoading={journal.isLoading}
           pageSize={JOURNAL_PAGE_SIZE}
           embedded
+          onRowClick={(s) => setDetailId(s.id)}
           emptyState={{
             title: "Satış yoxdur",
             description:
@@ -629,7 +672,10 @@ export function SalesJournal() {
                   {saleTime(s.createdAt)}
                 </span>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
+              <div
+                className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
                   onClick={() => setDetailId(s.id)}
@@ -652,23 +698,7 @@ export function SalesJournal() {
                   )}
                 </button>
                 <ActionMenu
-                  items={
-                    canManage
-                      ? [
-                          {
-                            label: "Düzəliş",
-                            icon: <Pencil size={15} />,
-                            onClick: () => setEditId(s.id),
-                          },
-                          {
-                            label: "Sil",
-                            icon: <Trash2 size={15} />,
-                            onClick: () => setDeleteTarget(s),
-                            tone: "danger",
-                          },
-                        ]
-                      : []
-                  }
+                  items={buildMenuItems(s)}
                   aria-label={`${s.productName} əməliyyatları`}
                 />
               </div>
@@ -680,6 +710,8 @@ export function SalesJournal() {
       <SaleDetailDrawer
         saleId={detailId}
         onClose={() => setDetailId(null)}
+        onEdit={(id) => setEditId(id)}
+        onDelete={(s) => setDeleteTarget(s)}
       />
 
       <SaleEditDrawer
