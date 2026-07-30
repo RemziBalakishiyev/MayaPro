@@ -21,11 +21,18 @@ import {
   usePreviewProductsImport,
   useCommitProductsImport,
 } from "../queries";
-import type { ImportPreviewResponse, ImportRowResult } from "../types";
+import type {
+  ImportPreviewResponse,
+  ImportRowResult,
+  ImportRowStatusValue,
+} from "../types";
 
 /** Backend limiti ilə bit-bitə üst-üstə düşməli — `ImportTemplate.MaxFileBytes`. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const TEMPLATE_URL = "/api/exports/products-template.xlsx";
+
+/** Summary kartında tam siyahı əvəzinə göstərilən yeni kateqoriya sayı. */
+const MAX_SHOWN_CATEGORIES = 3;
 
 type Step = "file" | "preview" | "result";
 
@@ -34,8 +41,12 @@ interface Props {
   onClose: () => void;
 }
 
-/** Sətir statusu → mətn (həm badge, həm summary kartı ilə eyni rəng ailəsi). */
-const ROW_LABEL: Record<string, string> = {
+/**
+ * Sətir statusu → mətn. Açarlar backend-in `ImportRowStatus` sabitləri ilə eynidir;
+ * mətnlər isə `Badge`-in `STATUS_STYLE` açarlarıdır — rəng ailəsi summary kartları
+ * ilə eyni (yaşıl / indiqo / qırmızı).
+ */
+const ROW_LABEL: Record<ImportRowStatusValue, string> = {
   create: "Yeni",
   update: "Yenilənəcək",
   error: "Xətalı",
@@ -49,6 +60,21 @@ const STEP_TITLE: Record<Step, string> = {
 
 /** Fayl uzantısı .xlsx-dirmi (böyük/kiçik hərf fərq etmir). */
 const hasXlsxExtension = (name: string) => /\.xlsx$/i.test(name);
+
+/**
+ * Yeni kateqoriyaların qısa siyahısı — onlarla ad kartı şişirtməsin deyə ilk
+ * bir neçəsi göstərilir, tam siyahı hover-də (`title`) görünür.
+ */
+function newCategoriesSub(names: string[]) {
+  if (names.length === 0) return "yoxdur";
+  const rest = names.length - MAX_SHOWN_CATEGORIES;
+  return (
+    <span title={names.join(", ")}>
+      {names.slice(0, MAX_SHOWN_CATEGORIES).join(", ")}
+      {rest > 0 && ` +${rest}`}
+    </span>
+  );
+}
 
 /**
  * Excel idxalı — 3 addımlı axın: fayl → önizləmə → nəticə.
@@ -73,6 +99,17 @@ export function ExcelImportModal({ open, onClose }: Props) {
   const previewMut = usePreviewProductsImport();
   const commitMut = useCommitProductsImport();
 
+  /** Preview sorğusu gedirkən Addım 1-in bütün elementləri deaktivdir (AC-7). */
+  const previewing = previewMut.isPending;
+
+  /**
+   * Hər preview sorğusuna sıra nömrəsi verilir: modal bağlanıb-açılanda, "Geri"
+   * basılanda və ya yeni fayl seçiləndə nömrə artır, ona görə köhnə sorğunun
+   * gec gələn cavabı aktual vəziyyəti (fayl/önizləmə/addım) əzə bilmir.
+   */
+  const previewSeq = useRef(0);
+  const nextPreviewSeq = () => (previewSeq.current += 1);
+
   const resetInputValue = () => {
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -81,6 +118,7 @@ export function ExcelImportModal({ open, onClose }: Props) {
   // görünməsin (AC-13/TC-7).
   useEffect(() => {
     if (!open) return;
+    nextPreviewSeq();
     setStep("file");
     setFile(null);
     setBanner(null);
@@ -91,6 +129,7 @@ export function ExcelImportModal({ open, onClose }: Props) {
   }, [open]);
 
   const backToStepOne = (message: string | null) => {
+    nextPreviewSeq();
     setStep("file");
     setFile(null);
     setPreview(null);
@@ -106,6 +145,9 @@ export function ExcelImportModal({ open, onClose }: Props) {
   };
 
   const startPreview = async (f: File) => {
+    // Sıra nömrəsi validasiyadan əvvəl artır ki, əvvəlki sorğu hər halda köhnəlsin.
+    const seq = nextPreviewSeq();
+
     const clientError = validateFile(f);
     if (clientError) {
       setBanner(clientError);
@@ -118,9 +160,11 @@ export function ExcelImportModal({ open, onClose }: Props) {
     setFile(f);
     try {
       const data = await previewMut.mutateAsync(f);
+      if (seq !== previewSeq.current) return;
       setPreview(data);
       setStep("preview");
     } catch (e) {
+      if (seq !== previewSeq.current) return;
       const message = e instanceof Error ? e.message : "Fayl oxunmadı";
       setBanner(message);
       toast.error(message);
@@ -134,9 +178,15 @@ export function ExcelImportModal({ open, onClose }: Props) {
     if (picked) void startPreview(picked);
   };
 
+  /**
+   * Drop həmişə `preventDefault` edilir — sorğu davam edərkən handler tamam
+   * çıxarılsaydı, hadisə document-ə qalxıb brauzerin defolt davranışını
+   * (faylı yeni səhifədə açmaq) işə salar və istifadəçi tətbiqdən çıxardı.
+   */
   const onDrop = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setDragActive(false);
+    if (previewing) return;
     const dropped = e.dataTransfer.files?.[0];
     if (dropped) void startPreview(dropped);
   };
@@ -183,8 +233,6 @@ export function ExcelImportModal({ open, onClose }: Props) {
       setTemplateDownloading(false);
     }
   };
-
-  const stepOneBusy = previewMut.isPending || templateDownloading;
 
   const columns = useMemo<ColumnDef<ImportRowResult, unknown>[]>(
     () => [
@@ -256,19 +304,25 @@ export function ExcelImportModal({ open, onClose }: Props) {
             onClick={() => inputRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault();
-              if (!stepOneBusy) setDragActive(true);
+              if (!previewing) setDragActive(true);
             }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={stepOneBusy ? undefined : onDrop}
-            disabled={stepOneBusy}
-            aria-busy={previewMut.isPending}
+            onDragLeave={(e) => {
+              // Daxili elementə keçəndə "dragleave" də atılır — sahədən tam
+              // çıxılmayıbsa vurğu sönməsin (yanıb-sönmə effekti olmasın).
+              if (e.currentTarget.contains(e.relatedTarget as Node | null))
+                return;
+              setDragActive(false);
+            }}
+            onDrop={onDrop}
+            disabled={previewing}
+            aria-busy={previewing}
             aria-label="Excel faylı seç və ya bura sürüklə (.xlsx, ən çoxu 5 MB)"
             className={cn(
               "flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20",
               dragActive
                 ? "border-emerald-500 bg-emerald-50"
                 : "border-stone-300 bg-stone-50 hover:border-stone-400",
-              stepOneBusy && "cursor-not-allowed opacity-60",
+              previewing && "cursor-not-allowed opacity-60",
             )}
           >
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
@@ -292,7 +346,7 @@ export function ExcelImportModal({ open, onClose }: Props) {
             aria-hidden
           />
 
-          {previewMut.isPending && (
+          {previewing && (
             <div
               role="status"
               aria-live="polite"
@@ -319,7 +373,7 @@ export function ExcelImportModal({ open, onClose }: Props) {
                 )
               }
               onClick={() => void downloadTemplate()}
-              disabled={stepOneBusy}
+              disabled={previewing || templateDownloading}
             >
               Şablonu endir
             </Button>
@@ -348,17 +402,14 @@ export function ExcelImportModal({ open, onClose }: Props) {
             <StatCard
               label="Yeni kateqoriyalar"
               value={preview.summary.newCategories.length}
-              sub={
-                preview.summary.newCategories.length > 0
-                  ? preview.summary.newCategories.join(", ")
-                  : "yoxdur"
-              }
+              sub={newCategoriesSub(preview.summary.newCategories)}
             />
           </div>
 
           {preview.summary.errors > 0 && (
             <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 ring-1 ring-inset ring-amber-200/70">
-              Xətalı sətirlər ötürüləcək — istəsən faylı düzəldib yenidən yüklə
+              Xətalı sətirlər ötürüləcək — istəsəniz faylı düzəldib yenidən
+              yükləyin
             </p>
           )}
 

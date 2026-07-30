@@ -95,12 +95,15 @@ export const usePreviewProductsImport = () =>
   });
 
 /**
- * Excel idxalı — Addım 3: "N sətri idxal et" düyməsi. Uğurlu committdən sonra
- * mallar, kateqoriyalar, dashboard və fəaliyyət jurnalı köhnəlmiş qalmasın deyə
- * dörd query key invalidasiya olunur — modal bağlı olsa belə bu callback
- * mutasiya `mutateAsync`-i çağıran komponentin mount vəziyyətindən asılı
- * olmadan işə düşür (React Query mutasiyaları komponent life-cycle-dan
- * müstəqildir).
+ * Excel idxalı — Addım 2-dəki "N sətri idxal et" düyməsi (nəticə Addım 3-də
+ * göstərilir). Uğurlu commit DB-ni dəyişir, ona görə mallar, kateqoriyalar,
+ * dashboard və fəaliyyət jurnalı invalidasiya olunur.
+ *
+ * Modal bağlansa belə invalidasiya işləyir: `ExcelImportModal` "Mallar"
+ * səhifəsində daim mount olunmuş qalır (yalnız `open` prop-u dəyişir), yəni
+ * sorğu davam edərkən modalı bağlamaq `onSuccess`-i ləğv etmir. Yeganə istisna
+ * — commit gedərkən səhifədən tam çıxmaq; o halda query-lər onsuz da unmount
+ * olunur və 30 saniyəlik `staleTime`-dan sonra qayıdışda yenidən çəkilir.
  */
 export const useCommitProductsImport = () => {
   const qc = useQueryClient();
