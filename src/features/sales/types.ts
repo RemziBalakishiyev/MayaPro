@@ -41,6 +41,13 @@ export const createSaleSchema = z
     discount: z.coerce.number().min(0, "Mənfi ola bilməz").default(0),
     paymentType: z.enum(["Nağd", "Kart", "Nisyə"]),
     customerId: z.string().nullable(),
+    /**
+     * BE#15 — qismən ödənişli satış: faktiki ödənilən məbləğ. Ötürülməzsə
+     * backend defolt tətbiq edir (Nağd/Kart-da tam, Nisyədə 0).
+     */
+    paidAmount: z.coerce.number().min(0, "Mənfi ola bilməz").optional(),
+    /** Ödənilən hissənin üsulu (Nağd/Kart) — Nisyədə qismən ödənişdə önəmlidir. */
+    paidVia: z.enum(["Nağd", "Kart"]).optional(),
     /** Sərbəst satışda maya; bilinmirsə null ("naməlum" qazanc). */
     costPerUnit: z.coerce.number().min(0, "Mənfi ola bilməz").nullable().optional(),
     /** Sərbəst satışda vahid alış qiyməti (costPerUnit-dən ayrı saxlanılır); bilinmirsə null. Katalog satışında backend tərəfindən maldan snapshot alınır (göndərilsə də nəzərə alınmır). */

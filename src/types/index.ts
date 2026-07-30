@@ -91,6 +91,18 @@ export interface Sale {
   totalAmount: number;
   paymentType: PaymentType;
   customerId: string | null;
+  /**
+   * BE#15 — qismən ödənişli satış: faktiki ödənilən məbləğ (tam ödəmədə
+   * `totalAmount`-a bərabər, nisyədə 0 ola bilər).
+   */
+  paidAmount: number;
+  /** `totalAmount − paidAmount` (tam ödəmədə 0). */
+  remainingAmount: number;
+  /**
+   * Ödənilən hissənin necə alındığı (Nağd/Kart) — yalnız `remainingAmount > 0`
+   * olduqda `paymentType`-dan fərqli məna daşıyır (qismən ödənişli nisyə).
+   */
+  paidVia: PaymentType;
   /** Satış anındakı real maya snapshot-u (1 ədəd); manual satışda maya bilinmirsə null. */
   costPerUnit?: number | null;
   /** Malın vahid alış qiyməti (satış anındakı snapshot); bilinmirsə null. */

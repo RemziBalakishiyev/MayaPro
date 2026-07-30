@@ -247,6 +247,12 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             )}
             <div className="border-t-2 border-stone-200 pt-2">
               <Row label="YEKUN" value={fmtMoney(sale.totalAmount)} strong />
+              {/* FE#25 (AC8) — qismən ödənişdə Yekun altında kiçik boz sətir */}
+              {sale.remainingAmount > 0 && sale.paidAmount > 0 && (
+                <p className="text-right text-xs text-stone-400">
+                  {fmtMoney(sale.paidAmount)} ödənilib
+                </p>
+              )}
             </div>
 
             <div className="mt-2 space-y-2 rounded-xl bg-stone-50 p-3.5">
@@ -339,11 +345,22 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
 
               {sale.paymentType === "Nisyə" && (
                 <div className="mt-1 space-y-1.5 rounded-xl bg-orange-50 p-3">
+                  {/* Qismən ödənişdə ödənilən hissə də görünür (FE#25). */}
+                  {sale.paidAmount > 0 && (
+                    <Row
+                      label="Ödənilib"
+                      value={
+                        <span className="font-medium text-stone-600">
+                          {fmtMoney(sale.paidAmount)}
+                        </span>
+                      }
+                    />
+                  )}
                   <Row
                     label="Bu satışdan borc"
                     value={
                       <span className="font-bold text-orange-800">
-                        {fmtMoney(sale.totalAmount)}
+                        {fmtMoney(sale.remainingAmount)}
                       </span>
                     }
                   />

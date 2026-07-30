@@ -1,7 +1,7 @@
 /** Satış sətri üçün təmiz (pure) hesablamalar. */
-import { daysAgoISO, fmtDate, todayISO } from "@/lib/format";
+import { daysAgoISO, fmtDate, roundMoney, todayISO } from "@/lib/format";
 import type { Period } from "@/features/reports/lib";
-import type { Sale } from "@/types";
+import type { PaymentType, Sale } from "@/types";
 
 /** Period → API from/to (ISO tarix, gün səviyyəsi). */
 export const periodToRange = (
@@ -43,6 +43,82 @@ export const saleProfit = (
 /** Vahid qiymət real mayadan aşağıdırsa (ziyanlı satış). */
 export const isLossSale = (salePrice: number, realCost: number): boolean =>
   Number(salePrice) > 0 && realCost > 0 && Number(salePrice) < realCost;
+
+export interface SalePaymentPlan {
+  /** Faktiki ödənilən məbləğ (0 ≤ paidAmount ≤ total). */
+  paidAmount: number;
+  /** total − paidAmount (0-dan aşağı düşmür). */
+  remaining: number;
+  /** Yekun saxlanılan ödəniş növü — qalıq varsa həmişə "Nisyə". */
+  paymentType: PaymentType;
+  /** Ödənilən hissənin üsulu — yalnız qalıq varsa `paymentType`-dan fərqli məna daşıyır. */
+  paidVia: PaymentType;
+}
+
+/**
+ * BE#15 — qismən ödənişli satış qaydası: backend `SalePaymentPlan.Resolve`
+ * ilə bir mənbə (mock rejimdə eyni davranışı təkrarlamaq üçün). Qalıq (
+ * total − paidAmount) müsbətdirsə saxlanılan növ həmişə "Nisyə"-dir —
+ * tələb olunan növdən asılı olmayaraq.
+ */
+export const resolveSalePaymentPlan = (
+  requestedType: PaymentType,
+  total: number,
+  paidAmount?: number | null,
+  paidVia?: PaymentType | null,
+): SalePaymentPlan => {
+  // Backend validatoru 0 ≤ paidAmount ≤ total qaydasını qoruyur; mock rejimdə
+  // eyni invariantı burada təmin edirik (mənfi/artıq dəyər saxlanılmasın).
+  const requested = paidAmount ?? (requestedType === "Nisyə" ? 0 : total);
+  const effectivePaid = roundMoney(Math.min(Math.max(0, requested), total));
+  const remaining = roundMoney(Math.max(0, total - effectivePaid));
+  const receivedVia = paidVia && paidVia !== "Nisyə" ? paidVia : null;
+  const paymentType: PaymentType =
+    remaining > 0
+      ? "Nisyə"
+      : requestedType === "Nisyə"
+        ? (receivedVia ?? "Nağd")
+        : requestedType;
+  // Qalıq yoxdursa pul yalnız saxlanılan növlə gəlmiş sayılır (backend qaydası).
+  const resolvedVia: PaymentType =
+    remaining > 0 ? (receivedVia ?? "Nağd") : paymentType;
+  return {
+    paidAmount: effectivePaid,
+    remaining,
+    paymentType,
+    paidVia: resolvedVia,
+  };
+};
+
+/** Nağd/Kart/Nisyə bölgüsü — faktiki alınan pul (BE#19 qaydası). */
+export interface SalesMoneySplit {
+  /** Nağd alınan pul (nisyə satışın nağd ilkin ödənişi də daxil). */
+  cash: number;
+  /** Kartla alınan pul (nisyə satışın kart ilkin ödənişi də daxil). */
+  card: number;
+  /** Nisyə = yalnız ödənilməmiş qalıq (satışın tam yekunu deyil). */
+  credit: number;
+}
+
+/**
+ * Satış siyahısının "real daxil olan pul" bölgüsü — backend
+ * `SalesReportRowTotals.ComputeReceivedTotals` (BE#19) ilə eyni qayda:
+ * nağd/kart səbətinə `paidVia` üzrə `paidAmount` düşür, nisyəyə isə yalnız
+ * `remainingAmount`. Beləcə qismən ödənilmiş satışın nağd hissəsi gün sonu
+ * medaxilində itmir və hesabat/dashboard rəqəmləri backend ilə üst-üstə düşür.
+ */
+export const salesMoneySplit = (sales: Sale[]): SalesMoneySplit => {
+  let cash = 0;
+  let card = 0;
+  let credit = 0;
+  for (const s of sales) {
+    const paid = Number(s.paidAmount) || 0;
+    if (s.paidVia === "Nağd") cash += paid;
+    else if (s.paidVia === "Kart") card += paid;
+    if (s.paymentType === "Nisyə") credit += Number(s.remainingAmount) || 0;
+  }
+  return { cash: roundMoney(cash), card: roundMoney(card), credit: roundMoney(credit) };
+};
 
 /** Sərbəst satışda sənədləşmə xərc sətirlərinin cəmi (sətir yoxdursa 0). */
 export const saleExpenseItemsTotal = (sale: Sale): number =>
