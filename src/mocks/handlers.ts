@@ -253,18 +253,23 @@ export const saleHandlers = {
     const expenseItems = isManual
       ? mergeExpenseLines(input.expenseItems ?? [])
       : [];
-    // Vahid alış qiyməti snapshot-u:
-    // - katalogda: malın alış qiyməti;
-    // - sərbəstdə: formada maya = alış + Σxərc/say kimi qurulur, ona görə
-    //   alış qiyməti geri açılır (maya bilinmirsə null qalır).
+    // Vahid alış qiyməti snapshot-u (backend ilə eyni davranış):
+    // - katalogda: malın alış qiyməti (payload-dakı dəyər nəzərə alınmır);
+    // - sərbəstdə: payload-dakı dəyər olduğu kimi yazılır (0 keçərlidir, null =
+    //   naməlum). Sahə ümumiyyətlə göndərilməyibsə (köhnə çağırışlar) maya =
+    //   alış + Σxərc/say düsturundan geri açılır.
     const manualExpenseTotal = expenseItems.reduce(
       (sum, e) => sum + (Number(e.amount) || 0),
       0,
     );
-    const purchasePricePerUnit = isManual
-      ? costPerUnit == null
+    const derivedPurchasePerUnit =
+      costPerUnit == null
         ? null
-        : Math.round((costPerUnit - manualExpenseTotal / qty) * 100) / 100
+        : Math.round((costPerUnit - manualExpenseTotal / qty) * 100) / 100;
+    const purchasePricePerUnit = isManual
+      ? input.purchasePricePerUnit !== undefined
+        ? (input.purchasePricePerUnit ?? null)
+        : derivedPurchasePerUnit
       : (product?.purchasePrice ?? 0);
     const profit = costPerUnit == null ? null : net - costPerUnit * qty;
     const productName = isManual

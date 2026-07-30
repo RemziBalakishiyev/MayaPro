@@ -461,7 +461,8 @@ const buildSales = (
   today.forEach(({ pi, q, pay, cus, emp }, i) => {
     const p = products[pi];
     const subtotal = p.salePrice * q;
-    // i === 2 → endirimli satış nümunəsi (Endirim sütunu yalnız > 0-da görünür)
+    // i === 2 → endirimli satış nümunəsi (jurnal cədvəlində sütun yoxdur,
+    // endirim yalnız satış detalı drawer-ində > 0 olduqda görünür)
     const discount = i === 2 ? 5 : 0;
     const total = Math.max(0, subtotal - discount);
     const t = new Date();
