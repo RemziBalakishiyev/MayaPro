@@ -1,5 +1,5 @@
 /** Satış sətri üçün təmiz (pure) hesablamalar. */
-import { daysAgoISO, todayISO } from "@/lib/format";
+import { daysAgoISO, fmtDate, todayISO } from "@/lib/format";
 import type { Period } from "@/features/reports/lib";
 import type { Sale } from "@/types";
 
@@ -50,6 +50,30 @@ export const saleExpenseItemsTotal = (sale: Sale): number =>
     (sum, e) => sum + (Number(e.amount) || 0),
     0,
   );
+
+/**
+ * Satış № — qaimə PDF-indəki nömrə ilə eyni format (backend
+ * `ExportSaleInvoicePdfHandler.BuildInvoiceNumber`): "SF-yyyyMMdd-XXXXXX"
+ * (satış tarixi + id-nin ilk 6 hex simvolu, böyük hərflə).
+ * Tarix hissəsi `fmtDate` ilə formatlanır — layihədəki yeganə tarix helper-i.
+ */
+export const saleInvoiceNumber = (
+  sale: Pick<Sale, "id" | "createdAt">,
+): string => {
+  const hex = sale.id.replace(/-/g, "").slice(0, 6).toUpperCase();
+  return `SF-${fmtDate(sale.createdAt, "yyyyMMdd")}-${hex}`;
+};
+
+/**
+ * Satış tarixi + saatı: "10.07.2026 14:35". Backend yalnız gün qaytarıbsa
+ * ("2026-07-10") saat hissəsi əlavə edilmir (00:00 uydurmaq yanlış olardı).
+ * Jurnal cədvəli və detal drawer üçün tək mənbə.
+ */
+export const saleDateTime = (iso: string): string => {
+  const date = fmtDate(iso, "dd.MM.yyyy");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return date;
+  return `${date} ${fmtDate(iso, "HH:mm")}`;
+};
 
 /**
  * "Xərc" — bu satışa düşən partiya/əlavə xərc (cədvəl və detal drawer üçün

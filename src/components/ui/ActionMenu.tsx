@@ -1,7 +1,6 @@
 import {
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -16,7 +15,15 @@ export type ActionMenuItem = {
   onClick?: () => void;
   href?: string;
   tone?: "default" | "danger" | "success";
+  /**
+   * Deaktiv bənd: gizlədilmir, boz göstərilir və klik işləmir — istifadəçi
+   * bəndin mövcud olduğunu, amma niyə işləmədiyini (`title`) görsün.
+   * Bəndin ÜMUMİYYƏTLƏ görünməməsi lazımdırsa, çağıran tərəf onu `items`
+   * massivinə əlavə etməməlidir (mövcud cədvəllərdəki şərti spread naxışı).
+   */
   disabled?: boolean;
+  /** Hover/fokusda görünən izah (məs. deaktivliyin səbəbi). */
+  title?: string;
 };
 
 interface Props {
@@ -48,11 +55,6 @@ export function ActionMenu({
     placement: "bottom" | "top";
   } | null>(null);
 
-  const visible = useMemo(
-    () => items.filter((i) => !i.disabled),
-    [items],
-  );
-
   useEffect(() => {
     if (!open) return;
 
@@ -60,7 +62,7 @@ export function ActionMenu({
       const el = triggerRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const menuH = Math.min(visible.length * 40 + 8, 280);
+      const menuH = Math.min(items.length * 40 + 8, 280);
       const spaceBelow = window.innerHeight - rect.bottom;
       const placement =
         spaceBelow < menuH && rect.top > spaceBelow ? "top" : "bottom";
@@ -81,7 +83,7 @@ export function ActionMenu({
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
-  }, [open, visible.length]);
+  }, [open, items.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -102,7 +104,7 @@ export function ActionMenu({
     };
   }, [open]);
 
-  if (visible.length === 0) return null;
+  if (items.length === 0) return null;
 
   const menu =
     open && coords
@@ -124,12 +126,15 @@ export function ActionMenu({
             }}
             className="overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-lg"
           >
-            {visible.map((item) => {
+            {items.map((item) => {
+              const isDisabled = !!item.disabled;
               const className = cn(
                 "flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition-colors",
-                TONE[item.tone ?? "default"],
+                isDisabled
+                  ? "cursor-not-allowed text-stone-400"
+                  : TONE[item.tone ?? "default"],
               );
-              if (item.href) {
+              if (item.href && !isDisabled) {
                 return (
                   <a
                     key={item.label}
@@ -137,6 +142,7 @@ export function ActionMenu({
                     href={item.href}
                     target="_blank"
                     rel="noreferrer"
+                    title={item.title}
                     className={className}
                     onClick={() => setOpen(false)}
                   >
@@ -145,13 +151,20 @@ export function ActionMenu({
                   </a>
                 );
               }
+              // `disabled` ATRİBUTU qəsdən verilmir: native disabled düymə
+              // siçan hadisələrini udur → `title` tooltip-i heç vaxt görünmür,
+              // fokus da almır. `aria-disabled` + klik qoruyucusu ilə bənd
+              // həm oxunur, həm də səbəbi hover/fokusda göstərir.
               return (
                 <button
                   key={item.label}
                   type="button"
                   role="menuitem"
+                  title={item.title}
+                  aria-disabled={isDisabled}
                   className={className}
                   onClick={() => {
+                    if (isDisabled) return;
                     setOpen(false);
                     item.onClick?.();
                   }}
