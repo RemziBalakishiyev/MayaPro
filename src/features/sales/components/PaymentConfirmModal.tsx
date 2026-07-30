@@ -92,9 +92,6 @@ export function PaymentConfirmModal({
   const [choice, setChoice] = useState<Choice | null>(null);
   const [via, setVia] = useState<PaidVia | null>(null);
   const [partialRaw, setPartialRaw] = useState("");
-  // Boş sahə mesajı yalnız istifadəçi sahədən çıxandan (blur) və ya
-  // "Təsdiqlə" cəhdindən sonra göstərilir — əvvəlcədən qırmızı görünməsin.
-  const [partialBlurred, setPartialBlurred] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
 
   // Hər açılışda təzə başla — köhnə seçim qalmasın.
@@ -103,7 +100,6 @@ export function PaymentConfirmModal({
       setChoice(null);
       setVia(null);
       setPartialRaw("");
-      setPartialBlurred(false);
     }
   }, [open]);
 
@@ -116,14 +112,17 @@ export function PaymentConfirmModal({
   const partialTouched = partialRaw.trim() !== "";
   const partialValue = parseMoneyInput(partialRaw);
   const partialError: string | null = !partialTouched
-    ? partialBlurred
-      ? "Alınan məbləği yazın"
-      : null
+    ? null
     : partialValue == null
       ? "Yalnız rəqəm yazın (məs. 300 və ya 300,50)"
       : partialValue <= 0
         ? "Məbləğ 0-dan böyük olmalıdır — pul verilməyibsə «Ödəmədi» seçin"
         : null;
+  // Sahə hələ boşdur: bu səhv deyil, sadəcə tamamlanmayıb — ona görə input
+  // qırmızıya boyanmır, müştəri bloku kimi amber izah göstərilir (FE#35).
+  // İzah blur/klik gözləmədən dərhal görünür: "Təsdiqlə" disabled olduğuna
+  // görə onun onClick-i heç vaxt işə düşmür və mesaj gizli qala bilərdi.
+  const partialMissing = choice === "partial" && !partialTouched;
   const partialOverLimit = partialValue != null && partialValue > net;
   // Yekundan çox yazılıbsa yekunla məhdudlaşdırılır (mənfi qalıq mümkün deyil).
   const partialPaid =
@@ -141,15 +140,15 @@ export function PaymentConfirmModal({
   const customerRequired = customerVisible && remaining > 0;
   const viaRequired = choice === "full" || choice === "partial";
 
+  // Qismən ödənişdə sahə HƏM dolu olmalı, HƏM də səhvsiz — boş sahə ilə
+  // paidAmount=0 / "Nisyə" göndərilməsinin qarşısını alır (FE#35).
   const canConfirm =
     !!choice &&
-    (choice !== "partial" ||
-      (partialTouched && partialValue != null && partialValue > 0)) &&
+    (choice !== "partial" || (partialTouched && partialError == null)) &&
     (!viaRequired || !!via) &&
     (!customerRequired || !!customerId);
 
   const confirm = () => {
-    if (choice === "partial" && !partialTouched) setPartialBlurred(true);
     if (!canConfirm || !choice || pending) return;
     const fullyPaid = remaining <= 0;
     onConfirm({
@@ -215,13 +214,15 @@ export function PaymentConfirmModal({
                 htmlFor="partial-amount"
                 className="mb-1.5 block text-sm font-semibold text-stone-700"
               >
-                Nə qədər verdi?
+                Nə qədər verdi?{" "}
+                <span className="text-red-500" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
                 id="partial-amount"
                 value={partialRaw}
                 onChange={(e) => setPartialRaw(e.target.value)}
-                onBlur={() => setPartialBlurred(true)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -250,6 +251,10 @@ export function PaymentConfirmModal({
                 {partialError ? (
                   <span className="font-semibold text-red-600">
                     {partialError}
+                  </span>
+                ) : partialMissing ? (
+                  <span className="font-semibold text-amber-700">
+                    Alınan məbləği yazın — «Təsdiqlə» bloklanıb.
                   </span>
                 ) : partialOverLimit ? (
                   <span className="font-semibold text-amber-700">
