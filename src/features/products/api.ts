@@ -43,6 +43,14 @@ export const productsApi = {
     USE_MOCK
       ? productHandlers.remove(id)
       : apiClient.del<void>(`/api/products/${id}`),
+
+  /**
+   * Barkod generasiyası — yalnız real backend.
+   * Mock rejimdə "Barkod/QR çap" düyməsi modalı açmır (info toast), ona görə
+   * bu funksiya mock rejimdə heç vaxt çağırılmır.
+   */
+  generateBarcode: (id: string) =>
+    apiClient.post<Product>(`/api/products/${id}/generate-barcode`),
 };
 
 export type { NewProduct, ProductUpdate };

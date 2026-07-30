@@ -26,6 +26,19 @@ export const filenameFromContentDisposition = (
   return fallback;
 };
 
+/** Blob-u faylı endirən müvəqqəti <a> ilə browser-ə "sırıyır". */
+function triggerBlobDownload(blob: Blob, name: string): void {
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = name;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 /** GET path → blob endirmə. path tam API yolu olmalıdır, məs. /api/exports/products.xlsx */
 export async function downloadFile(
   url: string,
@@ -36,14 +49,22 @@ export async function downloadFile(
     contentDisposition,
     fallbackName,
   );
+  triggerBlobDownload(blob, name);
+}
 
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectUrl;
-  a.download = name;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(objectUrl);
+/**
+ * POST path + JSON body → blob endirmə (məs. etiket PDF-i:
+ * POST /api/exports/products/labels.pdf).
+ */
+export async function downloadFilePost(
+  url: string,
+  body: unknown,
+  fallbackName: string,
+): Promise<void> {
+  const { blob, contentDisposition } = await apiClient.postBlob(url, body);
+  const name = filenameFromContentDisposition(
+    contentDisposition,
+    fallbackName,
+  );
+  triggerBlobDownload(blob, name);
 }

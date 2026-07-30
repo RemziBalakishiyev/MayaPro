@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Package, Plus, Minus, Pencil, Eye, Trash2 } from "lucide-react";
+import { Package, Plus, Minus, Pencil, Eye, Trash2, Barcode } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyValue } from "@/components/ui/EmptyValue";
@@ -30,6 +30,8 @@ interface Props {
   onEdit: (product: Product) => void;
   onAdjust: (product: Product, mode: StockMode) => void;
   onDelete?: (product: Product) => void;
+  /** Tez etiket çapı: bu malı 1×N seçilmiş halda etiket çapı modalını açır. */
+  onPrintLabel?: (product: Product) => void;
 }
 
 function ProductRowActions({
@@ -38,12 +40,14 @@ function ProductRowActions({
   onEdit,
   onAdjust,
   onDelete,
+  onPrintLabel,
 }: {
   product: Product;
   canEdit: boolean;
   onEdit: (p: Product) => void;
   onAdjust: (p: Product, mode: StockMode) => void;
   onDelete?: (p: Product) => void;
+  onPrintLabel?: (p: Product) => void;
 }) {
   const navigate = useNavigate();
 
@@ -90,6 +94,17 @@ function ProductRowActions({
         <Plus size={14} />
         Stok
       </button>
+      {onPrintLabel && (
+        <button
+          type="button"
+          onClick={() => onPrintLabel(product)}
+          aria-label={`${product.name} — barkod/QR etiket çap et`}
+          title="Etiket çap et"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-800"
+        >
+          <Barcode size={15} />
+        </button>
+      )}
       <ActionMenu
         items={menuItems}
         aria-label={`${product.name} əməliyyatları`}
@@ -105,6 +120,7 @@ export function ProductsTable({
   onEdit,
   onAdjust,
   onDelete,
+  onPrintLabel,
 }: Props) {
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
     () => [
@@ -252,11 +268,12 @@ export function ProductsTable({
             onEdit={onEdit}
             onAdjust={onAdjust}
             onDelete={onDelete}
+            onPrintLabel={onPrintLabel}
           />
         ),
       },
     ],
-    [onEdit, onAdjust, onDelete, canEdit],
+    [onEdit, onAdjust, onDelete, onPrintLabel, canEdit],
   );
 
   return (
@@ -339,6 +356,15 @@ export function ProductsTable({
               </button>
               <ActionMenu
                 items={[
+                  ...(onPrintLabel
+                    ? [
+                        {
+                          label: "Etiket çap et",
+                          icon: <Barcode size={15} />,
+                          onClick: () => onPrintLabel(p),
+                        } satisfies ActionMenuItem,
+                      ]
+                    : []),
                   ...(canEdit
                     ? [
                         {

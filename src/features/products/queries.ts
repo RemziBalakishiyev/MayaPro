@@ -72,6 +72,16 @@ export const useAdjustStock = () => {
   });
 };
 
+export const useGenerateBarcode = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => productsApi.generateBarcode(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+};
+
 export const useDeleteProduct = () => {
   const qc = useQueryClient();
   return useMutation({

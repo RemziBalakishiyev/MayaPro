@@ -95,15 +95,24 @@ async function request<T>(
 /**
  * Binary cavab (Excel/PDF export) — JSON parse etmir.
  * Content-Disposition header-i filename üçün saxlanılır.
+ * GET (parametrsiz) və POST (JSON body ilə, məs. etiket PDF-i) hər ikisini dəstəkləyir.
  */
 async function requestBlob(
+  method: Method,
   path: string,
+  body?: unknown,
 ): Promise<{ blob: Blob; contentDisposition: string | null }> {
   const token = useAuthStore.getState().token;
   const headers: Record<string, string> = {};
+  const hasBody = body !== undefined;
+  if (hasBody) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}${path}`, { method: "GET", headers });
+  const res = await fetch(`${API_URL}${path}`, {
+    method,
+    headers,
+    body: hasBody ? JSON.stringify(body) : undefined,
+  });
 
   if (res.status === 401) {
     useAuthStore.getState().logout();
@@ -145,5 +154,10 @@ export const apiClient = {
   getBlob: (
     path: string,
   ): Promise<{ blob: Blob; contentDisposition: string | null }> =>
-    requestBlob(path),
+    requestBlob("GET", path),
+  postBlob: (
+    path: string,
+    body?: unknown,
+  ): Promise<{ blob: Blob; contentDisposition: string | null }> =>
+    requestBlob("POST", path, body),
 };
