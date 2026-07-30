@@ -43,6 +43,8 @@ export const createSaleSchema = z
     customerId: z.string().nullable(),
     /** Sərbəst satışda maya; bilinmirsə null ("naməlum" qazanc). */
     costPerUnit: z.coerce.number().min(0, "Mənfi ola bilməz").nullable().optional(),
+    /** Sərbəst satışda vahid alış qiyməti (costPerUnit-dən ayrı saxlanılır); bilinmirsə null. Katalog satışında backend tərəfindən maldan snapshot alınır (göndərilsə də nəzərə alınmır). */
+    purchasePricePerUnit: z.coerce.number().min(0, "Mənfi ola bilməz").nullable().optional(),
     /** Sərbəst satış xərc sətirləri (sənədləşmə; maya hesablamasına təsir etmir). */
     expenseItems: z.array(expenseItemSchema).optional(),
     /** Sərbəst (katalogdankənar) satış bayrağı. */

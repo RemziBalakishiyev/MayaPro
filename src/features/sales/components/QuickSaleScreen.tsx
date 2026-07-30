@@ -143,15 +143,37 @@ export function QuickSaleScreen() {
   // ——— Hesablamalar (mövcud pure funksiyalar) ———
   const q = Math.max(1, Number(qty) || 1);
   const sp = Number(price) || 0;
-  // Sərbəst: maya = alış + Σxərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
   const namedExpenses = useMemo(
     () => mergeExpenseLines(expenseRows),
     [expenseRows],
   );
-  const realCost: number | null = isManual
-    ? manualPurchase.trim() === ""
+  /**
+   * Sərbəst satışda vahid alış qiyməti — TƏK mənbə: həm ekrandakı maya, həm də
+   * payload-dakı `purchasePricePerUnit` bundan gəlir.
+   * Boş sahə → null ("naməlum"); "0" → 0 (sıfır alış, naməlumla eyni deyil).
+   */
+  const manualPurchasePerUnit: number | null = useMemo(() => {
+    const raw = manualPurchase.trim();
+    if (raw === "") return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }, [manualPurchase]);
+  // Rəqəm olmayan ("1,5", "abc") və ya mənfi dəyər → satış bloklanır
+  // (backend də mənfi alış qiymətinə 400 qaytarır).
+  const manualPurchaseError: string | null =
+    !isManual || manualPurchase.trim() === ""
       ? null
-      : calcRealCost(Number(manualPurchase) || 0, q, namedExpenses)
+      : manualPurchasePerUnit == null
+        ? "Rəqəm yazın (məs. 12.50)"
+        : manualPurchasePerUnit < 0
+          ? "Mənfi ola bilməz"
+          : null;
+  const manualPurchaseInvalid = manualPurchaseError != null;
+  // Sərbəst: maya = alış + Σxərc/miqdar; alış boşdursa naməlum (xərc tək maya yaratmır)
+  const realCost: number | null = isManual
+    ? manualPurchasePerUnit == null
+      ? null
+      : calcRealCost(manualPurchasePerUnit, q, namedExpenses)
     : (product?.realCostPerUnit ?? 0);
   const net = netTotal(sp, q, 0);
   const profit: number | null =
@@ -164,6 +186,7 @@ export function QuickSaleScreen() {
     (isManual ? manualName.trim().length > 0 : !!product) &&
     sp > 0 &&
     !notEnoughStock &&
+    !manualPurchaseInvalid &&
     (payType !== "Nisyə" || !!customerId);
   const customerRequired = payType === "Nisyə";
 
@@ -212,6 +235,8 @@ export function QuickSaleScreen() {
         // Müştəri hər ödəniş növündə göndərilə bilər; boş isə null
         customerId: customerId || null,
         costPerUnit: isManual ? realCost : undefined,
+        // Katalog satışında alış qiyməti backend-də maldan snapshot alınır
+        purchasePricePerUnit: isManual ? manualPurchasePerUnit : undefined,
         expenseItems: isManual && namedExpenses.length > 0 ? namedExpenses : undefined,
         note: note.trim() || undefined,
       });
@@ -313,7 +338,7 @@ export function QuickSaleScreen() {
         <div className="flex h-28 w-28 items-center justify-center rounded-full bg-emerald-100 ring-8 ring-emerald-50">
           <Check size={64} className="text-emerald-600" strokeWidth={3} />
         </div>
-        <div>
+        <div role="status" aria-live="polite">
           <p className="text-2xl font-bold text-stone-900">Satış tamamlandı</p>
           <p className="mt-1 text-4xl font-bold tabular-nums text-emerald-700">
             {fmtMoney(success.amount)}
@@ -340,6 +365,14 @@ export function QuickSaleScreen() {
               disabled={invoicePending}
             >
               Qaimə çıxar
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<ArrowLeft size={16} />}
+              onClick={closeSuccess}
+            >
+              Satış səhifəsinə qayıt
             </Button>
             <button
               type="button"
@@ -373,15 +406,13 @@ export function QuickSaleScreen() {
               WhatsApp-la göndər
             </button>
           </div>
-          {holdSuccess && (
-            <button
-              type="button"
-              onClick={closeSuccess}
-              className="text-sm font-semibold text-stone-500 hover:text-emerald-700"
-            >
-              Yeni satış
-            </button>
-          )}
+          {/* Avtomatik qayıdış yalnız qaimə/WhatsApp gözlənilməyəndə işləyir;
+              hər iki halda yuxarıdakı "Satış səhifəsinə qayıt" əl ilə çıxış verir. */}
+          <p className="text-xs text-stone-400">
+            {holdSuccess
+              ? "Hazır olanda satış səhifəsinə qayıt."
+              : "Bir neçə saniyəyə avtomatik satış səhifəsinə qayıdılacaq."}
+          </p>
         </div>
       </div>
     );
@@ -558,17 +589,38 @@ export function QuickSaleScreen() {
                 >
                   <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-stone-700">
+                      <label
+                        htmlFor="manual-purchase"
+                        className="mb-1.5 block text-sm font-medium text-stone-700"
+                      >
                         Alış qiyməti
                       </label>
                       <input
+                        id="manual-purchase"
                         value={manualPurchase}
                         onChange={(e) => setManualPurchase(e.target.value)}
                         inputMode="decimal"
                         placeholder="—"
-                        className="h-12 w-full rounded-xl border border-stone-300 bg-white px-2 text-base font-bold tabular-nums text-stone-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 sm:px-3"
+                        aria-invalid={manualPurchaseInvalid || undefined}
+                        aria-describedby="manual-purchase-hint"
+                        className={cn(
+                          "h-12 w-full rounded-xl border bg-white px-2 text-base font-bold tabular-nums outline-none focus:ring-4 sm:px-3",
+                          manualPurchaseInvalid
+                            ? "border-red-400 text-red-600 focus:border-red-500 focus:ring-red-500/20"
+                            : "border-stone-300 text-stone-900 focus:border-emerald-500 focus:ring-emerald-500/20",
+                        )}
                       />
-                      <p className="mt-1 text-xs text-stone-500">aldığın qiymət</p>
+                      <p
+                        id="manual-purchase-hint"
+                        className={cn(
+                          "mt-1 text-xs",
+                          manualPurchaseInvalid
+                            ? "font-semibold text-red-600"
+                            : "text-stone-500",
+                        )}
+                      >
+                        {manualPurchaseError ?? "aldığın qiymət"}
+                      </p>
                     </div>
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-stone-700">

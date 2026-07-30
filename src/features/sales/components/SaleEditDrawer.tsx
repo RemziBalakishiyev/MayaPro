@@ -141,6 +141,9 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
           paymentType: payType,
           customerId: payType === "Nisyə" ? customerId : null,
           costPerUnit: isManual ? (sale.costPerUnit ?? null) : undefined,
+          purchasePricePerUnit: isManual
+            ? (sale.purchasePricePerUnit ?? null)
+            : undefined,
           expenseItems:
             isManual && namedExpenses.length > 0 ? namedExpenses : undefined,
         },

@@ -4,6 +4,7 @@ import { Loader2, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
+import { EmptyValue } from "@/components/ui/EmptyValue";
 import { Spinner } from "@/components/ui/Spinner";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
@@ -134,14 +135,18 @@ export function SaleDetailDrawer({ saleId, onClose }: Props) {
               <Row
                 label="Maya qiyməti (vahid)"
                 value={
-                  sale.purchasePricePerUnit != null
-                    ? fmtMoney(sale.purchasePricePerUnit)
-                    : "—"
+                  sale.purchasePricePerUnit != null ? (
+                    fmtMoney(sale.purchasePricePerUnit)
+                  ) : (
+                    <EmptyValue />
+                  )
                 }
               />
               <Row
                 label="Bu satışa düşən xərc"
-                value={batchExpense != null ? fmtMoney(batchExpense) : "—"}
+                value={
+                  batchExpense != null ? fmtMoney(batchExpense) : <EmptyValue />
+                }
               />
 
               {sale.isManual && (sale.expenseItems?.length ?? 0) > 0 && (

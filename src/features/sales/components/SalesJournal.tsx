@@ -186,23 +186,6 @@ export function SalesJournal() {
         ),
       },
       {
-        id: "discount",
-        header: () => (
-          <span title="Bu satışa verilən endirim">Endirim</span>
-        ),
-        meta: { className: "hidden lg:table-cell" },
-        cell: ({ row }) => {
-          const d = row.original.discount;
-          // Endirim yalnız > 0 olduqda göstərilir (0 → boş xana)
-          if (!(d > 0)) return null;
-          return (
-            <span className="tabular-nums text-sm font-medium text-amber-600">
-              −{fmtMoney(d)}
-            </span>
-          );
-        },
-      },
-      {
         accessorKey: "profit",
         header: () => (
           <span title="Yekun məbləğdən maya çıxıldıqdan sonra qalan">
