@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -16,7 +17,9 @@ import {
 } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/toast-store";
+import { useCan } from "@/features/auth/store";
 import { cn } from "@/lib/cn";
 import { todayISO } from "@/lib/format";
 import { downloadFilePost } from "@/lib/download";
@@ -61,6 +64,8 @@ function ProductPicker({
   onPick: (p: Product) => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const listId = useId();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -68,11 +73,12 @@ function ProductPicker({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
+    // barcode backend-də boş/null ola bilər (barkodsuz mallar) — ?? "" vacibdir.
     return products
       .filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.barcode.toLowerCase().includes(q),
+          (p.barcode ?? "").toLowerCase().includes(q),
       )
       .slice(0, 8);
   }, [products, query]);
@@ -89,6 +95,13 @@ function ProductPicker({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
+
+  // Klaviatura ilə gəzəndə aktiv sətir görünən sahədə qalsın.
+  useEffect(() => {
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-idx="${activeIndex}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
 
   const pick = (p: Product) => {
     onPick(p);
@@ -111,11 +124,16 @@ function ProductPicker({
       e.preventDefault();
       if (filtered[activeIndex]) pick(filtered[activeIndex]);
     } else if (e.key === "Escape") {
+      // Yalnız təklif siyahısını bağla — Drawer-in Escape dinləyicisinə çatmasın,
+      // əks halda bir Escape həm siyahını, həm bütün modalı bağlayır.
+      e.stopPropagation();
       setOpen(false);
     }
   };
 
   const showList = open && query.trim().length > 0;
+  const activeOptionId =
+    showList && filtered[activeIndex] ? `${listId}-${activeIndex}` : undefined;
 
   return (
     <div ref={rootRef} className="relative">
@@ -135,6 +153,8 @@ function ProductPicker({
           placeholder="Mal axtar (ad və ya barkod)..."
           role="combobox"
           aria-expanded={showList}
+          aria-controls={listId}
+          aria-activedescendant={activeOptionId}
           aria-autocomplete="list"
           aria-label="Etiket üçün mal axtar"
           className="h-12 w-full rounded-xl border border-stone-300 bg-white pl-10 pr-3 text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
@@ -143,7 +163,10 @@ function ProductPicker({
 
       {showList && (
         <ul
+          ref={listRef}
+          id={listId}
           role="listbox"
+          aria-label="Tapılan mallar"
           className="absolute z-40 mt-1.5 max-h-60 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-lg"
         >
           {filtered.length === 0 ? (
@@ -152,9 +175,16 @@ function ProductPicker({
             </li>
           ) : (
             filtered.map((p, i) => (
-              <li key={p.id} role="option" aria-selected={i === activeIndex}>
+              <li
+                key={p.id}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={i === activeIndex}
+              >
                 <button
                   type="button"
+                  data-idx={i}
+                  tabIndex={-1}
                   onMouseEnter={() => setActiveIndex(i)}
                   onClick={() => pick(p)}
                   className={cn(
@@ -287,17 +317,22 @@ function TypePicker({
  */
 export function LabelPrintModal({ open, onClose, products, preselected }: Props) {
   const toast = useToast();
+  const canWrite = useCan()("products.write");
   const generateMut = useGenerateBarcode();
   const [rows, setRows] = useState<LabelRow[]>([]);
   const [type, setType] = useState<LabelType>("barcode");
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Ayrıca state saxlamırıq — mutasiyanın öz vəziyyəti hansı sətrin
+  // "yüklənir" olduğunu onsuz da bilir.
+  const generatingId = generateMut.isPending
+    ? (generateMut.variables ?? null)
+    : null;
 
   useEffect(() => {
     if (!open) return;
     setRows(preselected ? [{ productId: preselected.id, countStr: "1" }] : []);
     setType("barcode");
-    setGeneratingId(null);
   }, [open, preselected]);
 
   // Sətirlərin mal məlumatı canlı siyahıdan gəlir — barkod yaradıldıqdan
@@ -317,6 +352,9 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
     0,
   );
   const overLimit = totalCount > MAX_LABELS;
+  // Backend barkodsuz mal üçün 400 (Exports.ProductsWithoutBarcode) qaytarır —
+  // istifadəçini boş sorğuya buraxmadan əvvəlcədən xəbərdar edirik.
+  const missingBarcode = rowsWithProduct.filter((r) => !r.product.barcode);
 
   const addProduct = (product: Product) => {
     setRows((prev) => {
@@ -354,19 +392,17 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
     setRows((prev) => prev.filter((r) => r.productId !== productId));
 
   const handleGenerate = async (product: Product) => {
-    setGeneratingId(product.id);
     try {
       await generateMut.mutateAsync(product.id);
       toast.success(`Barkod yaradıldı: ${product.name}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Barkod yaradılmadı");
-    } finally {
-      setGeneratingId(null);
     }
   };
 
   const handlePrint = async () => {
-    if (rowsWithProduct.length === 0 || overLimit) return;
+    if (rowsWithProduct.length === 0 || overLimit || missingBarcode.length > 0)
+      return;
     setSubmitting(true);
     try {
       const items = rowsWithProduct.map((r) => ({
@@ -387,11 +423,17 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
     }
   };
 
-  const pdfDisabled = rowsWithProduct.length === 0 || overLimit || submitting;
+  const blockReason = overLimit
+    ? `Bir dəfəyə ən çoxu ${MAX_LABELS} etiket çap etmək olar`
+    : missingBarcode.length > 0
+      ? `Barkodu olmayan mal var (${missingBarcode.length}) — əvvəlcə «Barkod yarat»`
+      : null;
+  const pdfDisabled =
+    rowsWithProduct.length === 0 || blockReason !== null || submitting;
 
   const footer = (
     <div className="flex flex-col gap-3 border-t border-stone-100 bg-white px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:flex-row sm:items-center sm:justify-between">
-      <div>
+      <div aria-live="polite">
         <p className="text-sm text-stone-500">Cəmi etiket sayı</p>
         <p
           className={cn(
@@ -401,15 +443,16 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
         >
           {totalCount} / {MAX_LABELS}
         </p>
-        {overLimit && (
+        {blockReason && (
           <p className="mt-0.5 text-xs font-semibold text-red-600">
-            Bir dəfəyə ən çoxu {MAX_LABELS} etiket çap etmək olar
+            {blockReason}
           </p>
         )}
       </div>
       <Button
         onClick={() => void handlePrint()}
         disabled={pdfDisabled}
+        title={blockReason ?? undefined}
         icon={
           submitting ? (
             <Loader2 size={16} className="animate-spin" />
@@ -428,23 +471,35 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
     <Drawer open={open} onClose={onClose} title="Barkod/QR etiket çapı" footer={footer}>
       <div className="space-y-5">
         <section>
-          <h4 className="mb-2 text-sm font-bold text-stone-900">Mal seçimi</h4>
+          <h4 className="mb-2 text-sm font-bold text-stone-900">
+            Mal seçimi
+            {rowsWithProduct.length > 0 && (
+              <span className="ml-1.5 font-semibold text-stone-400">
+                ({rowsWithProduct.length})
+              </span>
+            )}
+          </h4>
           <ProductPicker products={products} onPick={addProduct} />
 
           <div className="mt-3">
             {rowsWithProduct.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-6 text-center text-sm text-stone-500">
-                Hələ mal seçilməyib. Yuxarıdan axtarıb əlavə edin.
-              </p>
+              <EmptyState
+                icon={BarcodeIcon}
+                title="Hələ mal seçilməyib"
+                hint="Yuxarıdakı axtarışdan mal tapıb siyahıya əlavə edin."
+              />
             ) : (
-              <ul className="space-y-2">
+              <ul aria-label="Seçilmiş mallar" className="space-y-2">
                 {rowsWithProduct.map((row) => (
                   <li
                     key={row.productId}
                     className="flex flex-col gap-2 rounded-xl border border-stone-200 p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-stone-900">
+                      <p
+                        title={row.product.name}
+                        className="truncate font-semibold text-stone-900"
+                      >
                         {row.product.name}
                       </p>
                       {row.product.barcode ? (
@@ -452,23 +507,32 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
                           {row.product.barcode}
                         </p>
                       ) : (
-                        <div className="mt-1 flex items-center gap-2">
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
                           <span className="text-xs font-semibold text-red-600">
                             Barkod yoxdur
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => void handleGenerate(row.product)}
-                            disabled={generatingId === row.productId}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
-                          >
-                            {generatingId === row.productId ? (
-                              <Loader2 size={12} className="animate-spin" />
-                            ) : (
-                              <BarcodeIcon size={12} />
-                            )}
-                            Barkod yarat
-                          </button>
+                          {/* Endpoint Owner/Manager-ə açıqdır — satıcıya düymə
+                              göstərmirik ki, 403 ilə üzləşməsin. */}
+                          {canWrite ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleGenerate(row.product)}
+                              disabled={generatingId !== null}
+                              aria-label={`${row.product.name} üçün barkod yarat`}
+                              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
+                            >
+                              {generatingId === row.productId ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <BarcodeIcon size={13} />
+                              )}
+                              Barkod yarat
+                            </button>
+                          ) : (
+                            <span className="text-xs text-stone-500">
+                              barkodu menecer yarada bilər
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -476,18 +540,23 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
                       <input
                         type="number"
                         min={1}
+                        max={MAX_LABELS}
+                        step={1}
                         inputMode="numeric"
                         value={row.countStr}
                         onChange={(e) => updateCount(row.productId, e.target.value)}
                         onBlur={() => normalizeCount(row.productId)}
+                        onFocus={(e) => e.currentTarget.select()}
+                        // Scroll edərkən təsadüfən sayın dəyişməsinin qarşısını alır.
+                        onWheel={(e) => e.currentTarget.blur()}
                         aria-label={`${row.product.name} — etiket sayı`}
-                        className="h-10 w-20 rounded-lg border border-stone-300 bg-white px-2 text-center text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
+                        className="h-11 w-20 rounded-lg border border-stone-300 bg-white px-2 text-center text-base outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
                       />
                       <button
                         type="button"
                         onClick={() => removeRow(row.productId)}
-                        aria-label={`${row.product.name} sətrini sil`}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600"
+                        aria-label={`${row.product.name} sətrini siyahıdan sil`}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 size={16} />
                       </button>

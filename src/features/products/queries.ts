@@ -76,7 +76,9 @@ export const useGenerateBarcode = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => productsApi.generateBarcode(id),
-    onSuccess: () => {
+    // onSettled: 409 (barkod artıq mövcuddur — başqa istifadəçi yaradıb)
+    // halında da siyahı təzələnsin ki, sətirdə aktual barkod görünsün.
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: productKeys.all });
     },
   });
