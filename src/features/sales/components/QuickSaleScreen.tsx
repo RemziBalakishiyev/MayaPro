@@ -212,6 +212,11 @@ export function QuickSaleScreen() {
         // Müştəri hər ödəniş növündə göndərilə bilər; boş isə null
         customerId: customerId || null,
         costPerUnit: isManual ? realCost : undefined,
+        purchasePricePerUnit: isManual
+          ? manualPurchase.trim() === ""
+            ? null
+            : Number(manualPurchase) || 0
+          : undefined,
         expenseItems: isManual && namedExpenses.length > 0 ? namedExpenses : undefined,
         note: note.trim() || undefined,
       });
@@ -340,6 +345,14 @@ export function QuickSaleScreen() {
               disabled={invoicePending}
             >
               Qaimə çıxar
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<ArrowLeft size={16} />}
+              onClick={closeSuccess}
+            >
+              Satış səhifəsinə qayıt
             </Button>
             <button
               type="button"
