@@ -5,7 +5,6 @@ import {
 } from "@tanstack/react-query";
 import {
   productsApi,
-  importsApi,
   type NewProduct,
   type ProductUpdate,
 } from "./api";
@@ -85,33 +84,4 @@ export const useDeleteProduct = () => {
       qc.invalidateQueries({ queryKey: ["activity"] });
     },
   });
-};
-
-// ---- Excel idxal (3 addımlı modal) ----------------------------------------
-
-/** Addım 1 → 2: fayl yüklənib önizləmə (yeni/yenilənəcək/xətalı sətirlər) alınır. */
-export const useImportPreview = () =>
-  useMutation({
-    mutationFn: (file: File) => importsApi.preview(file),
-  });
-
-/** Addım 2 → 3: importToken ilə təsdiqlə, yeni/yenilənmiş sətirlər DB-yə yazılır. */
-export const useImportCommit = () =>
-  useMutation({
-    mutationFn: (importToken: string) => importsApi.commit(importToken),
-  });
-
-/**
- * İdxal modalı uğurla bağlananda (Addım 3-dən sonra) keşi təzələyir.
- * Nəticə ekranı köhnə say göstərməsin deyə invalidasiya commit anında yox,
- * modal bağlanan zaman aparılır.
- */
-export const useInvalidateAfterImport = () => {
-  const qc = useQueryClient();
-  return () => {
-    qc.invalidateQueries({ queryKey: productKeys.all });
-    qc.invalidateQueries({ queryKey: ["categories"] });
-    qc.invalidateQueries({ queryKey: ["dashboard"] });
-    qc.invalidateQueries({ queryKey: ["activity"] });
-  };
 };

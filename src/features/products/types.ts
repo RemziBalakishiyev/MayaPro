@@ -38,35 +38,3 @@ export const productSchema = z.object({
 
 /** Form dəyərlərinin tipi. */
 export type ProductFormValues = z.infer<typeof productSchema>;
-
-/** Excel idxal önizləmə sətrinin statusu. */
-export type ImportRowStatus = "create" | "update" | "error";
-
-/** Excel idxal önizləmə sətri (POST /api/imports/products/preview cavabından). */
-export interface ImportPreviewRow {
-  rowNumber: number;
-  status: ImportRowStatus;
-  data: Record<string, unknown>;
-  error?: string;
-}
-
-/** Excel idxal önizləməsinin xülasə kartları. */
-export interface ImportPreviewSummary {
-  creates: number;
-  updates: number;
-  errors: number;
-  newCategories: string[];
-}
-
-/** POST /api/imports/products/preview cavabı. */
-export interface ImportPreviewResponse {
-  rows: ImportPreviewRow[];
-  summary: ImportPreviewSummary;
-  importToken: string;
-}
-
-/** POST /api/imports/products/commit cavabı. */
-export interface ImportCommitResponse {
-  created: number;
-  updated: number;
-}

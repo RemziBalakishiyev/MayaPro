@@ -19,10 +19,6 @@ export const STATUS_STYLE: Record<string, string> = {
   /** Xərc mənbəyi (Xərclər cədvəli): Ümumi — boz, Mala bağlı — yaşıl. */
   Ümumi: "bg-stone-100 text-stone-600 ring-stone-200/80",
   "Mala bağlı": "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
-  /** Excel idxal önizləməsi: yeni — yaşıl, yenilənəcək — mavi, xəta — qırmızı. */
-  "İdxal: Yeni": "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
-  "İdxal: Yenilənəcək": "bg-sky-50 text-sky-700 ring-sky-200/70",
-  "İdxal: Xəta": "bg-red-50 text-red-700 ring-red-200/70",
 };
 
 const FALLBACK = "bg-stone-50 text-stone-600 ring-stone-200/80";

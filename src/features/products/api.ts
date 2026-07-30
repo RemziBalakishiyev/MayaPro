@@ -9,7 +9,6 @@ import {
 } from "@/mocks/handlers";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
 import type { Product } from "@/types";
-import type { ImportPreviewResponse, ImportCommitResponse } from "./types";
 
 export const productsApi = {
   list: () =>
@@ -47,23 +46,3 @@ export const productsApi = {
 };
 
 export type { NewProduct, ProductUpdate };
-
-/**
- * Excel idxal API-si — yalnız real backend rejimində istifadə olunur
- * (mock rejimində "Excel import" düyməsi modalı açmır, bax _app.mallar.tsx).
- */
-export const importsApi = {
-  preview: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return apiClient.postForm<ImportPreviewResponse>(
-      "/api/imports/products/preview",
-      form,
-    );
-  },
-
-  commit: (importToken: string) =>
-    apiClient.post<ImportCommitResponse>("/api/imports/products/commit", {
-      importToken,
-    }),
-};

@@ -4,8 +4,6 @@
  * - baseURL: VITE_API_URL (origin, sonda "/api" OLMADAN) — yol hər çağırışda
  *   tam verilir, məs. apiClient.get("/api/products").
  * - Hər sorğuya auth store-dakı token → Authorization: Bearer <token>.
- * - Body FormData olanda JSON.stringify edilmir və Content-Type qoyulmur
- *   (brauzer multipart boundary-ni özü yazır) — bax apiClient.postForm.
  * - Cavab konvensiyası: uğur → JSON body; xəta → { code, message }.
  *   message ApiError-ə daşınır ki, mutation onError-larda toast.error(err.message)
  *   Azərbaycanca mesajı göstərsin.
@@ -49,15 +47,13 @@ async function request<T>(
   const token = useAuthStore.getState().token;
   const headers: Record<string, string> = {};
   const hasBody = body !== undefined;
-  const isForm = body instanceof FormData;
-  // FormData-da Content-Type QOYULMUR — brauzer boundary ilə özü əlavə edir.
-  if (hasBody && !isForm) headers["Content-Type"] = "application/json";
+  if (hasBody) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers,
-    body: hasBody ? (isForm ? body : JSON.stringify(body)) : undefined,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 
   if (res.status === 401) {
@@ -150,10 +146,4 @@ export const apiClient = {
     path: string,
   ): Promise<{ blob: Blob; contentDisposition: string | null }> =>
     requestBlob(path),
-  /**
-   * multipart/form-data POST (məs. Excel idxal faylı) — JSON body deyil.
-   * 401 / { code, message } xəta emalı `post` ilə eynidir.
-   */
-  postForm: <T>(path: string, form: FormData): Promise<T> =>
-    request<T>("POST", path, form),
 };
