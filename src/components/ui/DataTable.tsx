@@ -120,7 +120,9 @@ export function DataTable<TData>({
               }
               className={cn(
                 onRowClick &&
-                  "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500",
+                  // rounded-xl — mobil kartın küncləri ilə eyni: fokus halqası
+                  // kartın kənarını təkrarlasın, kvadrat çərçivə çıxmasın.
+                  "cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500",
               )}
             >
               {mobileCard(row.original)}
@@ -203,6 +205,8 @@ export function DataTable<TData>({
             {rows.map((row) => (
               <tr
                 key={row.id}
+                // Klik davranışı YALNIZ `onRowClick` verilmiş cədvəllərdə açılır —
+                // digər cədvəllər (mal, müştəri, xərc, təchizatçı) toxunulmaz qalır.
                 role={onRowClick ? "button" : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
                 onClick={
@@ -211,6 +215,8 @@ export function DataTable<TData>({
                 onKeyDown={
                   onRowClick
                     ? (e) => {
+                        // Sətir daxilindəki düymə/menyu fokusdadırsa Enter/Space
+                        // ona məxsusdur — drawer açılmamalıdır.
                         if (e.target !== e.currentTarget) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();

@@ -8,12 +8,12 @@ import { EmptyValue } from "@/components/ui/EmptyValue";
 import { Spinner } from "@/components/ui/Spinner";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
-import { fmtDate, fmtMoney, fmtMoneySigned } from "@/lib/format";
+import { fmtMoney, fmtMoneySigned } from "@/lib/format";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { useCan } from "@/features/auth/store";
 import { useCustomers } from "@/features/customers/queries";
 import { useEmployees } from "@/features/employees/queries";
-import { saleBatchExpense, saleInvoiceNumber } from "../lib";
+import { saleBatchExpense, saleDateTime, saleInvoiceNumber } from "../lib";
 import { useSaleDetail } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
 import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
@@ -27,12 +27,6 @@ interface Props {
   /** "Sil" düyməsi — silmə təsdiqini açır. */
   onDelete: (sale: SaleDetail) => void;
 }
-
-const saleDateTime = (iso: string): string => {
-  const date = fmtDate(iso, "dd.MM.yyyy");
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return date;
-  return `${date} ${fmtDate(iso, "HH:mm")}`;
-};
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -80,12 +74,18 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
   const invoicePending = !!sale && pendingId === sale.id;
   const waPending = !!sale && waPendingId === sale.id;
 
-  const matchedCustomer = sale?.customerId
-    ? (customers.find((c) => c.id === sale.customerId) ?? null)
+  const customerId = sale?.customerId ?? null;
+  const matchedCustomer = customerId
+    ? (customers.find((c) => c.id === customerId) ?? null)
     : null;
   const customerPhone = matchedCustomer?.phone ?? "";
   // Müştəri seçilmiş hər satışda (nağd/kart daxil) WhatsApp göndərmək olar
-  const canWa = !!sale && !!sale.customerId && !!customerPhone.trim();
+  const canWa = !!sale && !!customerId && !!customerPhone.trim();
+  const waDisabledReason = canWa
+    ? null
+    : !customerId
+      ? "Bu satışda müştəri seçilməyib"
+      : "Müştəri telefonu yoxdur";
 
   const seller =
     sale?.soldByName ||
@@ -93,58 +93,67 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
     "—";
 
   const batchExpense = sale ? saleBatchExpense(sale) : null;
+  const expenseItems = sale?.expenseItems ?? [];
 
   // Nisyədə müştəri məcburi olduğu üçün adının boş qayıtması → silinmiş müştəri
   const deletedCustomer =
     sale?.paymentType === "Nisyə" &&
     !(sale.customerName && sale.customerName.trim());
   const linkedCustomerName =
-    sale?.customerId && sale.customerName?.trim() ? sale.customerName : null;
+    customerId && sale?.customerName?.trim() ? sale.customerName : null;
+
+  // 375px-də 2 sütun × ~163px: `size="lg"` px-6 + text-base sığmır → mətn
+  // daşır. Toxunma hündürlüyü (52px) saxlanılır, yan boşluq/şrift kiçildilir.
+  const footerBtnCls = "w-full min-w-0 px-3 text-sm";
 
   const footer = sale ? (
-    <div className="grid grid-cols-2 gap-2 border-t border-stone-200 bg-white p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+    <div className="grid grid-cols-2 gap-2 border-t border-stone-200 bg-white px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
       <Button
+        type="button"
         variant="secondary"
         size="lg"
-        className="w-full"
+        className={footerBtnCls}
         icon={
           invoicePending ? (
-            <Loader2 size={18} className="animate-spin" />
+            <Loader2 size={18} className="shrink-0 animate-spin" />
           ) : (
-            <Receipt size={18} />
+            <Receipt size={18} className="shrink-0" />
           )
         }
         onClick={() => void downloadInvoice(sale.id)}
         disabled={invoicePending}
+        aria-label="Qaiməni PDF kimi yüklə"
       >
-        Qaimə (PDF)
+        <span className="truncate">Qaimə (PDF)</span>
       </Button>
 
+      {/*
+        `disabled` atributu qəsdən yoxdur: native disabled düymədə `title`
+        tooltip-i görünmür və düymə fokus almır — səbəb (müştəri/telefon yoxdur)
+        gizli qalırdı. `aria-disabled` + klik qoruyucusu eyni davranışı verir.
+      */}
       <button
         type="button"
-        title={
-          !sale.customerId
-            ? "Bu satışda müştəri seçilməyib"
-            : !customerPhone.trim()
-              ? "Müştəri telefonu yoxdur"
-              : "WhatsApp-la göndər"
-        }
-        onClick={() =>
-          void sendInvoiceWa(sale.id, customerPhone, sale.createdAt)
-        }
-        disabled={!canWa || waPending}
+        title={waDisabledReason ?? "WhatsApp-la göndər"}
+        aria-label="Qaiməni WhatsApp-la göndər"
+        aria-disabled={!canWa || waPending}
+        onClick={() => {
+          if (!canWa || waPending) return;
+          void sendInvoiceWa(sale.id, customerPhone, sale.createdAt);
+        }}
         className={cn(
-          "inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold text-white transition-colors",
+          "inline-flex min-h-[52px] min-w-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-white transition-colors",
           "bg-[#25D366] hover:bg-[#1eba57] active:bg-[#15954a]",
-          "disabled:cursor-not-allowed disabled:opacity-50",
+          (!canWa || waPending) &&
+            "cursor-not-allowed opacity-50 hover:bg-[#25D366]",
         )}
       >
         {waPending ? (
-          <Loader2 size={18} className="animate-spin" />
+          <Loader2 size={18} className="shrink-0 animate-spin" />
         ) : (
           <WhatsAppIcon size={18} />
         )}
-        WhatsApp
+        <span className="truncate">WhatsApp</span>
       </button>
 
       {canManage && (
@@ -153,24 +162,24 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             type="button"
             variant="secondary"
             size="lg"
-            className="w-full"
-            icon={<Pencil size={18} />}
+            className={footerBtnCls}
+            icon={<Pencil size={18} className="shrink-0" />}
             onClick={() => {
               onClose();
               onEdit(sale.id);
             }}
           >
-            Düzəliş et
+            <span className="truncate">Düzəliş et</span>
           </Button>
           <Button
             type="button"
             variant="danger"
             size="lg"
-            className="w-full"
-            icon={<Trash2 size={18} />}
+            className={footerBtnCls}
+            icon={<Trash2 size={18} className="shrink-0" />}
             onClick={() => onDelete(sale)}
           >
-            Sil
+            <span className="truncate">Sil</span>
           </Button>
         </>
       )}
@@ -209,6 +218,8 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             </div>
             <div className="shrink-0 text-right">
               <p className="text-2xl font-extrabold tabular-nums text-stone-900">
+                {/* Ekran oxuyucusu üçün: rəqəm tək başına mənasızdır. */}
+                <span className="sr-only">Yekun məbləğ: </span>
                 {fmtMoney(sale.totalAmount)}
               </p>
               <Badge tone={sale.paymentType} className="mt-1">
@@ -217,11 +228,11 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             </div>
           </div>
 
-          {/* ① Hesab */}
-          <Card title="① Hesab">
+          {/* Hesab — məktəb riyaziyyatı kimi şaquli sıra */}
+          <Card title="Hesab">
             <Row
-              label={`Satış qiyməti × ${sale.quantity}`}
-              value={fmtMoney(sale.salePrice)}
+              label="Satış qiyməti × Say"
+              value={`${fmtMoney(sale.salePrice)} × ${sale.quantity}`}
             />
             <Row label="Cəm" value={fmtMoney(sale.subtotal)} />
             {sale.discount > 0 && (
@@ -249,35 +260,35 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
                   )
                 }
               />
-
-              {sale.isManual && (sale.expenseItems?.length ?? 0) > 0 ? (
-                <div>
-                  <p className="mb-1 text-sm text-stone-500">Xərclər</p>
-                  <ul className="space-y-1">
-                    {(sale.expenseItems ?? []).map((e, i) => (
-                      <li
-                        key={`${e.name}-${i}`}
-                        className="flex justify-between gap-2 text-sm text-stone-700"
-                      >
-                        <span>{e.name}</span>
-                        <span className="tabular-nums">
-                          {fmtMoney(e.amount)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
+              {sale.purchasePricePerUnit != null && sale.quantity > 1 && (
                 <Row
-                  label="Bu satışa düşən xərc"
-                  value={
-                    batchExpense != null ? (
-                      fmtMoney(batchExpense)
-                    ) : (
-                      <EmptyValue />
-                    )
-                  }
+                  label="Maya cəmi (× say)"
+                  value={fmtMoney(sale.purchasePricePerUnit * sale.quantity)}
                 />
+              )}
+
+              <Row
+                label="Bu satışa düşən xərc"
+                value={
+                  batchExpense != null ? fmtMoney(batchExpense) : <EmptyValue />
+                }
+              />
+
+              {/* Sərbəst satışda xərcin nədən ibarət olduğu sətirlərlə açılır. */}
+              {sale.isManual && expenseItems.length > 0 && (
+                <ul className="space-y-1 border-l-2 border-stone-200 pl-3">
+                  {expenseItems.map((e, i) => (
+                    <li
+                      key={`${e.name}-${i}`}
+                      className="flex justify-between gap-2 text-sm text-stone-500"
+                    >
+                      <span className="min-w-0 truncate">{e.name}</span>
+                      <span className="shrink-0 tabular-nums">
+                        {fmtMoney(e.amount)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
 
               <div className="flex items-baseline justify-between gap-3 border-t border-stone-200 pt-2">
@@ -300,9 +311,9 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             </div>
           </Card>
 
-          {/* ② Müştəri (yalnız customerId varsa) */}
-          {sale.customerId && (
-            <Card title="② Müştəri">
+          {/* Müştəri (yalnız customerId varsa) */}
+          {customerId && (
+            <Card title="Müştəri">
               {deletedCustomer ? (
                 <p className="text-sm font-medium text-stone-400">
                   Silinmiş müştəri
@@ -310,14 +321,14 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
               ) : linkedCustomerName ? (
                 <Link
                   to="/musteriler"
-                  search={{ customerId: sale.customerId! }}
+                  search={{ customerId }}
                   onClick={onClose}
                   className="text-base font-bold text-emerald-700 underline-offset-2 hover:underline"
                 >
                   {linkedCustomerName}
                 </Link>
               ) : (
-                <p className="text-sm text-stone-400">—</p>
+                <EmptyValue />
               )}
 
               {customerPhone.trim() && (
@@ -347,8 +358,8 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             </Card>
           )}
 
-          {/* ③ Məlumat */}
-          <Card title="③ Məlumat">
+          {/* Məlumat */}
+          <Card title="Məlumat">
             <Row label="Satıcı" value={seller} />
             <Row label="Tarix" value={saleDateTime(sale.createdAt)} />
             <Row

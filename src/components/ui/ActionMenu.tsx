@@ -15,8 +15,14 @@ export type ActionMenuItem = {
   onClick?: () => void;
   href?: string;
   tone?: "default" | "danger" | "success";
+  /**
+   * Deaktiv bənd: gizlədilmir, boz göstərilir və klik işləmir — istifadəçi
+   * bəndin mövcud olduğunu, amma niyə işləmədiyini (`title`) görsün.
+   * Bəndin ÜMUMİYYƏTLƏ görünməməsi lazımdırsa, çağıran tərəf onu `items`
+   * massivinə əlavə etməməlidir (mövcud cədvəllərdəki şərti spread naxışı).
+   */
   disabled?: boolean;
-  /** Deaktiv olduqda görünən tooltip (səbəb). */
+  /** Hover/fokusda görünən izah (məs. deaktivliyin səbəbi). */
   title?: string;
 };
 
@@ -125,7 +131,7 @@ export function ActionMenu({
               const className = cn(
                 "flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition-colors",
                 isDisabled
-                  ? "cursor-not-allowed text-stone-300"
+                  ? "cursor-not-allowed text-stone-400"
                   : TONE[item.tone ?? "default"],
               );
               if (item.href && !isDisabled) {
@@ -145,6 +151,10 @@ export function ActionMenu({
                   </a>
                 );
               }
+              // `disabled` ATRİBUTU qəsdən verilmir: native disabled düymə
+              // siçan hadisələrini udur → `title` tooltip-i heç vaxt görünmür,
+              // fokus da almır. `aria-disabled` + klik qoruyucusu ilə bənd
+              // həm oxunur, həm də səbəbi hover/fokusda göstərir.
               return (
                 <button
                   key={item.label}
@@ -152,7 +162,6 @@ export function ActionMenu({
                   role="menuitem"
                   title={item.title}
                   aria-disabled={isDisabled}
-                  disabled={isDisabled}
                   className={className}
                   onClick={() => {
                     if (isDisabled) return;

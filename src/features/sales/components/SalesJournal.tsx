@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -32,7 +32,7 @@ import {
   type Period,
 } from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
-import { periodToRange, saleBatchExpense } from "../lib";
+import { periodToRange, saleBatchExpense, saleDateTime } from "../lib";
 import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
 import { useInvoiceDownload } from "../useInvoiceDownload";
 import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
@@ -43,12 +43,6 @@ import type { PaymentType, Sale } from "@/types";
 const routeApi = getRouteApi("/_app/satis");
 
 const PERIODS: Period[] = ["today", "week", "month", "all"];
-
-const saleDateTime = (iso: string): string => {
-  const date = fmtDate(iso, "dd.MM.yyyy");
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return date;
-  return `${date} ${fmtDate(iso, "HH:mm")}`;
-};
 
 const saleTime = (iso: string): string => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return fmtDate(iso, "dd.MM");
@@ -117,40 +111,47 @@ export function SalesJournal() {
   }, [employees]);
 
   /** Sətir əməliyyat menyusu: WhatsApp (hamıya) + Düzəliş/Sil (yalnız sales.manage). */
-  const buildMenuItems = (s: Sale): ActionMenuItem[] => {
-    const phone = customerPhone(s);
-    const canWa = !!s.customerId && !!phone.trim();
-    const waSending = waPendingId === s.id;
-    const items: ActionMenuItem[] = [
-      {
-        label: "WhatsApp-la göndər",
-        icon: waSending ? (
-          <Loader2 size={15} className="animate-spin" />
-        ) : (
-          <WhatsAppIcon size={15} />
-        ),
-        onClick: () => void sendInvoiceWa(s.id, phone, s.createdAt),
-        disabled: !canWa,
-        title: canWa ? undefined : "Müştəri qeyd olunmayıb",
-      },
-    ];
-    if (canManage) {
-      items.push(
+  const buildMenuItems = useCallback(
+    (s: Sale): ActionMenuItem[] => {
+      const phone = customerPhone(s);
+      const canWa = !!s.customerId && !!phone.trim();
+      const waSending = waPendingId === s.id;
+      const items: ActionMenuItem[] = [
         {
-          label: "Düzəliş",
-          icon: <Pencil size={15} />,
-          onClick: () => setEditId(s.id),
+          label: "WhatsApp-la göndər",
+          icon: waSending ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <WhatsAppIcon size={15} />
+          ),
+          onClick: () => void sendInvoiceWa(s.id, phone, s.createdAt),
+          disabled: !canWa || waSending,
+          title: !s.customerId
+            ? "Müştəri qeyd olunmayıb"
+            : !phone.trim()
+              ? "Müştəri telefonu yoxdur"
+              : undefined,
         },
-        {
-          label: "Sil",
-          icon: <Trash2 size={15} />,
-          onClick: () => setDeleteTarget(s),
-          tone: "danger",
-        },
-      );
-    }
-    return items;
-  };
+      ];
+      if (canManage) {
+        items.push(
+          {
+            label: "Düzəliş",
+            icon: <Pencil size={15} />,
+            onClick: () => setEditId(s.id),
+          },
+          {
+            label: "Sil",
+            icon: <Trash2 size={15} />,
+            onClick: () => setDeleteTarget(s),
+            tone: "danger",
+          },
+        );
+      }
+      return items;
+    },
+    [canManage, customerPhone, sendInvoiceWa, waPendingId],
+  );
 
   const sales = journal.data ?? [];
   const tableKey = [
@@ -334,14 +335,11 @@ export function SalesJournal() {
       },
     ],
     [
-      canManage,
+      buildMenuItems,
       sellerName,
       downloadInvoice,
       invoicePendingId,
       customerName,
-      customerPhone,
-      waPendingId,
-      sendInvoiceWa,
     ],
   );
 
