@@ -256,11 +256,22 @@ export function SalesJournal() {
       {
         accessorKey: "totalAmount",
         header: () => <span title="Müştəridən alınan pul">Yekun</span>,
-        cell: ({ getValue }) => (
-          <span className="text-base font-bold tabular-nums text-stone-900">
-            {fmtMoney(getValue() as number)}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const s = row.original;
+          return (
+            <div>
+              <span className="text-base font-bold tabular-nums text-stone-900">
+                {fmtMoney(s.totalAmount)}
+              </span>
+              {/* FE#25 (AC8) — qismən ödənişdə Yekun yanında kiçik boz sətir */}
+              {s.remainingAmount > 0 && s.paidAmount > 0 && (
+                <p className="text-xs tabular-nums text-stone-400">
+                  {fmtMoney(s.paidAmount)} ödənilib
+                </p>
+              )}
+            </div>
+          );
+        },
       },
       {
         accessorKey: "paymentType",
@@ -628,8 +639,15 @@ export function SalesJournal() {
                 <p className="min-w-0 flex-1 truncate text-sm font-bold text-stone-900">
                   {s.productName}
                 </p>
-                <span className="shrink-0 text-sm font-bold tabular-nums text-stone-900">
-                  {fmtMoney(s.totalAmount)}
+                <span className="shrink-0 text-right">
+                  <span className="block text-sm font-bold tabular-nums text-stone-900">
+                    {fmtMoney(s.totalAmount)}
+                  </span>
+                  {s.remainingAmount > 0 && s.paidAmount > 0 && (
+                    <span className="block text-[11px] tabular-nums text-stone-400">
+                      {fmtMoney(s.paidAmount)} ödənilib
+                    </span>
+                  )}
                 </span>
               </div>
               {(s.category || s.isManual) && (

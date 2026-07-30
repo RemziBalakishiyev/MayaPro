@@ -4,12 +4,12 @@ import { calcRealCost, mergeExpenseLines } from "@/features/products/lib";
 import { uid, todayISO, fmtMoney } from "@/lib/format";
 import type { PagedResult } from "@/lib/paging";
 import { useAuthStore } from "@/features/auth/store";
+import { resolveSalePaymentPlan } from "@/features/sales/lib";
 import type { CreateSaleInput, SalesListParams, UpdateSaleInput } from "@/features/sales/types";
 import type {
   Product,
   Sale,
   SaleDetail,
-  PaymentType,
   CustomerPayment,
   Supplier,
   SupplierPayment,
@@ -233,8 +233,15 @@ export const saleHandlers = {
     const subtotal = input.salePrice * qty;
     const discount = Math.max(0, input.discount);
     const net = Math.max(0, subtotal - discount);
-    const isCredit = input.paymentType === "Nisyə";
     const isManual = !!input.isManual || input.productId == null;
+    // BE#15 — qismən ödənişli satış: bir mənbədən (mock ↔ backend eyni qayda).
+    const plan = resolveSalePaymentPlan(
+      input.paymentType,
+      net,
+      input.paidAmount ?? null,
+      input.paidVia ?? null,
+    );
+    const isCredit = plan.remaining > 0;
 
     // Katalog malı — sərbəst satışda null
     const product = isManual
@@ -289,7 +296,10 @@ export const saleHandlers = {
       subtotal,
       discount,
       totalAmount: net,
-      paymentType: input.paymentType,
+      paymentType: plan.paymentType,
+      paidAmount: plan.paidAmount,
+      remainingAmount: plan.remaining,
+      paidVia: plan.paidVia,
       // Müştəri bütün ödəniş növlərində göndərilə bilər; Nisyədə məcburidir
       customerId: input.customerId ?? null,
       costPerUnit,
@@ -311,14 +321,15 @@ export const saleHandlers = {
     }
 
     // 3) Müştəri statistikası: lastPurchaseDate hər ödəniş növündə yenilənir;
-    //    borc YALNIZ nisyədə artır.
+    //    borc YALNIZ qalıq (remainingAmount) qədər artır — qismən ödənişdə
+    //    yalnız ödənilməyən hissə borcdur.
     if (sale.customerId) {
       const c = await db.customers.get(sale.customerId);
       if (c) {
         const patch: Partial<typeof c> = { lastPurchaseDate: todayISO() };
         if (isCredit) {
-          patch.totalDebt = c.totalDebt + net;
-          patch.remainingDebt = c.remainingDebt + net;
+          patch.totalDebt = c.totalDebt + plan.remaining;
+          patch.remainingDebt = c.remainingDebt + plan.remaining;
         }
         await db.customers.update(c.id, patch);
       }
@@ -356,12 +367,14 @@ export const saleHandlers = {
         });
       }
     }
+    // Borcdan yalnız qalıq (remainingAmount) çıxılır — qismən ödənişdə tam
+    // totalAmount deyil, ödənilməmiş hissə borcu artırmışdı.
     if (existing.paymentType === "Nisyə" && existing.customerId) {
       const c = await db.customers.get(existing.customerId);
       if (c) {
         await db.customers.update(c.id, {
-          totalDebt: Math.max(0, c.totalDebt - existing.totalAmount),
-          remainingDebt: Math.max(0, c.remainingDebt - existing.totalAmount),
+          totalDebt: Math.max(0, c.totalDebt - existing.remainingAmount),
+          remainingDebt: Math.max(0, c.remainingDebt - existing.remainingAmount),
         });
       }
     }
@@ -393,8 +406,8 @@ export const saleHandlers = {
       const c = await db.customers.get(existing.customerId);
       if (c) {
         await db.customers.update(c.id, {
-          totalDebt: Math.max(0, c.totalDebt - existing.totalAmount),
-          remainingDebt: Math.max(0, c.remainingDebt - existing.totalAmount),
+          totalDebt: Math.max(0, c.totalDebt - existing.remainingAmount),
+          remainingDebt: Math.max(0, c.remainingDebt - existing.remainingAmount),
         });
       }
     }
@@ -763,13 +776,24 @@ export const closingHandlers = {
     const sales = (await db.sales.list()).filter(
       (s) => s.createdAt.slice(0, 10) === t,
     );
-    const sumPt = (pt: PaymentType) =>
-      sales
-        .filter((s) => s.paymentType === pt)
-        .reduce((a, s) => a + s.totalAmount, 0);
-    const cashSales = sumPt("Nağd");
-    const cardSales = sumPt("Kart");
-    const creditSales = sumPt("Nisyə");
+    // BE#15 — qismən ödənilmiş (Nisyə) satışın nağd/kart hissəsi (paidAmount,
+    // paidVia) də faktiki günlük medaxilə düşür; yalnız qalıq (remainingAmount)
+    // nisyə sayılır.
+    const cashSales = sales.reduce((a, s) => {
+      if (s.paymentType === "Nağd") return a + s.totalAmount;
+      if (s.paymentType === "Nisyə" && s.paidAmount > 0 && s.paidVia === "Nağd")
+        return a + s.paidAmount;
+      return a;
+    }, 0);
+    const cardSales = sales.reduce((a, s) => {
+      if (s.paymentType === "Kart") return a + s.totalAmount;
+      if (s.paymentType === "Nisyə" && s.paidAmount > 0 && s.paidVia === "Kart")
+        return a + s.paidAmount;
+      return a;
+    }, 0);
+    const creditSales = sales
+      .filter((s) => s.paymentType === "Nisyə")
+      .reduce((a, s) => a + s.remainingAmount, 0);
     const expenses = (await db.expenses.list())
       .filter((e) => e.date.slice(0, 10) === t)
       .reduce((a, e) => a + e.amount, 0);

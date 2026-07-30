@@ -1,7 +1,7 @@
 /** Satış sətri üçün təmiz (pure) hesablamalar. */
 import { daysAgoISO, fmtDate, todayISO } from "@/lib/format";
 import type { Period } from "@/features/reports/lib";
-import type { Sale } from "@/types";
+import type { PaymentType, Sale } from "@/types";
 
 /** Period → API from/to (ISO tarix, gün səviyyəsi). */
 export const periodToRange = (
@@ -43,6 +43,44 @@ export const saleProfit = (
 /** Vahid qiymət real mayadan aşağıdırsa (ziyanlı satış). */
 export const isLossSale = (salePrice: number, realCost: number): boolean =>
   Number(salePrice) > 0 && realCost > 0 && Number(salePrice) < realCost;
+
+export interface SalePaymentPlan {
+  /** Faktiki ödənilən məbləğ (0 ≤ paidAmount ≤ total). */
+  paidAmount: number;
+  /** total − paidAmount (0-dan aşağı düşmür). */
+  remaining: number;
+  /** Yekun saxlanılan ödəniş növü — qalıq varsa həmişə "Nisyə". */
+  paymentType: PaymentType;
+  /** Ödənilən hissənin üsulu — yalnız qalıq varsa `paymentType`-dan fərqli məna daşıyır. */
+  paidVia: PaymentType;
+}
+
+/**
+ * BE#15 — qismən ödənişli satış qaydası: backend `SalePaymentPlan.Resolve`
+ * ilə bir mənbə (mock rejimdə eyni davranışı təkrarlamaq üçün). Qalıq (
+ * total − paidAmount) müsbətdirsə saxlanılan növ həmişə "Nisyə"-dir —
+ * tələb olunan növdən asılı olmayaraq.
+ */
+export const resolveSalePaymentPlan = (
+  requestedType: PaymentType,
+  total: number,
+  paidAmount?: number | null,
+  paidVia?: PaymentType | null,
+): SalePaymentPlan => {
+  const effectivePaid =
+    paidAmount ?? (requestedType === "Nisyə" ? 0 : total);
+  const remaining = Math.max(0, total - effectivePaid);
+  const receivedVia =
+    paidVia && paidVia !== "Nisyə" ? paidVia : null;
+  const paymentType: PaymentType =
+    remaining > 0
+      ? "Nisyə"
+      : requestedType === "Nisyə"
+        ? (receivedVia ?? "Nağd")
+        : requestedType;
+  const resolvedVia: PaymentType = remaining > 0 ? (receivedVia ?? "Nağd") : paymentType;
+  return { paidAmount: effectivePaid, remaining, paymentType, paidVia: resolvedVia };
+};
 
 /** Sərbəst satışda sənədləşmə xərc sətirlərinin cəmi (sətir yoxdursa 0). */
 export const saleExpenseItemsTotal = (sale: Sale): number =>

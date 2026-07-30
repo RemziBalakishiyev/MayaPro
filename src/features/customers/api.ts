@@ -204,7 +204,10 @@ async function mockListHistory(
     entries.push({
       date: s.createdAt,
       type: "sale",
-      amount: s.totalAmount,
+      // Nisyə sətri "+" işarəli borc kimi göstərilir — FE#25-dən sonra bu,
+      // tam yekun deyil, yalnız qalıq (remainingAmount) qədərdir (qismən
+      // ödənilmiş satışda ödənilən hissə artıq borc deyil).
+      amount: s.paymentType === "Nisyə" ? s.remainingAmount : s.totalAmount,
       note: `${s.productName} × ${s.quantity}`,
       saleId: s.id,
       paymentType: s.paymentType,

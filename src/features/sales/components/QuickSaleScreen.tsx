@@ -6,15 +6,12 @@ import {
   Check,
   ClipboardList,
   Coins,
-  CreditCard,
-  HandCoins,
   Loader2,
   Package,
   PackagePlus,
   Plus,
   Receipt,
   Search,
-  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -41,37 +38,11 @@ import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
 import { SalesJournal } from "./SalesJournal";
 import { QtyStepper } from "./QtyStepper";
 import { LossConfirmModal } from "./LossConfirmModal";
-import type { Customer, PaymentType, Product } from "@/types";
-
-const PAY_TYPES: {
-  key: PaymentType;
-  label: string;
-  Icon: typeof Wallet;
-  on: string;
-  off: string;
-}[] = [
-  {
-    key: "Nağd",
-    label: "Nağd",
-    Icon: Wallet,
-    on: "border-emerald-600 bg-emerald-600 text-white",
-    off: "border-stone-200 bg-white text-stone-600",
-  },
-  {
-    key: "Kart",
-    label: "Kart",
-    Icon: CreditCard,
-    on: "border-indigo-600 bg-indigo-600 text-white",
-    off: "border-stone-200 bg-white text-stone-600",
-  },
-  {
-    key: "Nisyə",
-    label: "Nisyə",
-    Icon: HandCoins,
-    on: "border-amber-500 bg-amber-500 text-white",
-    off: "border-stone-200 bg-white text-stone-600",
-  },
-];
+import {
+  PaymentConfirmModal,
+  type PaymentConfirmPayload,
+} from "./PaymentConfirmModal";
+import type { Customer, Product } from "@/types";
 
 export function QuickSaleScreen() {
   const toast = useToast();
@@ -86,10 +57,11 @@ export function QuickSaleScreen() {
   const [productId, setProductId] = useState("");
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
-  const [payType, setPayType] = useState<PaymentType>("Nağd");
   const [customerId, setCustomerId] = useState("");
   const [note, setNote] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // FE#25 — "SATIŞI TAMAMLA" birbaşa göndərmir, ödəniş təsdiq modalını açır.
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // ——— Sərbəst (manual) satış ———
   const [isManual, setIsManual] = useState(false);
@@ -112,6 +84,8 @@ export function QuickSaleScreen() {
     /** wa mesajında istifadə olunan tarix (satış anı) */
     createdAt: string;
     isCredit: boolean;
+    /** Qalıq borc (paidAmount &lt; yekun) — 0-dırsa satış tam ödənilib. */
+    remainingAmount: number;
   } | null>(null);
   // Qaimə endirilərkən uğur ekranı öz-özünə bağlanmasın.
   const [holdSuccess, setHoldSuccess] = useState(false);
@@ -181,14 +155,13 @@ export function QuickSaleScreen() {
   const belowCost = realCost != null && isLossSale(sp, realCost);
   const notEnoughStock = !isManual && !!product && q > product.quantity;
 
-  // Müştəri hər ödəniş növündə göndərilə bilər; Nisyədə məcburi qalır
+  // Ödəniş növü/müştəri məcburiliyi FE#25-də ödəniş modalında həll olunur —
+  // formada müştəri həmişə istəyə bağlıdır.
   const canSubmit =
     (isManual ? manualName.trim().length > 0 : !!product) &&
     sp > 0 &&
     !notEnoughStock &&
-    !manualPurchaseInvalid &&
-    (payType !== "Nisyə" || !!customerId);
-  const customerRequired = payType === "Nisyə";
+    !manualPurchaseInvalid;
 
   const reset = () => {
     setProductId("");
@@ -200,7 +173,6 @@ export function QuickSaleScreen() {
     setExpenseError("");
     setQty("1");
     setPrice("");
-    setPayType("Nağd");
     setCustomerId("");
     setNote("");
     setSearch("");
@@ -212,7 +184,8 @@ export function QuickSaleScreen() {
     setSuccess(null);
   };
 
-  const complete = async () => {
+  /** Ödəniş modalında "Təsdiqlə" — faktiki satış göndərişi (FE#25). */
+  const complete = async (payment: PaymentConfirmPayload) => {
     if (!isManual && !product) return;
     if (isManual && incompleteExpenseIndexes(expenseRows).length > 0) {
       setExpenseError("Məbləği olan xərc sətirində ad yazılmalıdır");
@@ -231,9 +204,10 @@ export function QuickSaleScreen() {
         quantity: q,
         salePrice: sp,
         discount: 0,
-        paymentType: payType,
-        // Müştəri hər ödəniş növündə göndərilə bilər; boş isə null
-        customerId: customerId || null,
+        paymentType: payment.paymentType,
+        customerId: payment.customerId,
+        paidAmount: payment.paidAmount,
+        paidVia: payment.paidVia,
         costPerUnit: isManual ? realCost : undefined,
         // Katalog satışında alış qiyməti backend-də maldan snapshot alınır
         purchasePricePerUnit: isManual ? manualPurchasePerUnit : undefined,
@@ -242,10 +216,11 @@ export function QuickSaleScreen() {
       });
       // Müştəri seçilibsə telefon götürülür (nağd/kartda da) → uğur ekranında
       // WhatsApp göndərmə düyməsi işə düşür.
-      const cusPhone = customerId
-        ? (customers.find((c) => c.id === customerId)?.phone ?? "")
+      const cusPhone = payment.customerId
+        ? (customers.find((c) => c.id === payment.customerId)?.phone ?? "")
         : "";
       setHoldSuccess(false);
+      setPaymentModalOpen(false);
       setSuccess({
         id: created.id,
         name: displayName,
@@ -254,7 +229,8 @@ export function QuickSaleScreen() {
         createdAt: created.createdAt ?? todayISO(),
         // WhatsApp düyməsinin şərti: müştəri seçilib + telefonu var
         // (nağd/kart satışda da müştəri olsa WhatsApp göndərilə bilər)
-        isCredit: !!customerId,
+        isCredit: !!payment.customerId,
+        remainingAmount: created.remainingAmount,
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Satış alınmadı");
@@ -267,7 +243,7 @@ export function QuickSaleScreen() {
       return;
     }
     if (profit != null && profit < 0) setConfirmOpen(true);
-    else complete();
+    else setPaymentModalOpen(true);
   };
 
   const selectProduct = (p: Product) => {
@@ -292,7 +268,6 @@ export function QuickSaleScreen() {
     setProductId("");
     setQty("1");
     setPrice("");
-    setPayType("Nağd");
     setCustomerId("");
   };
 
@@ -344,6 +319,13 @@ export function QuickSaleScreen() {
             {fmtMoney(success.amount)}
           </p>
           <p className="mt-2 text-base text-stone-500">{success.name}</p>
+          {/* FE#25 (AC6) — qismən/ödənilməmiş satışda əlavə xəbərdarlıq sətri */}
+          {success.remainingAmount > 0 && (
+            <p className="mt-3 rounded-xl bg-orange-50 px-4 py-2.5 text-sm font-semibold text-orange-800 ring-1 ring-orange-200">
+              Qalıq borc: {fmtMoney(success.remainingAmount)} — Nisyə
+              Borclarda görünəcək
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col items-center gap-2">
@@ -664,8 +646,8 @@ export function QuickSaleScreen() {
 
                 <SaleSection
                   icon={ClipboardList}
-                  title="Xərc və ödəniş"
-                  desc="Partiya xərcləri və ödəniş"
+                  title="Xərc və müştəri"
+                  desc="Partiya xərcləri və müştəri (istəyə bağlı)"
                 >
                   <ExpenseRows
                     key={isManual ? "manual" : "off"}
@@ -676,14 +658,11 @@ export function QuickSaleScreen() {
                       setExpenseRows(rows);
                     }}
                   />
-                  <PaymentBlock
-                    payType={payType}
-                    setPayType={setPayType}
+                  <CustomerOptionalBlock
                     customers={customers}
                     customerId={customerId}
                     setCustomerId={setCustomerId}
                     onNewCustomer={openNewCustomer}
-                    customerRequired={customerRequired}
                   />
                   <input
                     value={note}
@@ -748,14 +727,11 @@ export function QuickSaleScreen() {
                   />
                 </div>
 
-                <PaymentBlock
-                  payType={payType}
-                  setPayType={setPayType}
+                <CustomerOptionalBlock
                   customers={customers}
                   customerId={customerId}
                   setCustomerId={setCustomerId}
                   onNewCustomer={openNewCustomer}
-                  customerRequired={customerRequired}
                 />
 
                 <input
@@ -807,6 +783,19 @@ export function QuickSaleScreen() {
         </div>
       )}
 
+      {/* FE#25 — "SATIŞI TAMAMLA"dan sonra açılan kassa üslubu ödəniş modalı */}
+      <PaymentConfirmModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        net={net}
+        pending={createSale.isPending}
+        customers={customers}
+        customerId={customerId}
+        setCustomerId={setCustomerId}
+        onNewCustomer={openNewCustomer}
+        onConfirm={(payload) => void complete(payload)}
+      />
+
       <NewCustomerModal
         open={newCusOpen}
         onClose={() => {
@@ -814,15 +803,12 @@ export function QuickSaleScreen() {
           setNewCusName("");
         }}
         initialName={newCusName}
-        onCreated={(customer) => {
-          setPayType("Nisyə");
-          setCustomerId(customer.id);
-        }}
+        onCreated={(customer) => setCustomerId(customer.id)}
       />
       <LossConfirmModal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={complete}
+        onConfirm={() => setPaymentModalOpen(true)}
         lossAmount={profit ?? 0}
       />
     </div>
@@ -857,90 +843,58 @@ function SaleSection({
   );
 }
 
-/** Ödəniş növü + müştəri seçimi (Nisyədə məcburi, digər növlərdə istəyə bağlı). */
-function PaymentBlock({
-  payType,
-  setPayType,
+/**
+ * Müştəri seçimi — FE#25-dən sonra formada həmişə istəyə bağlıdır (ödəniş
+ * növü/müştəri məcburiliyi artıq "SATIŞI TAMAMLA" sonrası ödəniş modalında
+ * həll olunur, bax `PaymentConfirmModal`). Burada seçilsə, modal onu
+ * hazır gətirir.
+ */
+function CustomerOptionalBlock({
   customers,
   customerId,
   setCustomerId,
   onNewCustomer,
-  customerRequired,
 }: {
-  payType: PaymentType;
-  setPayType: (v: PaymentType) => void;
   customers: Customer[];
   customerId: string;
   setCustomerId: (v: string) => void;
   onNewCustomer: (prefillName?: string) => void;
-  customerRequired: boolean;
 }) {
   return (
-    <>
-      <div>
-        <p className="mb-2 text-sm font-semibold text-stone-600">Ödəniş növü</p>
-        <div className="grid grid-cols-3 gap-2.5">
-          {PAY_TYPES.map(({ key, label, Icon, on, off }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setPayType(key)}
-              className={cn(
-                "flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-2xl border-2 text-base font-bold transition",
-                payType === key ? on : off,
-              )}
-            >
-              <Icon size={24} />
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          "rounded-2xl border p-3",
-          customerRequired
-            ? "border-amber-200 bg-amber-50/50"
-            : "border-stone-200 bg-white",
+    <div className="rounded-2xl border border-stone-200 bg-white p-3">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold text-stone-600">
+          Müştəri
+          <span className="ml-1 font-normal text-stone-400">
+            (istəyə bağlı)
+          </span>
+        </p>
+        {!!customerId && (
+          <button
+            type="button"
+            onClick={() => setCustomerId("")}
+            className="text-xs font-semibold text-stone-500 hover:text-emerald-700"
+          >
+            Sil
+          </button>
         )}
-      >
-        <div className="mb-2 flex items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-stone-600">
-            Müştəri
-            {!customerRequired && (
-              <span className="ml-1 font-normal text-stone-400">
-                (istəyə bağlı)
-              </span>
-            )}
-          </p>
-          {!customerRequired && !!customerId && (
-            <button
-              type="button"
-              onClick={() => setCustomerId("")}
-              className="text-xs font-semibold text-stone-500 hover:text-emerald-700"
-            >
-              Sil
-            </button>
-          )}
-        </div>
-        <CustomerPicker
-          customers={customers}
-          value={customerId}
-          onChange={setCustomerId}
-          onCreateNew={onNewCustomer}
-        />
-        <Button
-          variant="secondary"
-          size="lg"
-          className="mt-2 w-full justify-center"
-          icon={<Plus size={18} />}
-          onClick={() => onNewCustomer()}
-        >
-          Yeni müştəri
-        </Button>
       </div>
-    </>
+      <CustomerPicker
+        customers={customers}
+        value={customerId}
+        onChange={setCustomerId}
+        onCreateNew={onNewCustomer}
+      />
+      <Button
+        variant="secondary"
+        size="lg"
+        className="mt-2 w-full justify-center"
+        icon={<Plus size={18} />}
+        onClick={() => onNewCustomer()}
+      >
+        Yeni müştəri
+      </Button>
+    </div>
   );
 }
 

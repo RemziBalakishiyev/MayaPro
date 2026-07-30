@@ -126,6 +126,11 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
       return;
     }
     try {
+      // FE#25 — ödəniş növü dəyişdirilməyibsə mövcud paidAmount/paidVia
+      // (yeni yekunə görə məhdudlaşdırılmış) saxlanılır ki, qismən ödəniş
+      // sadəcə say/qiymət düzəlişində sıfırlanmasın. Növ dəyişibsə, backend
+      // defolt qaydası tətbiq olunur (Nağd/Kart → tam, Nisyə → 0).
+      const paymentUnchanged = payType === sale.paymentType;
       await updateSale.mutateAsync({
         id: sale.id,
         input: {
@@ -140,6 +145,14 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
           discount: 0,
           paymentType: payType,
           customerId: payType === "Nisyə" ? customerId : null,
+          paidAmount: paymentUnchanged ? Math.min(sale.paidAmount, net) : undefined,
+          // paidVia yalnız "Nağd"/"Kart" ola bilər (SaleWriteValidator) —
+          // Sale.paidVia tipi PaymentType-dır, "Nisyə" ehtimalını at.
+          paidVia: paymentUnchanged
+            ? sale.paidVia === "Kart"
+              ? "Kart"
+              : "Nağd"
+            : undefined,
           costPerUnit: isManual ? (sale.costPerUnit ?? null) : undefined,
           purchasePricePerUnit: isManual
             ? (sale.purchasePricePerUnit ?? null)
