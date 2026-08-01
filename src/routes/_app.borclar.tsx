@@ -25,6 +25,11 @@ import { CustomerDrawer } from "@/features/customers/components/CustomerDrawer";
 import { PaymentModal } from "@/features/customers/components/PaymentModal";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { EditCustomerModal } from "@/features/customers/components/EditCustomerModal";
+import { OpenDebtsView } from "@/features/customers/components/OpenDebtsView";
+import {
+  DebtViewToggle,
+  type DebtViewMode,
+} from "@/features/customers/components/DebtViewToggle";
 import type { Customer } from "@/types";
 
 const optNum = z.preprocess((v) => {
@@ -35,6 +40,12 @@ const optNum = z.preprocess((v) => {
 
 const searchSchema = z.object({
   q: z.string().optional(),
+  /**
+   * FE#40 — görünüş rejimi: "borclar" (default) mənbə-mənbə açıq borclar
+   * (BE#21), "musteri" isə köhnə müştəri-üzrə cədvəl. URL-də saxlanır ki,
+   * səhifə yenilənəndə seçim itməsin.
+   */
+  mode: z.enum(["borclar", "musteri"]).default("borclar"),
   /** Satış detalından deep-link — drawer açılır */
   customerId: z.string().optional(),
   /**
@@ -96,6 +107,11 @@ function BorclarPage() {
     const c = customers.find((x) => x.id === search.customerId);
     if (c) setSelected(c);
   }, [search.customerId, customers]);
+
+  const mode: DebtViewMode = search.mode ?? "borclar";
+  const setMode = (next: DebtViewMode) => {
+    navigate({ search: (prev) => ({ ...prev, mode: next }) });
+  };
 
   // "borclu" default — Nisyə Borclar səhifəsi borclulara fokuslanır.
   // Köhnə URL ?borclu=true şəklindən də dəstək; default olmadığı halda aktiv filtir sayılır.
@@ -226,260 +242,280 @@ function BorclarPage() {
         }
       />
 
-      <div className="mb-4 space-y-3">
-        <div className="relative max-w-sm">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-          />
-          <input
-            value={search.q ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: (prev) => ({ ...prev, q: e.target.value || undefined }),
-              })
-            }
-            placeholder="Ad və ya telefon üzrə axtar..."
-            className={`${inputCls} pl-8`}
-          />
-        </div>
+      <DebtViewToggle value={mode} onChange={setMode} />
 
-        <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-50/60">
-          <button
-            type="button"
-            onClick={() => setFiltersOpen((o) => !o)}
-            className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
-          >
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-stone-700">
-              <SlidersHorizontal size={16} className="text-stone-500" />
-              Filterlər
-              {activeFilterCount > 0 && (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-                  {activeFilterCount}
+      {mode === "borclar" && (
+        <OpenDebtsView
+          q={search.q ?? ""}
+          onQChange={(v) =>
+            navigate({
+              search: (prev) => ({ ...prev, q: v || undefined }),
+            })
+          }
+          customers={customers}
+          onPay={setPayFor}
+          onView={setSelected}
+        />
+      )}
+
+      {mode === "musteri" && (
+        <>
+          <div className="mb-4 space-y-3">
+            <div className="relative max-w-sm">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+              />
+              <input
+                value={search.q ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: (prev) => ({ ...prev, q: e.target.value || undefined }),
+                  })
+                }
+                placeholder="Ad və ya telefon üzrə axtar..."
+                className={`${inputCls} pl-8`}
+              />
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-50/60">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((o) => !o)}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+              >
+                <span className="inline-flex items-center gap-2 text-sm font-semibold text-stone-700">
+                  <SlidersHorizontal size={16} className="text-stone-500" />
+                  Filterlər
+                  {activeFilterCount > 0 && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                      {activeFilterCount}
+                    </span>
+                  )}
                 </span>
-              )}
-            </span>
-            <ChevronDown
-              size={18}
-              className={cn(
-                "shrink-0 text-stone-400 transition-transform",
-                filtersOpen && "rotate-180",
-              )}
-            />
-          </button>
+                <ChevronDown
+                  size={18}
+                  className={cn(
+                    "shrink-0 text-stone-400 transition-transform",
+                    filtersOpen && "rotate-180",
+                  )}
+                />
+              </button>
 
-          {filtersOpen && (
-            <div className="space-y-3 border-t border-stone-200 px-3 py-3">
-              <div>
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
-                  Status
-                </p>
-                <div
-                  role="tablist"
-                  aria-label="Status"
-                  className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
-                >
-                  {(
-                    [
-                      { key: "borclu" as const, label: "Borclu" },
-                      { key: "odenilib" as const, label: "Ödənilib" },
-                      { key: "all" as const, label: "Hamısı" },
-                    ] as const
-                  ).map(({ key, label }) => {
-                    const active = status === key;
-                    return (
-                      <button
-                        key={label}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() => setStatus(key)}
-                        className={cn(
-                          "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                          active
-                            ? "bg-emerald-700 text-white shadow-sm"
-                            : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
-                        )}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {filtersOpen && (
+                <div className="space-y-3 border-t border-stone-200 px-3 py-3">
+                  <div>
+                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
+                      Status
+                    </p>
+                    <div
+                      role="tablist"
+                      aria-label="Status"
+                      className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
+                    >
+                      {(
+                        [
+                          { key: "borclu" as const, label: "Borclu" },
+                          { key: "odenilib" as const, label: "Ödənilib" },
+                          { key: "all" as const, label: "Hamısı" },
+                        ] as const
+                      ).map(({ key, label }) => {
+                        const active = status === key;
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            role="tab"
+                            aria-selected={active}
+                            onClick={() => setStatus(key)}
+                            className={cn(
+                              "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                              active
+                                ? "bg-emerald-700 text-white shadow-sm"
+                                : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-              <div>
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
-                  Son əməliyyat
-                </p>
-                <div
-                  role="tablist"
-                  aria-label="Son əməliyyat dövrü"
-                  className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
-                >
-                  {ACTIVITY_PERIODS.map((p) => {
-                    const active = search.activity === p;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() =>
+                  <div>
+                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
+                      Son əməliyyat
+                    </p>
+                    <div
+                      role="tablist"
+                      aria-label="Son əməliyyat dövrü"
+                      className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
+                    >
+                      {ACTIVITY_PERIODS.map((p) => {
+                        const active = search.activity === p;
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            role="tab"
+                            aria-selected={active}
+                            onClick={() =>
+                              navigate({
+                                search: (prev) => ({ ...prev, activity: p }),
+                              })
+                            }
+                            className={cn(
+                              "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                              active
+                                ? "bg-emerald-700 text-white shadow-sm"
+                                : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+                            )}
+                          >
+                            {PERIOD_LABELS[p]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-stone-500">
+                        Min qalıq
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        value={search.minDebt ?? ""}
+                        onChange={(e) =>
                           navigate({
-                            search: (prev) => ({ ...prev, activity: p }),
+                            search: (prev) => ({
+                              ...prev,
+                              minDebt: parseNum(e.target.value),
+                            }),
                           })
                         }
-                        className={cn(
-                          "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                          active
-                            ? "bg-emerald-700 text-white shadow-sm"
-                            : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
-                        )}
-                      >
-                        {PERIOD_LABELS[p]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Min qalıq
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    value={search.minDebt ?? ""}
-                    onChange={(e) =>
-                      navigate({
-                        search: (prev) => ({
-                          ...prev,
-                          minDebt: parseNum(e.target.value),
-                        }),
-                      })
-                    }
-                    placeholder="0"
-                    className={cn(inputCls, "h-9 px-3 text-sm")}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Max qalıq
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    value={search.maxDebt ?? ""}
-                    onChange={(e) =>
-                      navigate({
-                        search: (prev) => ({
-                          ...prev,
-                          maxDebt: parseNum(e.target.value),
-                        }),
-                      })
-                    }
-                    placeholder="∞"
-                    className={cn(inputCls, "h-9 px-3 text-sm")}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">
-                    Telefon
-                  </label>
-                  <div className="flex gap-0.5 rounded-xl border border-stone-200 bg-white p-1">
-                    {(
-                      [
-                        { key: undefined, label: "Hamısı" },
-                        { key: "var" as const, label: "Var" },
-                        { key: "yox" as const, label: "Yox" },
-                      ] as const
-                    ).map(({ key, label }) => {
-                      const active = search.phone === key;
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() =>
+                        placeholder="0"
+                        className={cn(inputCls, "h-9 px-3 text-sm")}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-stone-500">
+                        Max qalıq
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        value={search.maxDebt ?? ""}
+                        onChange={(e) =>
+                          navigate({
+                            search: (prev) => ({
+                              ...prev,
+                              maxDebt: parseNum(e.target.value),
+                            }),
+                          })
+                        }
+                        placeholder="∞"
+                        className={cn(inputCls, "h-9 px-3 text-sm")}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-stone-500">
+                        Telefon
+                      </label>
+                      <div className="flex gap-0.5 rounded-xl border border-stone-200 bg-white p-1">
+                        {(
+                          [
+                            { key: undefined, label: "Hamısı" },
+                            { key: "var" as const, label: "Var" },
+                            { key: "yox" as const, label: "Yox" },
+                          ] as const
+                        ).map(({ key, label }) => {
+                          const active = search.phone === key;
+                          return (
+                            <button
+                              key={label}
+                              type="button"
+                              onClick={() =>
+                                navigate({
+                                  search: (prev) => ({
+                                    ...prev,
+                                    phone: key,
+                                  }),
+                                })
+                              }
+                              className={cn(
+                                "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+                                active
+                                  ? "bg-emerald-700 text-white shadow-sm"
+                                  : "text-stone-500 hover:bg-stone-50",
+                              )}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-600">
+                        <input
+                          type="checkbox"
+                          checked={!!search.initial}
+                          onChange={(e) =>
                             navigate({
                               search: (prev) => ({
                                 ...prev,
-                                phone: key,
+                                initial: e.target.checked || undefined,
                               }),
                             })
                           }
-                          className={cn(
-                            "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:text-sm",
-                            active
-                              ? "bg-emerald-700 text-white shadow-sm"
-                              : "text-stone-500 hover:bg-stone-50",
-                          )}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
+                          className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        İlkin borclu
+                      </label>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-end">
-                  <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-600">
-                    <input
-                      type="checkbox"
-                      checked={!!search.initial}
-                      onChange={(e) =>
-                        navigate({
-                          search: (prev) => ({
-                            ...prev,
-                            initial: e.target.checked || undefined,
-                          }),
-                        })
-                      }
-                      className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    İlkin borclu
-                  </label>
-                </div>
-              </div>
 
-              {activeFilterCount > 0 && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-                  >
-                    <X size={14} />
-                    Filterləri təmizlə
-                  </button>
+                  {activeFilterCount > 0 && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+                      >
+                        <X size={14} />
+                        Filterləri təmizlə
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      <CustomersTable
-        customers={filtered}
-        isLoading={isLoading}
-        canEdit={canEdit}
-        canDelete={canDelete}
-        onView={setSelected}
-        onPay={setPayFor}
-        onEdit={setEditFor}
-        onDelete={setDeleteFor}
-        emptyState={
-          hasFilters
-            ? {
-                title: "Filterə uyğun müştəri yoxdur",
-                description: "Axtarışı və ya filterləri dəyişin.",
-              }
-            : undefined
-        }
-      />
+          <CustomersTable
+            customers={filtered}
+            isLoading={isLoading}
+            canEdit={canEdit}
+            canDelete={canDelete}
+            onView={setSelected}
+            onPay={setPayFor}
+            onEdit={setEditFor}
+            onDelete={setDeleteFor}
+            emptyState={
+              hasFilters
+                ? {
+                    title: "Filterə uyğun müştəri yoxdur",
+                    description: "Axtarışı və ya filterləri dəyişin.",
+                  }
+                : undefined
+            }
+          />
+        </>
+      )}
 
       <CustomerDrawer
         customer={liveSelected}
