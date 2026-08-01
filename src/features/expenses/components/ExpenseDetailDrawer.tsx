@@ -75,7 +75,7 @@ export function ExpenseDetailDrawer({
   onDelete,
   canWrite = false,
 }: Props) {
-  const { data: products = [] } = useProducts();
+  const { data: products = [], isLoading: productsLoading } = useProducts();
   const { data: employees = [] } = useEmployees();
   const user = useAuthStore((s) => s.user);
 
@@ -184,6 +184,10 @@ export function ExpenseDetailDrawer({
                       >
                         {product.name}
                       </Link>
+                    ) : productsLoading ? (
+                      // Mallar siyahısı hələ yüklənir — "mal tapılmadı" flash
+                      // etməsin deyə ayrıca gözləmə göstəricisi.
+                      <span className="text-sm text-stone-400">Yüklənir…</span>
                     ) : (
                       <EmptyValue label="mal tapılmadı" />
                     )
