@@ -1,21 +1,39 @@
-import { useEffect, useId, useRef } from "react";
+import { createContext, useContext, useEffect, useId, useRef } from "react";
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { Maximize2, Minimize2, X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useDrawerExpandStore } from "./drawer-store";
 
 export interface DrawerProps {
   open: boolean;
   onClose: () => void;
   title?: ReactNode;
-  children: ReactNode;
+  /**
+   * Adi ReactNode və ya render-prop funksiyası — sonuncu halda cari
+   * genişlənmə vəziyyəti (`isExpanded`) birbaşa ötürülür ki, valideyn
+   * komponent (məs. ProductForm) öz düzülüşünü uyğunlaşdıra bilsin.
+   */
+  children: ReactNode | ((isExpanded: boolean) => ReactNode);
   /** Alt-da sabit (scroll olmayan) zolaq — məs. canlı nəticə + düymələr. */
   footer?: ReactNode;
-  /** Desktop-da daha geniş panel (məs. mal forması). */
+  /** Desktop-da daha geniş panel (məs. mal forması) — daraldılmış vəziyyətdə tətbiq olunur. */
   wide?: boolean;
-  /** Tam ekran eni — `wide`-dan üstündür (məs. mal formunun böyüdülmüş rejimi). */
-  maximized?: boolean;
-  /** Başlıqla bağlama düyməsi arasında əlavə düymə (məs. böyüt/kiçilt). */
-  headerExtra?: ReactNode;
+  /**
+   * Genişlət/daralt düyməsini gizlətmək üçün — defolt AÇIQ (bütün drawer-lərdə
+   * görünür). Yalnız genişlənmənin mənası olmayan çox kiçik panellərdə `false`
+   * verilə bilər.
+   */
+  expandable?: boolean;
+}
+
+const DrawerExpandedContext = createContext(false);
+
+/**
+ * Drawer daxilindəki komponentlərin cari genişlənmə vəziyyətini oxuması üçün
+ * — məs. formanın 2 sütunlu düzülüşə keçməsi. Drawer xaricində `false` qaytarır.
+ */
+export function useDrawerExpanded(): boolean {
+  return useContext(DrawerExpandedContext);
 }
 
 export function Drawer({
@@ -25,11 +43,13 @@ export function Drawer({
   children,
   footer,
   wide,
-  maximized,
-  headerExtra,
+  expandable = true,
 }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const expandedPreference = useDrawerExpandStore((s) => s.expanded);
+  const toggleExpanded = useDrawerExpandStore((s) => s.toggle);
+  const isExpanded = expandable && expandedPreference;
 
   useEffect(() => {
     if (!open) return;
@@ -58,12 +78,33 @@ export function Drawer({
 
   if (!open) return null;
 
-  // `maximized` → `wide`-dan üstündür (tam ekran eni).
-  const panelWidth = maximized
-    ? "sm:max-w-full"
+  const content = typeof children === "function" ? children(isExpanded) : children;
+
+  // Genişlənmiş vəziyyət (`isExpanded`) hər şeydən üstündür — ekranın ~85%-i,
+  // 6xl (72rem) ilə hüdudlanır. Daraldılmışda `wide` mövcud enləri qorumaq üçün.
+  const panelWidth = isExpanded
+    ? "sm:max-w-[min(85vw,72rem)]"
     : wide
       ? "sm:max-w-3xl"
       : "sm:max-w-xl";
+
+  const expandButton = expandable ? (
+    <button
+      type="button"
+      onClick={toggleExpanded}
+      aria-pressed={isExpanded}
+      title={isExpanded ? "Daralt" : "Genişlət"}
+      className={cn(
+        "hidden h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition-colors sm:flex",
+        isExpanded
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+          : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50 hover:text-stone-700",
+      )}
+    >
+      {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+      {isExpanded ? "Daralt" : "Genişlət"}
+    </button>
+  ) : null;
 
   // Footer varsa başlıq flex sütunun sabit sətri, yoxsa scroll edən panelin
   // sticky sətridir — qalan hər şey eynidir.
@@ -80,8 +121,8 @@ export function Drawer({
       >
         {title}
       </h3>
-      <div className="flex shrink-0 items-center gap-1">
-        {headerExtra}
+      <div className="flex shrink-0 items-center gap-2">
+        {expandButton}
         <button
           type="button"
           onClick={onClose}
@@ -108,21 +149,23 @@ export function Drawer({
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          "absolute right-0 top-0 h-full w-full bg-white shadow-2xl outline-none transition-[max-width] duration-200 ease-out",
+          "absolute right-0 top-0 h-full w-full bg-white shadow-2xl outline-none transition-[max-width] duration-[250ms] ease-out",
           // Footer varsa: başlıq və footer sabit, yalnız orta hissə scroll olur.
           footer ? "flex flex-col" : "overflow-y-auto",
           panelWidth,
         )}
       >
         {header}
-        {footer ? (
-          <>
-            <div className="flex-1 overflow-y-auto p-5">{children}</div>
-            <div className="shrink-0">{footer}</div>
-          </>
-        ) : (
-          <div className="p-5">{children}</div>
-        )}
+        <DrawerExpandedContext.Provider value={isExpanded}>
+          {footer ? (
+            <>
+              <div className="flex-1 overflow-y-auto p-5">{content}</div>
+              <div className="shrink-0">{footer}</div>
+            </>
+          ) : (
+            <div className="p-5">{content}</div>
+          )}
+        </DrawerExpandedContext.Provider>
       </div>
     </div>
   );

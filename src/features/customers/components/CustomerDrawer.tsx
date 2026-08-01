@@ -148,7 +148,8 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
           ) : undefined
         }
       >
-        {customer && (
+        {(isExpanded) =>
+        customer && (
           <div className="space-y-6">
             {/* Qalıq borc — əsas siqnal */}
             <div
@@ -223,6 +224,13 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
               )}
             </div>
 
+            {/* Genişdə "Aldığı mallar" + "Tarixçə" yan-yana göstərilir. */}
+            <div
+              className={cn(
+                "grid grid-cols-1 items-start gap-6",
+                isExpanded && "lg:grid-cols-2",
+              )}
+            >
             {/* Aldığı mallar */}
             <section>
               <div className="mb-2.5 flex items-baseline justify-between gap-2">
@@ -398,8 +406,10 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                 </ul>
               )}
             </section>
+            </div>
           </div>
-        )}
+        )
+      }
       </Drawer>
 
       <ConfirmModal
