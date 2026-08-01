@@ -299,14 +299,19 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
               isExpanded && "lg:grid-cols-2",
             )}
           >
-            <Field label="Xərc adı" required>
-              <Input
-                autoFocus
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Məs: Karqo çatdırılma"
-              />
-            </Field>
+            {/* Tam sətir tutur: yanındakı "Xərc növü" də (aşağıda) col-span-2-dir,
+                ona görə auto-placement bunu yarım sütunda qoysa "Xərc növü"
+                növbəti sətrə keçir və bu sahənin yanında boş xana qalır. */}
+            <div className={cn(isExpanded && "lg:col-span-2")}>
+              <Field label="Xərc adı" required>
+                <Input
+                  autoFocus
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Məs: Karqo çatdırılma"
+                />
+              </Field>
+            </div>
 
             {/* Növ tam sətir tutur: "+ Yeni xərc növü" inline forması (input + 2
                 düymə) yarım sütunda sığmır — genişlənmiş rejimdə də belədir. */}
