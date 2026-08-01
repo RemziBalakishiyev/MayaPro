@@ -22,7 +22,7 @@ import {
   lossSellers,
   paymentBreakdown,
   PERIOD_LABELS,
-  type Period,
+  type BasePeriod,
 } from "@/features/reports/lib";
 import {
   expenseBySource,
@@ -34,7 +34,7 @@ import { ExpensePie } from "@/features/reports/components/ExpensePie";
 import { TopProductsBar } from "@/features/reports/components/TopProductsBar";
 import { PaymentBreakdown } from "@/features/reports/components/PaymentBreakdown";
 
-const PERIODS: Period[] = ["today", "week", "month", "all"];
+const PERIODS: BasePeriod[] = ["today", "week", "month", "all"];
 
 const searchSchema = z.object({
   period: z.enum(["today", "week", "month", "all"]).default("month"),

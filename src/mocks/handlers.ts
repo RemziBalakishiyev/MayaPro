@@ -622,6 +622,9 @@ export const expenseHandlers = {
    */
   async createExpense(input: NewExpense): Promise<Expense> {
     const isProduct = input.source === "product";
+    // "Kim yazıb" (detal draweri, AC-13) real backend-dəki createdByUserId
+    // ilə eyni qaydada doldurulur — logActivity-dəki fallback ilə tutarlı.
+    const employeeId = useAuthStore.getState().user?.id ?? "emp_1";
     const expense: Expense = {
       id: uid("exp"),
       title: input.title.trim(),
@@ -631,6 +634,7 @@ export const expenseHandlers = {
       date: input.date,
       note: input.note ?? "",
       source: input.source,
+      createdByUserId: employeeId,
     };
     await db.expenses.create(expense);
 
