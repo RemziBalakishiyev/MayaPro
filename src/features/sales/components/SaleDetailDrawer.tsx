@@ -188,6 +188,8 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
 
   return (
     <Drawer open={!!saleId} onClose={onClose} title="Satış detalı" footer={footer}>
+      {(isExpanded) => (
+      <>
       {isLoading && (
         <div className="flex justify-center py-12">
           <Spinner />
@@ -228,6 +230,13 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             </div>
           </div>
 
+          {/* Genişdə Hesab + Müştəri yan-yana (real yer olan lg+ ekranda). */}
+          <div
+            className={cn(
+              "grid grid-cols-1 items-start gap-4",
+              isExpanded && customerId && "lg:grid-cols-2",
+            )}
+          >
           {/* Hesab — məktəb riyaziyyatı kimi şaquli sıra */}
           <Card title="Hesab">
             <Row
@@ -374,6 +383,7 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
               )}
             </Card>
           )}
+          </div>
 
           {/* Məlumat */}
           <Card title="Məlumat">
@@ -389,6 +399,8 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
             />
           </Card>
         </div>
+      )}
+      </>
       )}
     </Drawer>
   );

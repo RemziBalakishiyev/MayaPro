@@ -7,9 +7,7 @@ import {
   Check,
   ClipboardList,
   Coins,
-  Maximize2,
   MapPin,
-  Minimize2,
   Package,
   Plus,
   Trash2,
@@ -201,8 +199,6 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const updateMut = useUpdateProduct();
   const suppliers = useSuppliers();
   const [expenseError, setExpenseError] = useState("");
-  // Böyüdülmüş rejim seçimi — sessiya daxilində saxlanılır (drawer bağlansa belə sıfırlanmır).
-  const [maximized, setMaximized] = useState(false);
   // "Yer" accordion-unun açıq/bağlı vəziyyəti — forma sıfırlananda yenidən hesablanır.
   const [locationOpen, setLocationOpen] = useState(false);
 
@@ -346,39 +342,21 @@ export function ProductForm({ open, onClose, initial }: Props) {
     </>
   );
 
-  // Böyüt/kiçilt düyməsi — yalnız desktop-da görünür (mobildə drawer onsuz da tam enlidir).
-  const headerExtra = (
-    <button
-      type="button"
-      onClick={() => setMaximized((m) => !m)}
-      aria-label={maximized ? "Formu kiçilt" : "Formu böyüt"}
-      aria-pressed={maximized}
-      title={maximized ? "Kiçilt" : "Böyüt"}
-      className={cn(
-        "hidden h-10 w-10 items-center justify-center rounded-xl transition-colors hover:bg-stone-100 hover:text-stone-700 sm:flex",
-        maximized ? "bg-stone-100 text-stone-600" : "text-stone-400",
-      )}
-    >
-      {maximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-    </button>
-  );
-
   return (
     <Drawer
       open={open}
       onClose={onClose}
       wide
-      maximized={maximized}
-      headerExtra={headerExtra}
       footer={footer}
       title={initial?.id ? "Malı redaktə et" : "Yeni mal əlavə et"}
     >
+      {(isExpanded) => (
       <form id="product-form" onSubmit={handleSubmit(onValid)}>
         <div
           className={cn(
             "grid grid-cols-1 items-start gap-4",
             // 2 sütun yalnız real yer olduqda (lg+) — kiçik ekranda sahələr sıxılmasın.
-            maximized && "lg:grid-cols-2",
+            isExpanded && "lg:grid-cols-2",
           )}
         >
           <div className="space-y-4">
@@ -611,6 +589,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
           </div>
         </div>
       </form>
+      )}
     </Drawer>
   );
 }

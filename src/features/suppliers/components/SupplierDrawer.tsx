@@ -41,7 +41,8 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
 
   return (
     <Drawer open={!!supplier} onClose={onClose} title={supplier?.name ?? ""}>
-      {supplier && (
+      {(isExpanded) =>
+      supplier && (
         <div className="space-y-5">
           <div className="grid grid-cols-3 gap-2">
             <StatCard label="Toplam borc" value={fmtMoney(supplier.totalDebt)} />
@@ -75,6 +76,13 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
             </Button>
           </div>
 
+          {/* Genişdə "Alınan mallar" + "Tarixçə" yan-yana göstərilir. */}
+          <div
+            className={cn(
+              "grid grid-cols-1 items-start gap-5",
+              isExpanded && "lg:grid-cols-2",
+            )}
+          >
           <section>
             <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-stone-500">
               Bu təchizatçıdan alınan mallar
@@ -160,8 +168,10 @@ export function SupplierDrawer({ supplier, onClose, onAddDebt, onPay }: Props) {
               </ul>
             )}
           </section>
+          </div>
         </div>
-      )}
+      )
+      }
     </Drawer>
   );
 }
