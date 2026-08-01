@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Receipt, Plus, Trash2 } from "lucide-react";
+import { Accordion } from "@/components/ui/Accordion";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { useExpenseTypes } from "@/features/expense-types/queries";
 import type { ProductExpenseLine } from "@/types";
@@ -90,110 +90,91 @@ export function ExpenseRows({ value, onChange, error }: Props) {
   };
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between p-3 text-left"
-      >
-        <span className="text-xs font-bold uppercase tracking-wide text-stone-500">
-          Partiya xərcləri
-          {total > 0 && (
-            <span className="ml-1 text-emerald-700"> · {fmtMoney(total)}</span>
-          )}
-        </span>
-        <ChevronDown
-          size={18}
-          className={cn(
-            "text-stone-400 transition-transform",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-
-      {open && (
-        <div className="space-y-2 px-3 pb-3">
-          {value.length === 0 ? (
-            <p className="text-xs text-stone-400">
-              Yol, fəhlə kimi partiya xərcləri — istəyə bağlı
-            </p>
-          ) : (
-            value.map((row, idx) => (
-              <div
-                key={idx}
-                className="space-y-2 rounded-xl border border-stone-100 bg-stone-50/80 p-2 sm:grid sm:grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_5.5rem_auto] sm:items-center sm:gap-2 sm:space-y-0 sm:border-0 sm:bg-transparent sm:p-0"
-              >
-                {/* Mobil: növ + ad üst sətir; desktop: sm:contents → eyni grid sətiri */}
-                <div className="flex gap-2 sm:contents">
-                  <Select
-                    aria-label="Xərc növü"
-                    value={selectValueForName(row.name, presets)}
-                    onChange={(e) => onSelectKind(idx, e.target.value)}
-                    className="min-w-0 flex-1"
-                  >
-                    {typesLoading && (
-                      <option value={LOADING_VALUE} disabled>
-                        Yüklənir…
-                      </option>
-                    )}
-                    {presets.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                    <option value={CUSTOM_VALUE}>Digər (öz adın)</option>
-                  </Select>
-                  <Input
-                    ref={(el) => {
-                      nameRefs.current[idx] = el;
-                    }}
-                    value={row.name}
-                    onChange={(e) => updateRow(idx, { name: e.target.value })}
-                    placeholder="Xərc adı"
-                    className="min-w-0 flex-1"
-                  />
-                </div>
-                <div className="flex items-center gap-2 sm:contents">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0"
-                    value={row.amount || ""}
-                    onChange={(e) => {
-                      const n = Number(e.target.value);
-                      updateRow(idx, {
-                        amount: Number.isFinite(n) && n >= 0 ? n : 0,
-                      });
-                    }}
-                    className="min-w-0 flex-1 sm:w-[5.5rem] sm:flex-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeRow(idx)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600 sm:h-auto sm:w-auto sm:p-2"
-                    aria-label="Xərci sil"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            icon={<Plus size={14} />}
-            onClick={addRow}
+    <Accordion
+      icon={Receipt}
+      title="Partiya xərcləri"
+      summary={total > 0 ? fmtMoney(total) : null}
+      desc={value.length === 0 ? "Yol, fəhlə xərcləri bura yazılır" : null}
+      open={open}
+      onToggle={() => setOpen((o) => !o)}
+    >
+      {value.length === 0 ? (
+        <p className="text-xs text-stone-400">
+          Yol, fəhlə kimi partiya xərcləri — istəyə bağlı
+        </p>
+      ) : (
+        value.map((row, idx) => (
+          <div
+            key={idx}
+            className="space-y-2 rounded-xl border border-stone-100 bg-stone-50/80 p-2 sm:grid sm:grid-cols-[minmax(0,8.5rem)_minmax(0,1fr)_5.5rem_auto] sm:items-center sm:gap-2 sm:space-y-0 sm:border-0 sm:bg-transparent sm:p-0"
           >
-            Xərc əlavə et
-          </Button>
-          {error && (
-            <p className="text-xs font-medium text-red-600">{error}</p>
-          )}
-        </div>
+            {/* Mobil: növ + ad üst sətir; desktop: sm:contents → eyni grid sətiri */}
+            <div className="flex gap-2 sm:contents">
+              <Select
+                aria-label="Xərc növü"
+                value={selectValueForName(row.name, presets)}
+                onChange={(e) => onSelectKind(idx, e.target.value)}
+                className="min-w-0 flex-1"
+              >
+                {typesLoading && (
+                  <option value={LOADING_VALUE} disabled>
+                    Yüklənir…
+                  </option>
+                )}
+                {presets.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+                <option value={CUSTOM_VALUE}>Digər (öz adın)</option>
+              </Select>
+              <Input
+                ref={(el) => {
+                  nameRefs.current[idx] = el;
+                }}
+                value={row.name}
+                onChange={(e) => updateRow(idx, { name: e.target.value })}
+                placeholder="Xərc adı"
+                className="min-w-0 flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-2 sm:contents">
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                value={row.amount || ""}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  updateRow(idx, {
+                    amount: Number.isFinite(n) && n >= 0 ? n : 0,
+                  });
+                }}
+                className="min-w-0 flex-1 sm:w-[5.5rem] sm:flex-none"
+              />
+              <button
+                type="button"
+                onClick={() => removeRow(idx)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600 sm:h-auto sm:w-auto sm:p-2"
+                aria-label="Xərci sil"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))
       )}
-    </div>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        icon={<Plus size={14} />}
+        onClick={addRow}
+      >
+        Xərc əlavə et
+      </Button>
+      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+    </Accordion>
   );
 }

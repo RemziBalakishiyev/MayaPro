@@ -1,11 +1,10 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
   Check,
-  ChevronDown,
   ClipboardList,
   Coins,
   Maximize2,
@@ -23,6 +22,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { ImageUpload } from "@/components/ui/ImageUpload";
+import { Accordion } from "@/components/ui/Accordion";
 import { useSuppliers } from "@/features/suppliers/queries";
 import { CategoryField } from "@/features/categories/components/CategoryField";
 import { useSettingsStore } from "@/features/settings/store";
@@ -164,58 +164,6 @@ function Section({
   );
 }
 
-/**
- * Açılıb-bağlanan bölmə kartı — partiya xərcləri accordion-u ilə eyni naxış:
- * default bağlı, doludursa başlıqda xülasə, klikləyəndə açılır/bağlanır.
- * Məzmun DOM-da qalır (`hidden`) — belədə RHF sahələri unmount olmur.
- */
-function CollapsibleSection({
-  icon,
-  title,
-  desc,
-  summary,
-  defaultOpen,
-  children,
-}: {
-  icon: LucideIcon;
-  title: string;
-  desc: string;
-  summary: string | null;
-  defaultOpen: boolean;
-  children: ReactNode;
-}) {
-  const bodyId = useId();
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <section className="rounded-2xl border border-stone-200 bg-stone-50">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-controls={bodyId}
-        className="flex w-full items-start gap-2.5 rounded-2xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500"
-      >
-        <SectionHeading
-          icon={icon}
-          title={title}
-          desc={desc}
-          summary={summary}
-        />
-        <ChevronDown
-          size={18}
-          className={cn(
-            "mt-1 shrink-0 text-stone-400 transition-transform",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-      <div id={bodyId} hidden={!open} className="space-y-3 px-4 pb-4">
-        {children}
-      </div>
-    </section>
-  );
-}
-
 /** Qiymət/say sahəsi: label + input + kiçik izah + (opsional) əlavə sətir. */
 function PriceField({
   label,
@@ -255,6 +203,8 @@ export function ProductForm({ open, onClose, initial }: Props) {
   const [expenseError, setExpenseError] = useState("");
   // Böyüdülmüş rejim seçimi — sessiya daxilində saxlanılır (drawer bağlansa belə sıfırlanmır).
   const [maximized, setMaximized] = useState(false);
+  // "Yer" accordion-unun açıq/bağlı vəziyyəti — forma sıfırlananda yenidən hesablanır.
+  const [locationOpen, setLocationOpen] = useState(false);
 
   const {
     register,
@@ -283,6 +233,17 @@ export function ProductForm({ open, onClose, initial }: Props) {
         : { ...emptyValues, minStock: defaultMinStock },
     );
     setExpenseError("");
+    // Redaktədə "Yer" sahələri doludursa accordion açıq başlayır.
+    setLocationOpen(
+      !!(
+        initial &&
+        (initial.supplierId ||
+          initial.warehouse ||
+          initial.shelf ||
+          initial.box ||
+          initial.store)
+      ),
+    );
   }, [open, initial, reset, defaultMinStock]);
 
   // Canlı hesablama
@@ -308,15 +269,6 @@ export function ProductForm({ open, onClose, initial }: Props) {
     ]
       .filter(Boolean)
       .join(" · ") || null;
-  // Redaktədə sahələr doludursa accordion açıq başlayır.
-  const locationDefaultOpen = !!(
-    initial &&
-    (initial.supplierId ||
-      initial.warehouse ||
-      initial.shelf ||
-      initial.box ||
-      initial.store)
-  );
 
   const onValid = async (data: ProductFormValues) => {
     if (incompleteExpenseIndexes(data.expenses).length > 0) {
@@ -590,13 +542,13 @@ export function ProductForm({ open, onClose, initial }: Props) {
 
           <div className="space-y-4">
             {/* ③ Yer */}
-            <CollapsibleSection
-              key={initial?.id ?? "new"}
+            <Accordion
               icon={MapPin}
               title="Yer"
               desc="Təchizatçı və anbardakı yeri"
               summary={locationSummary}
-              defaultOpen={locationDefaultOpen}
+              open={locationOpen}
+              onToggle={() => setLocationOpen((o) => !o)}
             >
               <Field label="Təchizatçı">
                 <Controller
@@ -634,7 +586,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
                   <Input {...register("box")} placeholder="12" />
                 </Field>
               </div>
-            </CollapsibleSection>
+            </Accordion>
 
             {/* ④ Əlavə */}
             <Section
