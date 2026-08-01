@@ -485,7 +485,7 @@ export function SalesJournal() {
                         })
                       }
                       className={cn(
-                        "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                        "flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors",
                         active
                           ? "bg-emerald-700 text-white shadow-sm"
                           : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
@@ -517,7 +517,7 @@ export function SalesJournal() {
                       }),
                     });
                   }}
-                  className="h-9 w-full text-sm"
+                  className="h-11 w-full text-sm"
                 >
                   <option value="">Hamısı</option>
                   <option value="Nağd">Nağd</option>
@@ -545,7 +545,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="0"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-11 px-3 text-sm")}
                 />
               </div>
 
@@ -568,7 +568,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="∞"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-11 px-3 text-sm")}
                 />
               </div>
 
@@ -593,7 +593,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="1"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-11 px-3 text-sm")}
                 />
               </div>
 
@@ -618,7 +618,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="∞"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-11 px-3 text-sm")}
                 />
               </div>
             </div>
