@@ -327,7 +327,18 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* Tam sətir tutur: "Hansı mala/partiyaya aiddir" sahəsi yalnız
+                source === "product" olduqda render olunur və o zaman yanında
+                (aşağıda) col-span-1 tutaraq yan-yana yerləşir. source === "general"
+                olduqda həmin sahə render olunmadığından auto-placement bu sətri
+                yarım sütunda qoysa sağ tərəf boş qalır — ona görə "general"
+                halında tam sətir tutmalıdır. */}
+            <div
+              className={cn(
+                "grid grid-cols-2 gap-3",
+                isExpanded && source === "general" && "lg:col-span-2",
+              )}
+            >
               <Field label="Məbləğ" required>
                 <Input
                   type="number"
