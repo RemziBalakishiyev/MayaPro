@@ -7,12 +7,14 @@
  */
 import { db } from "@/mocks/db";
 import { saleHandlers } from "@/mocks/handlers";
-import { uid, todayISO, fmtMoney } from "@/lib/format";
+import { uid, todayISO, daysBetween, fmtMoney } from "@/lib/format";
 import { apiClient, USE_MOCK } from "@/lib/api-client";
 import type {
   Customer,
   CustomerHistoryEntry,
   CustomerPayment,
+  OpenDebt,
+  OpenDebtsResponse,
   PaymentType,
 } from "@/types";
 
@@ -68,6 +70,8 @@ interface CustomerHistoryEntryDto {
 }
 
 const INITIAL_DEBT_NOTE = "İlkin borc (sistemə keçid)";
+/** BE#21 `GetOpenDebtsHandler.InitialDebtDescription` ilə eyni sətir. */
+const OPEN_DEBT_INITIAL_DESCRIPTION = "İlkin borc";
 
 const toCustomer = (d: CustomerDto): Customer => ({
   id: d.id,
@@ -249,6 +253,124 @@ async function mockAggregatePurchases(): Promise<
   return map;
 }
 
+/**
+ * Mock: BE#21 FIFO alqoritminin sadə təkrarı.
+ *
+ * Mənbələr — ilkin borc (customer.initialDebt, tarixi customer.createdAt) və
+ * qalıqlı satışlar (s.remainingAmount > 0) — hər müştəri üçün tarixə görə
+ * sıralanır, sonra müştərinin bütün ödənişlərinin CƏMİ ən köhnə mənbədən
+ * başlayaraq ardıcıl silinir. `remaining=0` qalan mənbə siyahıya düşmür.
+ */
+interface MockDebtSource {
+  sourceId: string;
+  customerId: string;
+  source: "initialDebt" | "sale";
+  date: string;
+  description: string;
+  amount: number;
+}
+
+async function mockListOpenDebts(): Promise<OpenDebtsResponse> {
+  const [customers, sales, payments] = await Promise.all([
+    db.customers.list(),
+    db.sales.list(),
+    db.payments.list(),
+  ]);
+
+  const paidTotals = new Map<string, number>();
+  for (const p of payments) {
+    paidTotals.set(p.customerId, (paidTotals.get(p.customerId) ?? 0) + p.amount);
+  }
+
+  const sourcesByCustomer = new Map<string, MockDebtSource[]>();
+  const pushSource = (s: MockDebtSource) => {
+    const arr = sourcesByCustomer.get(s.customerId) ?? [];
+    arr.push(s);
+    sourcesByCustomer.set(s.customerId, arr);
+  };
+
+  for (const c of customers) {
+    if ((c.initialDebt ?? 0) > 0) {
+      pushSource({
+        sourceId: `initial-${c.id}`,
+        customerId: c.id,
+        source: "initialDebt",
+        date: c.createdAt || todayISO(),
+        // Backend `GetOpenDebtsHandler.InitialDebtDescription` ilə eyni qısa
+        // mətn — `INITIAL_DEBT_NOTE` (tarixçə feed-inin qeydi) İLƏ QARIŞDIRILMASIN.
+        description: OPEN_DEBT_INITIAL_DESCRIPTION,
+        amount: c.initialDebt,
+      });
+    }
+  }
+  for (const s of sales) {
+    if (!s.customerId || s.remainingAmount <= 0) continue;
+    pushSource({
+      sourceId: s.id,
+      customerId: s.customerId,
+      source: "sale",
+      date: s.createdAt,
+      description: `${s.productName} × ${s.quantity}`,
+      amount: s.remainingAmount,
+    });
+  }
+
+  // Eyni anlıq mənbələr üçün deterministik sıra — sourceId tie-break.
+  for (const arr of sourcesByCustomer.values()) {
+    arr.sort((a, b) =>
+      a.date !== b.date
+        ? a.date < b.date
+          ? -1
+          : 1
+        : a.sourceId < b.sourceId
+          ? -1
+          : a.sourceId > b.sourceId
+            ? 1
+            : 0,
+    );
+  }
+
+  const rows: OpenDebt[] = [];
+  for (const c of customers) {
+    const sources = sourcesByCustomer.get(c.id);
+    if (!sources) continue;
+
+    let unallocated = paidTotals.get(c.id) ?? 0;
+    for (const src of sources) {
+      const paidSoFar = Math.min(unallocated, src.amount);
+      unallocated -= paidSoFar;
+      const remaining = src.amount - paidSoFar;
+      if (remaining <= 0) continue; // tam ödənilib — açıq borc deyil
+
+      rows.push({
+        customerId: c.id,
+        customerName: c.name,
+        phone: c.phone || null,
+        source: src.source,
+        sourceDate: src.date,
+        description: src.description,
+        originalAmount: src.amount,
+        paidSoFar,
+        remaining,
+        daysOld: Math.max(0, daysBetween(src.date)),
+      });
+    }
+  }
+
+  // Ən köhnə mənbə əvvəldə; sonra müştəri adı, sonra id (determinizm).
+  rows.sort((a, b) => {
+    if (a.sourceDate !== b.sourceDate) return a.sourceDate < b.sourceDate ? -1 : 1;
+    if (a.customerName !== b.customerName)
+      return a.customerName.localeCompare(b.customerName);
+    return a.customerId < b.customerId ? -1 : a.customerId > b.customerId ? 1 : 0;
+  });
+
+  return {
+    items: rows,
+    totalRemaining: rows.reduce((sum, r) => sum + r.remaining, 0),
+  };
+}
+
 export const customersApi = {
   list: async () => {
     if (!USE_MOCK) {
@@ -270,6 +392,12 @@ export const customersApi = {
       };
     });
   },
+
+  /** BE#21 — açıq borclar (mənbə-mənbə), FIFO ilə bölünmüş. */
+  listOpenDebts: (): Promise<OpenDebtsResponse> =>
+    USE_MOCK
+      ? mockListOpenDebts()
+      : apiClient.get<OpenDebtsResponse>("/api/customers/open-debts"),
 
   create: (input: NewCustomer) =>
     USE_MOCK

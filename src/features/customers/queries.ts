@@ -7,6 +7,7 @@ import {
 
 export const customerKeys = {
   all: ["customers"] as const,
+  openDebts: ["customers", "open-debts"] as const,
   payments: (id: string) => ["customers", id, "payments"] as const,
   history: (id: string) => ["customers", id, "history"] as const,
 };
@@ -15,6 +16,13 @@ export const useCustomers = () =>
   useQuery({
     queryKey: customerKeys.all,
     queryFn: customersApi.list,
+  });
+
+/** BE#21/FE#40 — "Borclar" görünüşü: mənbə-mənbə açıq borclar (FIFO). */
+export const useOpenDebts = () =>
+  useQuery({
+    queryKey: customerKeys.openDebts,
+    queryFn: customersApi.listOpenDebts,
   });
 
 export const useCustomerPayments = (customerId: string | undefined) =>

@@ -25,6 +25,11 @@ import { CustomerDrawer } from "@/features/customers/components/CustomerDrawer";
 import { PaymentModal } from "@/features/customers/components/PaymentModal";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { EditCustomerModal } from "@/features/customers/components/EditCustomerModal";
+import { OpenDebtsView } from "@/features/customers/components/OpenDebtsView";
+import {
+  DebtViewToggle,
+  type DebtViewMode,
+} from "@/features/customers/components/DebtViewToggle";
 import type { Customer } from "@/types";
 
 const optNum = z.preprocess((v) => {
@@ -35,6 +40,12 @@ const optNum = z.preprocess((v) => {
 
 const searchSchema = z.object({
   q: z.string().optional(),
+  /**
+   * FE#40 — görünüş rejimi: "borclar" (default) mənbə-mənbə açıq borclar
+   * (BE#21), "musteri" isə köhnə müştəri-üzrə cədvəl. URL-də saxlanır ki,
+   * səhifə yenilənəndə seçim itməsin.
+   */
+  mode: z.enum(["borclar", "musteri"]).default("borclar"),
   /** Satış detalından deep-link — drawer açılır */
   customerId: z.string().optional(),
   /**
@@ -96,6 +107,11 @@ function BorclarPage() {
     const c = customers.find((x) => x.id === search.customerId);
     if (c) setSelected(c);
   }, [search.customerId, customers]);
+
+  const mode: DebtViewMode = search.mode ?? "borclar";
+  const setMode = (next: DebtViewMode) => {
+    navigate({ search: (prev) => ({ ...prev, mode: next }) });
+  };
 
   // "borclu" default — Nisyə Borclar səhifəsi borclulara fokuslanır.
   // Köhnə URL ?borclu=true şəklindən də dəstək; default olmadığı halda aktiv filtir sayılır.
@@ -226,6 +242,24 @@ function BorclarPage() {
         }
       />
 
+      <DebtViewToggle value={mode} onChange={setMode} />
+
+      {mode === "borclar" && (
+        <OpenDebtsView
+          q={search.q ?? ""}
+          onQChange={(v) =>
+            navigate({
+              search: (prev) => ({ ...prev, q: v || undefined }),
+            })
+          }
+          customers={customers}
+          onPay={setPayFor}
+          onView={setSelected}
+        />
+      )}
+
+      {mode === "musteri" && (
+      <>
       <div className="mb-4 space-y-3">
         <div className="relative max-w-sm">
           <Search
@@ -480,6 +514,8 @@ function BorclarPage() {
             : undefined
         }
       />
+      </>
+      )}
 
       <CustomerDrawer
         customer={liveSelected}

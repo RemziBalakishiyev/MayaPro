@@ -161,6 +161,32 @@ export interface CustomerHistoryEntry {
   paymentType?: PaymentType | null;
 }
 
+/**
+ * GET /api/customers/open-debts (BE#21) — bir sətir = bir müştərinin bir açıq
+ * (hələ tam ödənilməmiş) borc mənbəyi: ilkin borc və ya qalıqlı satış. Ödənişlər
+ * FIFO qaydası ilə ən köhnə mənbədən silinir; `remaining=0` olan mənbələr
+ * siyahıya düşmür.
+ */
+export interface OpenDebt {
+  customerId: string;
+  customerName: string;
+  phone: string | null;
+  source: "initialDebt" | "sale";
+  sourceDate: string;
+  description: string;
+  originalAmount: number;
+  paidSoFar: number;
+  remaining: number;
+  /** Bakı iş günü ilə mənbə tarixindən bu günə qədər keçən gün sayı (mənfi olmur). */
+  daysOld: number;
+}
+
+/** GET /api/customers/open-debts cavabı — sətirlər + hamısının qalıq cəmi. */
+export interface OpenDebtsResponse {
+  items: OpenDebt[];
+  totalRemaining: number;
+}
+
 export interface Supplier {
   id: string;
   name: string;
