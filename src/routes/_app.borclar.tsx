@@ -13,7 +13,7 @@ import { phoneDigits } from "@/lib/phone";
 import {
   inPeriod,
   PERIOD_LABELS,
-  type Period,
+  type BasePeriod,
 } from "@/features/reports/lib";
 import { useCan } from "@/features/auth/store";
 import {
@@ -56,7 +56,7 @@ export const Route = createFileRoute("/_app/borclar")({
   component: BorclarPage,
 });
 
-const ACTIVITY_PERIODS: Period[] = ["today", "week", "month", "all"];
+const ACTIVITY_PERIODS: BasePeriod[] = ["today", "week", "month", "all"];
 
 type DebtStatus = "borclu" | "odenilib" | "all";
 

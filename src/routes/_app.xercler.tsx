@@ -1,43 +1,41 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, Receipt } from "lucide-react";
+import { Plus } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { StatCard } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/toast-store";
-import { cn } from "@/lib/cn";
-import { fmtMoney, todayISO } from "@/lib/format";
-import {
-  useExpenses,
-  useDeleteExpense,
-} from "@/features/expenses/queries";
+import { fmtMoney } from "@/lib/format";
+import { inPeriod } from "@/features/reports/lib";
+import { useExpenses, useDeleteExpense } from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
+import { ExpenseDetailDrawer } from "@/features/expenses/components/ExpenseDetailDrawer";
 import {
-  expenseBySource,
-  expenseSourceSummaryText,
-} from "@/features/expenses/lib";
+  DEFAULT_EXPENSE_PERIOD,
+  ExpenseFilters,
+  type ExpenseFilterValues,
+} from "@/features/expenses/components/ExpenseFilters";
+import { expensePeriodToRange } from "@/features/expenses/lib";
 import { useProducts } from "@/features/products/queries";
 import { useCan } from "@/features/auth/store";
-import type { Expense, ExpenseSource } from "@/types";
-
-type SourceFilter = "all" | ExpenseSource;
-
-const SOURCE_FILTERS: { key: SourceFilter; label: string }[] = [
-  { key: "all", label: "Hamısı" },
-  { key: "general", label: "Ümumi" },
-  { key: "product", label: "Mala bağlı" },
-];
+import type { Expense } from "@/types";
 
 const searchSchema = z.object({
-  month: z.string().optional(), // "YYYY-MM"
+  /** Axtarış — xərc adı və qeyd üzrə (boş sətir URL-dən silinir). */
+  q: z.string().optional(),
   /**
-   * Filter çipi URL-də saxlanılır (F5-dən sonra itmir).
-   * `.catch` → keçərsiz dəyər (məs. ?source=xyz) route xətası vermir, "all"-a düşür.
+   * Filtrlər URL-də saxlanılır (F5-dən sonra itmir).
+   * `.catch` → keçərsiz dəyər (məs. ?period=xyz) route xətası vermir, defolta düşür.
    */
+  period: z
+    .enum(["today", "week", "month", "year", "all"])
+    .default(DEFAULT_EXPENSE_PERIOD)
+    .catch(DEFAULT_EXPENSE_PERIOD),
   source: z.enum(["all", "general", "product"]).default("all").catch("all"),
+  /** Xərc növü (expense-types siyahısındakı ad). */
+  type: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_app/xercler")({
@@ -49,73 +47,68 @@ function XerclerPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const toast = useToast();
-  const { data: expenses = [], isLoading } = useExpenses();
+  const { period, source, type, q } = search;
+
+  // Dövr → from/to (təqvim ayı/il semantikası) → API sorğusu (BE#22).
+  // "Hamısı"da heç bir parametr göndərilmir.
+  const range = useMemo(() => expensePeriodToRange(period), [period]);
+  const {
+    data: expenses = [],
+    isLoading,
+    isError,
+    error,
+  } = useExpenses(range);
   const { data: products = [] } = useProducts();
   const canWrite = useCan()("expenses.write");
   const deleteMut = useDeleteExpense();
+
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [deleteFor, setDeleteFor] = useState<Expense | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
-  const today = todayISO();
-  const month = search.month ?? today.slice(0, 7);
-  const sourceFilter = search.source;
+  // Cədvəldə görünən sətirlər. Dövr süzgəci burada da tətbiq olunur: mock
+  // rejimdə backend filtri yoxdur (bütün siyahı gəlir), real rejimdə isə
+  // `inPeriod` API pəncərəsi ilə eyni nəticəni verir → ikiqat süzgəc zərərsizdir.
+  const visibleExpenses = useMemo(() => {
+    const needle = (q ?? "").trim().toLowerCase();
+    return expenses.filter((e) => {
+      if (!inPeriod(e.date, period)) return false;
+      if (source !== "all" && e.source !== source) return false;
+      if (type && e.category !== type) return false;
+      if (
+        needle &&
+        !`${e.title} ${e.note ?? ""}`.toLowerCase().includes(needle)
+      )
+        return false;
+      return true;
+    });
+  }, [expenses, period, source, type, q]);
 
-  // Bütün ay xərcləri (siyahı bunun üzərində qurulur, çip filtri bunu dəyişmir).
-  const monthExpenses = useMemo(
-    () => expenses.filter((e) => e.date.slice(0, 7) === month),
-    [expenses, month],
-  );
-
-  // Xülasə kartı Hesabatlar səhifəsi ilə EYNİ pəncərəni götürür (backend
-  // `ReportPeriod.Month`: ayın 1-i … bu gün, hər iki sərhəd daxil): cari ayda
-  // gələcək tarixli qeyd cəmə düşmür, keçmiş aylar isə onsuz da bağlıdır.
-  // `e.date` "YYYY-MM-DD" və ya ISO datetime ola bilər → gün hissəsi kəsilir;
-  // ISO formatda leksikoqrafik müqayisə xronoloji müqayisə ilə eynidir.
-  const summaryExpenses = useMemo(
-    () =>
-      month === today.slice(0, 7)
-        ? monthExpenses.filter((e) => e.date.slice(0, 10) <= today)
-        : monthExpenses,
-    [monthExpenses, month, today],
-  );
-
-  const monthTotal = useMemo(
-    () => summaryExpenses.reduce((s, e) => s + e.amount, 0),
-    [summaryExpenses],
-  );
-
-  const sourceTotals = useMemo(
-    () => expenseBySource(summaryExpenses),
-    [summaryExpenses],
-  );
-
-  // Siyahıda görünən, amma cəmə düşməyən gələcək tarixli qeydlərin sayı —
-  // istifadəçi sətirlərlə cəm arasındakı fərqi izahsız görməsin (AC3).
-  const futureCount = monthExpenses.length - summaryExpenses.length;
-
-  // Cədvəldə görünən sətirlər — ay + mənbə çipi.
-  const visibleExpenses = useMemo(
-    () =>
-      sourceFilter === "all"
-        ? monthExpenses
-        : monthExpenses.filter((e) => e.source === sourceFilter),
-    [monthExpenses, sourceFilter],
+  // Alt cəm BÜTÜN filtrlənmiş sətirlərə aiddir — cədvəlin cari səhifəsinə yox.
+  const filteredTotal = useMemo(
+    () => visibleExpenses.reduce((s, e) => s + e.amount, 0),
+    [visibleExpenses],
   );
 
   const productName = useMemo(() => {
     const map = new Map(products.map((p) => [p.id, p.name]));
-    return (id: string | null) =>
-      id ? (map.get(id) ?? "—") : "Ümumi xərc";
+    return (id: string | null) => (id ? (map.get(id) ?? "—") : "Ümumi xərc");
   }, [products]);
 
-  const setSourceFilter = (next: SourceFilter) => {
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        source: next,
-      }),
-    });
+  // Detal draweri id üzrə işləyir: xərc silinəndə/siyahıdan çıxanda drawer
+  // avtomatik bağlanır (köhnəlmiş məlumat ekranda qalmır).
+  const detailExpense = useMemo(
+    () => expenses.find((e) => e.id === detailId) ?? null,
+    [expenses, detailId],
+  );
+
+  const updateFilter = (patch: Partial<ExpenseFilterValues>) =>
+    navigate({ search: (prev) => ({ ...prev, ...patch }) });
+
+  const openEdit = (expense: Expense) => {
+    setEditing(expense);
+    setFormOpen(true);
   };
 
   const handleDelete = async () => {
@@ -123,11 +116,18 @@ function XerclerPage() {
     try {
       await deleteMut.mutateAsync(deleteFor.id);
       toast.success("Xərc silindi");
+      if (detailId === deleteFor.id) setDetailId(null);
       setDeleteFor(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Xərc silinmədi");
     }
   };
+
+  const hasFilter =
+    period !== DEFAULT_EXPENSE_PERIOD ||
+    source !== "all" ||
+    !!type ||
+    !!q?.trim();
 
   return (
     <div>
@@ -150,87 +150,52 @@ function XerclerPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <label className="flex items-center gap-2 text-sm text-stone-600">
-          Ay:
-          <input
-            type="month"
-            value={month}
-            onChange={(e) =>
-              navigate({
-                search: (prev) => ({
-                  ...prev,
-                  month: e.target.value || undefined,
-                }),
-              })
-            }
-            className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-          />
-        </label>
-        <div className="w-full sm:w-72">
-          <StatCard
-            label="Bu ay üzrə cəmi xərc"
-            value={fmtMoney(monthTotal)}
-            sub={
-              <>
-                {expenseSourceSummaryText(sourceTotals)}
-                {futureCount > 0 && (
-                  <span className="mt-0.5 block text-amber-600">
-                    {futureCount} gələcək tarixli xərc cəmə daxil deyil
-                  </span>
-                )}
-              </>
-            }
-            icon={Receipt}
-            tone="red"
-          />
+      <ExpenseFilters
+        value={{ q, period, source, type }}
+        onChange={updateFilter}
+      />
+
+      {isError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm font-medium text-red-700">
+          {error instanceof Error ? error.message : "Xərclər yüklənmədi"}
         </div>
-      </div>
+      ) : (
+        <>
+          <ExpensesTable
+            expenses={visibleExpenses}
+            isLoading={isLoading}
+            canWrite={canWrite}
+            productName={productName}
+            emptyState={{
+              title: "Xərc tapılmadı",
+              description: hasFilter
+                ? "Filtrə uyğun xərc yoxdur — filtrləri dəyişin və ya təmizləyin."
+                : "«Yeni xərc» düyməsi ilə ilk xərci əlavə edin.",
+            }}
+            onRowClick={(e) => setDetailId(e.id)}
+            onEdit={openEdit}
+            onDelete={setDeleteFor}
+          />
 
-      <div
-        role="tablist"
-        aria-label="Xərc mənbəyi"
-        className="mb-3 flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1 sm:w-fit"
-      >
-        {SOURCE_FILTERS.map(({ key, label }) => {
-          const active = sourceFilter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setSourceFilter(key)}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-emerald-700 text-white shadow-sm"
-                  : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
-              )}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+          {/* Canlı cəm — hər filtr dəyişikliyində eyni renderdə yenilənir. */}
+          {!isLoading && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50/60 px-4 py-3">
+              <span className="text-sm font-semibold text-stone-600">
+                Cəmi (filtrlənmiş):
+              </span>
+              <span className="text-lg font-bold tabular-nums text-red-600">
+                {fmtMoney(filteredTotal)}
+              </span>
+            </div>
+          )}
+        </>
+      )}
 
-      <ExpensesTable
-        expenses={visibleExpenses}
-        isLoading={isLoading}
+      <ExpenseDetailDrawer
+        expense={detailExpense}
         canWrite={canWrite}
-        productName={productName}
-        emptyState={
-          sourceFilter === "all"
-            ? undefined
-            : {
-                title: `Bu ay «${SOURCE_FILTERS.find((f) => f.key === sourceFilter)?.label}» xərc yoxdur`,
-                description: "Filtri «Hamısı»na keçirin və ya yeni xərc əlavə edin.",
-              }
-        }
-        onEdit={(e) => {
-          setEditing(e);
-          setFormOpen(true);
-        }}
+        onClose={() => setDetailId(null)}
+        onEdit={openEdit}
         onDelete={setDeleteFor}
       />
 

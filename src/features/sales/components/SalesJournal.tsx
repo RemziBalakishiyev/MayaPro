@@ -28,7 +28,7 @@ import { downloadFile } from "@/lib/download";
 import { fmtDate, fmtMoney, fmtMoneySigned } from "@/lib/format";
 import {
   PERIOD_LABELS,
-  type Period,
+  type BasePeriod,
 } from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
 import { periodToRange, saleBatchExpense, saleDateTime } from "../lib";
@@ -41,7 +41,7 @@ import type { PaymentType, Sale } from "@/types";
 
 const routeApi = getRouteApi("/_app/satis");
 
-const PERIODS: Period[] = ["today", "week", "month", "all"];
+const PERIODS: BasePeriod[] = ["today", "week", "month", "all"];
 
 const saleTime = (iso: string): string => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return fmtDate(iso, "dd.MM");
