@@ -138,7 +138,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
                 onChange={(e) =>
                   onChange({ source: e.target.value as ExpenseSourceFilter })
                 }
-                className="h-11 w-full text-sm"
+                className="w-full text-sm"
               >
                 {SOURCE_OPTIONS.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -156,7 +156,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
                 aria-label="Xərc növü"
                 value={value.type ?? ""}
                 onChange={(e) => onChange({ type: e.target.value || undefined })}
-                className="h-11 w-full text-sm"
+                className="w-full text-sm"
               >
                 <option value="">Bütün növlər</option>
                 {expenseTypes.map((t) => (

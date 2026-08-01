@@ -517,7 +517,7 @@ export function SalesJournal() {
                       }),
                     });
                   }}
-                  className="h-11 w-full text-sm"
+                  className="w-full text-sm"
                 >
                   <option value="">Hamısı</option>
                   <option value="Nağd">Nağd</option>
@@ -545,7 +545,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="0"
-                  className={cn(inputCls, "h-11 px-3 text-sm")}
+                  className={cn(inputCls, "px-3 text-sm")}
                 />
               </div>
 
@@ -568,7 +568,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="∞"
-                  className={cn(inputCls, "h-11 px-3 text-sm")}
+                  className={cn(inputCls, "px-3 text-sm")}
                 />
               </div>
 
@@ -593,7 +593,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="1"
-                  className={cn(inputCls, "h-11 px-3 text-sm")}
+                  className={cn(inputCls, "px-3 text-sm")}
                 />
               </div>
 
@@ -618,7 +618,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="∞"
-                  className={cn(inputCls, "h-11 px-3 text-sm")}
+                  className={cn(inputCls, "px-3 text-sm")}
                 />
               </div>
             </div>
