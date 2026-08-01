@@ -1,8 +1,5 @@
-import { Search } from "lucide-react";
-import { FilterPanel } from "@/components/ui/FilterPanel";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Select } from "@/components/ui/Select";
-import { inputCls } from "@/components/ui/Input";
-import { cn } from "@/lib/cn";
 import type { ProductStatus } from "@/types";
 
 export interface ProductFilterValues {
@@ -29,8 +26,9 @@ interface Props {
 
 /**
  * Mal filtrləri — dəyərlər URL search params-da saxlanılır.
- * Axtarış həmişə görünür, qalan filterlər yığcam "Filterlər" panelində
- * (satış jurnalı ilə eyni naxış).
+ * FilterBar istifadə edir: üst sətirdə axtarış, sağda "Filterlər" toqql düyməsi.
+ * Açılan paneldə 3 select (kateqoriya, status, anbar).
+ * Aktif filtrlər çiplər sırasında göstərilir (panel bağlı olsa da).
  */
 export function ProductFilters({
   value,
@@ -38,37 +36,41 @@ export function ProductFilters({
   locations,
   onChange,
 }: Props) {
-  // Axtarış inputu həmişə göründüyü üçün badge yalnız panel içindəki
-  // filterləri sayır.
   const activeFilterCount = [!!value.cat, !!value.status, !!value.loc].filter(
     Boolean,
   ).length;
+
+  // Aktif filtrlər çiplər üçün
+  const activeFilters = [
+    value.cat && { id: "cat", label: value.cat },
+    value.status && { id: "status", label: value.status },
+    value.loc && { id: "loc", label: value.loc },
+  ].filter(Boolean) as Array<{ id: string; label: string }>;
+
+  const handleRemoveFilter = (filterId: string) => {
+    if (filterId === "cat") onChange({ cat: undefined });
+    else if (filterId === "status") onChange({ status: undefined });
+    else if (filterId === "loc") onChange({ loc: undefined });
+  };
 
   const clearFilters = () =>
     onChange({ cat: undefined, status: undefined, loc: undefined });
 
   return (
-    <div className="mb-4 flex flex-wrap items-stretch gap-2">
-      <div className="relative w-full sm:w-64">
-        <Search
-          size={14}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-        />
-        <input
-          value={value.q ?? ""}
-          onChange={(e) => onChange({ q: e.target.value || undefined })}
-          aria-label="Mal axtar"
-          placeholder="Ad, kateqoriya, xüsusiyyət üzrə axtar..."
-          className={cn(inputCls, "h-9 pl-8 text-sm")}
-        />
-      </div>
-
-      <FilterPanel
-        className="min-w-0 flex-1"
+    <div className="mb-4">
+      <FilterBar
+        searchValue={value.q ?? ""}
+        onSearchChange={(q) => onChange({ q: q || undefined })}
+        searchPlaceholder="Ad, kateqoriya, xüsusiyyət üzrə axtar..."
+        searchAriaLabel="Mal axtar"
         activeCount={activeFilterCount}
+        activeFilters={activeFilters}
+        onRemoveFilter={handleRemoveFilter}
         onClear={clearFilters}
+        clearLabel="Filterləri təmizlə"
+        label="Filterlər"
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="mb-1 block text-xs font-semibold text-stone-500">
               Kateqoriya
@@ -126,7 +128,7 @@ export function ProductFilters({
             </Select>
           </div>
         </div>
-      </FilterPanel>
+      </FilterBar>
     </div>
   );
 }

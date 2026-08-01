@@ -7,7 +7,6 @@ import {
   Loader2,
   Pencil,
   Receipt,
-  Search,
   Trash2,
 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
@@ -16,7 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyValue } from "@/components/ui/EmptyValue";
-import { FilterPanel } from "@/components/ui/FilterPanel";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { inputCls } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-store";
@@ -90,10 +89,10 @@ export function SalesJournal() {
     maxQty,
   });
 
+  // Axtarış və panel içindəki filtrlər ayrıca sayılır
   const activeFilterCount = [
     period !== "all",
     !!pay,
-    !!q?.trim(),
     minProfit != null,
     maxProfit != null,
     minQty != null,
@@ -381,6 +380,7 @@ export function SalesJournal() {
         maxProfit: undefined,
         minQty: undefined,
         maxQty: undefined,
+        q: undefined,
       }),
     });
   };
@@ -407,6 +407,31 @@ export function SalesJournal() {
     }
   };
 
+  // Aktif filtrlər çiplər üçün
+  const activeFilters = [
+    period !== "all" && { id: "period", label: PERIOD_LABELS[period] },
+    pay && { id: "pay", label: pay },
+    minProfit != null && { id: "minProfit", label: `Min: ${fmtMoney(minProfit)}` },
+    maxProfit != null && { id: "maxProfit", label: `Max: ${fmtMoney(maxProfit)}` },
+    minQty != null && { id: "minQty", label: `Min say: ${minQty}` },
+    maxQty != null && { id: "maxQty", label: `Max say: ${maxQty}` },
+  ].filter(Boolean) as Array<{ id: string; label: string }>;
+
+  const handleRemoveFilter = (filterId: string) => {
+    if (filterId === "period")
+      navigate({ search: (prev) => ({ ...prev, period: "all" }) });
+    else if (filterId === "pay")
+      navigate({ search: (prev) => ({ ...prev, pay: undefined }) });
+    else if (filterId === "minProfit")
+      navigate({ search: (prev) => ({ ...prev, minProfit: undefined }) });
+    else if (filterId === "maxProfit")
+      navigate({ search: (prev) => ({ ...prev, maxProfit: undefined }) });
+    else if (filterId === "minQty")
+      navigate({ search: (prev) => ({ ...prev, minQty: undefined }) });
+    else if (filterId === "maxQty")
+      navigate({ search: (prev) => ({ ...prev, maxQty: undefined }) });
+  };
+
   return (
     <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-card">
       <div className="space-y-3 border-b border-stone-100 px-4 py-3 sm:px-5">
@@ -414,36 +439,31 @@ export function SalesJournal() {
           <h2 className="shrink-0 text-base font-bold text-stone-800">
             Satışlar
           </h2>
-          <div className="relative w-full max-w-[220px] sm:max-w-[260px]">
-            <Search
-              size={14}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400"
-            />
-            <input
-              value={q ?? ""}
-              onChange={(e) =>
-                navigate({
-                  search: (prev) => ({
-                    ...prev,
-                    q: e.target.value || undefined,
-                  }),
-                })
-              }
-              aria-label="Satış axtar"
-              placeholder="Axtar..."
-              className={cn(inputCls, "h-9 pl-8 text-sm")}
-            />
-          </div>
         </div>
 
         <div className="flex flex-wrap items-stretch gap-2">
-          <FilterPanel
-            className="min-w-0 flex-1"
+          <FilterBar
+            searchValue={q ?? ""}
+            onSearchChange={(val) =>
+              navigate({
+                search: (prev) => ({
+                  ...prev,
+                  q: val || undefined,
+                }),
+              })
+            }
+            searchAriaLabel="Satış axtar"
+            searchPlaceholder="Axtar..."
             activeCount={activeFilterCount}
+            activeFilters={activeFilters}
+            onRemoveFilter={handleRemoveFilter}
             onClear={clearFilters}
+            clearLabel="Filterləri təmizlə"
+            label="Filterlər"
           >
-            <div>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
+            {/* Dövr tab-ları */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold uppercase tracking-wide text-stone-400">
                 Dövr
               </p>
               <div
@@ -478,8 +498,10 @@ export function SalesJournal() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-              <div className="col-span-2 sm:col-span-1">
+            {/* 5 filter sütun grid (lg:5, md:3, sm:2, mobil:1) */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+              {/* Ödəniş */}
+              <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-500">
                   Ödəniş
                 </label>
@@ -504,6 +526,7 @@ export function SalesJournal() {
                 </Select>
               </div>
 
+              {/* Min qazanc */}
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-500">
                   Min qazanc
@@ -526,6 +549,7 @@ export function SalesJournal() {
                 />
               </div>
 
+              {/* Max qazanc */}
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-500">
                   Max qazanc
@@ -548,6 +572,7 @@ export function SalesJournal() {
                 />
               </div>
 
+              {/* Min say */}
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-500">
                   Min say
@@ -572,6 +597,7 @@ export function SalesJournal() {
                 />
               </div>
 
+              {/* Max say */}
               <div>
                 <label className="mb-1 block text-xs font-semibold text-stone-500">
                   Max say
@@ -596,7 +622,7 @@ export function SalesJournal() {
                 />
               </div>
             </div>
-          </FilterPanel>
+          </FilterBar>
 
           <Button
             variant="secondary"
