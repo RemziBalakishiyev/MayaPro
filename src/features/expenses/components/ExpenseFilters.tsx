@@ -114,7 +114,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
                     aria-selected={active}
                     onClick={() => onChange({ period: p })}
                     className={cn(
-                      "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors",
                       active
                         ? "bg-emerald-700 text-white shadow-sm"
                         : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
@@ -138,7 +138,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
                 onChange={(e) =>
                   onChange({ source: e.target.value as ExpenseSourceFilter })
                 }
-                className="h-9 w-full text-sm"
+                className="w-full text-sm"
               >
                 {SOURCE_OPTIONS.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -156,7 +156,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
                 aria-label="Xərc növü"
                 value={value.type ?? ""}
                 onChange={(e) => onChange({ type: e.target.value || undefined })}
-                className="h-9 w-full text-sm"
+                className="w-full text-sm"
               >
                 <option value="">Bütün növlər</option>
                 {expenseTypes.map((t) => (
