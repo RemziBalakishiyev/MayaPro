@@ -29,14 +29,39 @@ const toExpense = (d: ExpenseDto): Expense => ({
   date: d.date,
   note: d.note ?? "",
   source: d.source ?? (d.productId ? "product" : "general"),
+  createdByUserId: d.createdByUserId ?? null,
 });
 
+/**
+ * Siyahı filtri — BE#22: `from`/`to` (ISO gün, hər iki sərhəd daxil) verilibsə
+ * `month` tam nəzərə alınmır. Heç biri yoxdursa bütün xərclər qayıdır.
+ */
+export interface ExpenseListParams {
+  from?: string;
+  to?: string;
+  month?: string;
+}
+
+const listQuery = ({ from, to, month }: ExpenseListParams): string => {
+  const qs = new URLSearchParams();
+  if (from) qs.set("from", from);
+  if (to) qs.set("to", to);
+  // from/to backend-də month-u əvəzləyir → ikisini birlikdə göndərmirik.
+  if (!from && !to && month) qs.set("month", month);
+  const query = qs.toString();
+  return query ? `?${query}` : "";
+};
+
 export const expensesApi = {
-  list: (month?: string) =>
+  /**
+   * Mock rejimdə backend süzgəci yoxdur — bütün siyahı qaytarılır və dövr
+   * filtri client-side (`inPeriod`) tətbiq olunur.
+   */
+  list: (params: ExpenseListParams = {}) =>
     USE_MOCK
       ? expenseHandlers.list()
       : apiClient
-          .get<ExpenseDto[]>(`/api/expenses${month ? `?month=${month}` : ""}`)
+          .get<ExpenseDto[]>(`/api/expenses${listQuery(params)}`)
           .then((rows) => rows.map(toExpense)),
 
   create: (input: NewExpense) =>

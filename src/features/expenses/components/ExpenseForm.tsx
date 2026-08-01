@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, Store, Package, type LucideIcon } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+import { Drawer } from "@/components/ui/Drawer";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -258,112 +258,137 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
     }
   };
 
+  // Düymələr məzmunla birlikdə scroll etməsin deyə Drawer footer sahəsindədir.
+  const footer = (
+    <div className="flex items-center justify-end gap-2 border-t border-stone-100 bg-white px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <Button type="button" variant="secondary" onClick={onClose}>
+        İmtina
+      </Button>
+      <Button
+        type="button"
+        onClick={() => void save()}
+        disabled={pending}
+        icon={<Check size={15} />}
+      >
+        {editing ? "Yadda saxla" : "Əlavə et"}
+      </Button>
+    </div>
+  );
+
   return (
-    <Modal
+    <Drawer
       open={open}
       onClose={onClose}
+      footer={footer}
       title={editing ? "Xərci düzəliş et" : "Yeni xərc"}
     >
-      <div className="space-y-3">
-        <SourcePicker
-          value={source}
-          onChange={(v) => {
-            setSource(v);
-            setProductError("");
-          }}
-        />
-
-        <Field label="Xərc adı" required>
-          <Input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Məs: Karqo çatdırılma"
-          />
-        </Field>
-        {/* Növ tam sətir tutur: "+ Yeni xərc növü" inline forması (input + 2 düymə)
-            yarım sütunda mobil ekranda sığmır. */}
-        <Field label="Xərc növü" required error={categoryError}>
-          <ExpenseTypeField
-            value={category}
+      {(isExpanded) => (
+        <div className="space-y-3">
+          <SourcePicker
+            value={source}
             onChange={(v) => {
-              setCategory(v);
-              if (v) setCategoryError("");
+              setSource(v);
+              setProductError("");
             }}
           />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Məbləğ" required>
-            <Input
-              type="number"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </Field>
-          <Field label="Tarix" required error={dateError}>
-            <Input
-              type="date"
-              max={todayISO()}
-              value={date}
-              onChange={(e) => {
-                const v = e.target.value;
-                setDate(v);
-                if (v && v <= todayISO()) setDateError("");
-              }}
-            />
-          </Field>
-        </div>
 
-        {source === "product" && (
-          <Field
-            label="Hansı mala/partiyaya aiddir"
-            required
-            hint="Bu xərc seçilmiş malın real mayasına əlavə olunacaq."
-            error={productError}
+          <div
+            className={cn(
+              "grid grid-cols-1 items-start gap-3",
+              // 2 sütun yalnız genişlənmiş panel + real yer olduqda (lg+).
+              isExpanded && "lg:grid-cols-2",
+            )}
           >
-            <div className="space-y-2">
+            <Field label="Xərc adı" required>
               <Input
-                aria-label="Mal axtar"
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Mal axtar..."
+                autoFocus
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Məs: Karqo çatdırılma"
               />
-              <Select
-                aria-label="Mal seçimi"
-                value={productId}
-                onChange={(e) => {
-                  setProductId(e.target.value);
-                  if (e.target.value) setProductError("");
-                }}
-              >
-                <option value="">Seçin...</option>
-                {filteredProducts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </Field>
-        )}
+            </Field>
 
-        <Field label="Qeyd">
-          <Textarea value={note} onChange={(e) => setNote(e.target.value)} />
-        </Field>
-      </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="secondary" onClick={onClose}>
-          İmtina
-        </Button>
-        <Button
-          onClick={() => void save()}
-          disabled={pending}
-          icon={<Check size={15} />}
-        >
-          {editing ? "Yadda saxla" : "Əlavə et"}
-        </Button>
-      </div>
-    </Modal>
+            {/* Növ tam sətir tutur: "+ Yeni xərc növü" inline forması (input + 2
+                düymə) yarım sütunda sığmır — genişlənmiş rejimdə də belədir. */}
+            <div className={cn(isExpanded && "lg:col-span-2")}>
+              <Field label="Xərc növü" required error={categoryError}>
+                <ExpenseTypeField
+                  value={category}
+                  onChange={(v) => {
+                    setCategory(v);
+                    if (v) setCategoryError("");
+                  }}
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Məbləğ" required>
+                <Input
+                  type="number"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </Field>
+              <Field label="Tarix" required error={dateError}>
+                <Input
+                  type="date"
+                  max={todayISO()}
+                  value={date}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDate(v);
+                    if (v && v <= todayISO()) setDateError("");
+                  }}
+                />
+              </Field>
+            </div>
+
+            {source === "product" && (
+              <Field
+                label="Hansı mala/partiyaya aiddir"
+                required
+                hint="Bu xərc seçilmiş malın real mayasına əlavə olunacaq."
+                error={productError}
+              >
+                <div className="space-y-2">
+                  <Input
+                    aria-label="Mal axtar"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Mal axtar..."
+                  />
+                  <Select
+                    aria-label="Mal seçimi"
+                    value={productId}
+                    onChange={(e) => {
+                      setProductId(e.target.value);
+                      if (e.target.value) setProductError("");
+                    }}
+                  >
+                    <option value="">Seçin...</option>
+                    {filteredProducts.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </Field>
+            )}
+
+            <div className={cn(isExpanded && "lg:col-span-2")}>
+              <Field label="Qeyd">
+                <Textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </Field>
+            </div>
+          </div>
+        </div>
+      )}
+    </Drawer>
   );
 }

@@ -200,12 +200,21 @@ export const paymentBreakdown = (sales: Sale[]): NamedValue[] => {
 export const lossSellers = (products: Product[]): Product[] =>
   products.filter((p) => p.salePrice < p.realCostPerUnit);
 
-export type Period = "today" | "week" | "month" | "all";
+export type Period = "today" | "week" | "month" | "year" | "all";
+
+/**
+ * "Bu il"siz dövr dəsti — Satış, Borclar və Hesabatlar səhifələrinin URL
+ * sxemləri (z.enum) yalnız bu 4 dəyəri qəbul edir; "year" hazırda Xərclər
+ * səhifəsinə məxsusdur. Tab siyahıları bu tiplə yazılır ki, `navigate`
+ * çağırışları route sxemi ilə uyğun qalsın.
+ */
+export type BasePeriod = Exclude<Period, "year">;
 
 export const PERIOD_LABELS: Record<Period, string> = {
   today: "Bu gün",
   week: "Bu həftə",
   month: "Bu ay",
+  year: "Bu il",
   all: "Hamısı",
 };
 
@@ -215,6 +224,7 @@ export const PERIOD_LABELS: Record<Period, string> = {
  * - "today" → yalnız bu gün;
  * - "week"  → son 7 gün (bu gün daxil), backend `today.AddDays(-6)..today`;
  * - "month" → təqvim ayının 1-i … bu gün, backend `new DateOnly(y, m, 1)..today`;
+ * - "year"  → cari ilin 1 yanvarı … bu gün (Xərclər səhifəsinin "Bu il" dövrü);
  * - "all"   → sərhədsiz.
  *
  * "month" əvvəllər "son 30 gün" (`daysBetween <= 29`) idi — bu, ay sərhədində
@@ -242,6 +252,8 @@ export const inPeriod = (iso: string, period: Period): boolean => {
     }
     case "month":
       return day.slice(0, 7) === today.slice(0, 7) && day <= today;
+    case "year":
+      return day.slice(0, 4) === today.slice(0, 4) && day <= today;
     case "all":
     default:
       return true;

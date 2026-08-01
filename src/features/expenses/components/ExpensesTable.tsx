@@ -21,6 +21,8 @@ interface Props {
   productName: (id: string | null) => string;
   /** Boş nəticə mətni (aktiv filtrə görə dəyişir). */
   emptyState?: { title: string; description?: string };
+  /** Sətrə/mobil karta klik — xərc detal draweri açılır. */
+  onRowClick?: (expense: Expense) => void;
   onEdit?: (expense: Expense) => void;
   onDelete?: (expense: Expense) => void;
 }
@@ -48,7 +50,12 @@ function ExpenseRowActions({
   ];
 
   return (
-    <div className="flex items-center justify-end gap-1.5">
+    // Sətir onRowClick ilə detal draweri açır — bu sahədəki düymələr/menyu öz
+    // funksiyasını icra etsin, drawer açmasın deyə bubbling dayandırılır.
+    <div
+      className="flex items-center justify-end gap-1.5"
+      onClick={(e) => e.stopPropagation()}
+    >
       {onEdit && (
         <button
           type="button"
@@ -73,6 +80,7 @@ export function ExpensesTable({
   canWrite = false,
   productName,
   emptyState,
+  onRowClick,
   onEdit,
   onDelete,
 }: Props) {
@@ -171,9 +179,10 @@ export function ExpensesTable({
       columns={columns}
       data={expenses}
       isLoading={isLoading}
+      onRowClick={onRowClick}
       emptyState={
         emptyState ?? {
-          title: "Bu ay xərc yoxdur",
+          title: "Xərc yoxdur",
           description: "«Yeni xərc» düyməsi ilə ilk xərci əlavə edin.",
         }
       }
@@ -203,7 +212,10 @@ export function ExpensesTable({
             <p className="mt-2 text-sm text-stone-500">{e.note}</p>
           )}
           {canWrite && (
-            <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
+            <div
+              className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3"
+              onClick={(ev) => ev.stopPropagation()}
+            >
               {onEdit && (
                 <button
                   onClick={() => onEdit(e)}

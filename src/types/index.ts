@@ -214,6 +214,12 @@ export interface Expense {
   note: string;
   /** Ümumi (satışa bağlı olmayan) və ya mala bağlı xərc. */
   source: ExpenseSource;
+  /**
+   * Xərci yazan istifadəçinin id-si (backend `ExpenseDto.createdByUserId`) —
+   * detal drawerindəki "Kim yazıb" sətri üçün. Mock rejimdə və köhnə
+   * cavablarda yoxdur → UI "Naməlum" göstərir.
+   */
+  createdByUserId?: string | null;
 }
 
 export interface CustomerPayment {

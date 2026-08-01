@@ -1,8 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { expensesApi, type NewExpense } from "./api";
+import { expensesApi, type ExpenseListParams, type NewExpense } from "./api";
 
 export const expenseKeys = {
   all: ["expenses"] as const,
+  /**
+   * Filtrli siyahı — açar ["expenses", params] formasındadır ki, dövr
+   * dəyişəndə yeni sorğu getsin. Prefiks dəyişmədiyi üçün mövcud
+   * `invalidateQueries({ queryKey: ["expenses"] })` hamısını əhatə edir.
+   */
+  list: (params: ExpenseListParams = {}) => ["expenses", params] as const,
 };
 
 const invalidateExpenseSideEffects = (
@@ -15,10 +21,10 @@ const invalidateExpenseSideEffects = (
   qc.invalidateQueries({ queryKey: ["activity"] });
 };
 
-export const useExpenses = () =>
+export const useExpenses = (params: ExpenseListParams = {}) =>
   useQuery({
-    queryKey: expenseKeys.all,
-    queryFn: () => expensesApi.list(),
+    queryKey: expenseKeys.list(params),
+    queryFn: () => expensesApi.list(params),
   });
 
 export const useCreateExpense = () => {
