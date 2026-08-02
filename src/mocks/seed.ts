@@ -15,10 +15,11 @@ import type {
   Category,
   ExpenseType,
   PaymentType,
+  SalaryEntry,
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 9;
+export const SEED_VERSION = 10;
 
 /**
  * BE#15 — qismən ödənişli satış sahələri: seed datasında hər satış tam
@@ -46,6 +47,7 @@ export interface SeedDatabase {
   activity: Activity[];
   payments: CustomerPayment[];
   supplierPayments: SupplierPayment[];
+  salaryEntries: SalaryEntry[];
 }
 
 const buildSuppliers = (): Supplier[] =>
@@ -383,6 +385,7 @@ const buildEmployees = (): Employee[] => [
     phone: "+994501234567",
     role: "Sahibkar",
     status: "Aktiv",
+    monthlySalary: 0,
   },
   {
     id: "emp_2",
@@ -390,6 +393,7 @@ const buildEmployees = (): Employee[] => [
     phone: "+994557654321",
     role: "Menecer",
     status: "Aktiv",
+    monthlySalary: 900,
   },
   {
     id: "emp_3",
@@ -397,6 +401,7 @@ const buildEmployees = (): Employee[] => [
     phone: "+994708889900",
     role: "Satıcı",
     status: "Aktiv",
+    monthlySalary: 600,
   },
   {
     id: "emp_4",
@@ -404,8 +409,52 @@ const buildEmployees = (): Employee[] => [
     phone: "+994515550011",
     role: "Satıcı",
     status: "Deaktiv",
+    monthlySalary: 0,
   },
 ];
+
+/**
+ * Cari ayın nümunə maaş əməliyyatları (BE#28) — Səbinə üçün avans + tutulma,
+ * Tural üçün avans, ki "Maaşlar" görünüşü ilk açılışda boş görünməsin.
+ */
+const buildSalaryEntries = (): SalaryEntry[] => {
+  const month = todayISO().slice(0, 7);
+  return [
+    {
+      id: uid("sal"),
+      userId: "emp_2",
+      type: "payment",
+      amount: 200,
+      note: "Avans",
+      date: daysAgoISO(5),
+      month,
+      createdByUserId: "emp_1",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: uid("sal"),
+      userId: "emp_2",
+      type: "deduction",
+      amount: 15,
+      note: "Yemək",
+      date: daysAgoISO(3),
+      month,
+      createdByUserId: "emp_1",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: uid("sal"),
+      userId: "emp_3",
+      type: "payment",
+      amount: 100,
+      note: "",
+      date: daysAgoISO(2),
+      month,
+      createdByUserId: "emp_1",
+      createdAt: new Date().toISOString(),
+    },
+  ];
+};
 
 /** Son 30 günün + bugünkü satış tarixçəsi generatoru. */
 const buildSales = (
@@ -763,5 +812,6 @@ export const buildSeed = (): SeedDatabase => {
     activity: buildActivity(),
     payments: buildPayments(),
     supplierPayments: buildSupplierPayments(),
+    salaryEntries: buildSalaryEntries(),
   };
 };

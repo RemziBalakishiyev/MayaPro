@@ -17,6 +17,7 @@ import type {
   SupplierPayment,
   Category,
   ExpenseType,
+  SalaryEntry,
 } from "@/types";
 
 const DB_KEY = "sederek-db";
@@ -100,6 +101,7 @@ export const db = {
   employees: collection<Employee>("employees"),
   closings: collection<Closing>("closings"),
   activity: collection<Activity>("activity"),
+  salaryEntries: collection<SalaryEntry>("salaryEntries"),
   payments: collection<CustomerPayment>("payments"),
   supplierPayments: collection<SupplierPayment>("supplierPayments"),
 };
