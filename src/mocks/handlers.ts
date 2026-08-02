@@ -6,6 +6,7 @@ import type { PagedResult } from "@/lib/paging";
 import { useAuthStore } from "@/features/auth/store";
 import { resolveSalePaymentPlan, salesMoneySplit } from "@/features/sales/lib";
 import type { CreateSaleInput, SalesListParams, UpdateSaleInput } from "@/features/sales/types";
+import { SALARY_MONTH_RE, currentSalaryMonth } from "@/features/employees/lib";
 import type {
   Product,
   Sale,
@@ -832,12 +833,9 @@ export const closingHandlers = {
   },
 };
 
-/** Cari mühasibat ayı "yyyy-MM" — real backend `SalaryMonth.From(today)` ilə eyni. */
-const currentSalaryMonth = (): string => todayISO().slice(0, 7);
-
 /** Ay girişi — boşdursa/etibarsızdırsa cari aya düşür (GetSalaryEntriesHandler ilə eyni davranış). */
 const resolveMonth = (month?: string | null): string =>
-  month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : currentSalaryMonth();
+  month && SALARY_MONTH_RE.test(month) ? month : currentSalaryMonth();
 
 /** Yeni maaş qeydi üçün giriş — id/date/createdAt server (mock) tərəfindən doldurulur. */
 export interface NewSalaryEntryInput {

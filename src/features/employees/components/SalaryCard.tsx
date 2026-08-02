@@ -100,6 +100,7 @@ export function SalaryCard({
                   if (e.key === "Enter") void saveSalary();
                   if (e.key === "Escape") setEditing(false);
                 }}
+                aria-label={`${summary.fullName} — aylıq maaş`}
                 className="h-8 w-full min-w-0 rounded-lg border border-emerald-400 px-1.5 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
               <button
@@ -184,6 +185,7 @@ export function SalaryCard({
           disabled={!canRecord}
           onClick={onPay}
           icon={<HandCoins size={14} />}
+          title="Pul ver"
           className="min-w-0 px-1.5 text-xs"
         >
           <span className="truncate">Pul ver</span>
@@ -195,6 +197,7 @@ export function SalaryCard({
           disabled={!canRecord}
           onClick={onDeduct}
           icon={<MinusCircle size={14} />}
+          title="Tutulma yaz"
           className="min-w-0 px-1.5 text-xs"
         >
           <span className="truncate">Tutulma</span>
@@ -205,6 +208,7 @@ export function SalaryCard({
           size="sm"
           onClick={onHistory}
           icon={<History size={14} />}
+          title="Tarixçə"
           className="min-w-0 px-1.5 text-xs"
         >
           <span className="truncate">Tarixçə</span>

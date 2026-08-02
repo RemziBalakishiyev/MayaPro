@@ -6,18 +6,17 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { useAuthStore } from "@/features/auth/store";
 import { useEmployees } from "@/features/employees/queries";
+import { SALARY_MONTH_RE } from "@/features/employees/lib";
 import { EmployeesTable } from "@/features/employees/components/EmployeesTable";
 import { ActivityLog } from "@/features/employees/components/ActivityLog";
 import { SalaryBoard } from "@/features/employees/components/SalaryBoard";
-
-const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 const searchSchema = z.object({
   tab: z.enum(["maaslar", "faaliyyet"]).default("maaslar").catch("maaslar"),
   /** Maaş ayı "yyyy-MM" — boşdursa/etibarsızdırsa SalaryBoard cari aya düşür. */
   month: z
     .string()
-    .regex(MONTH_RE)
+    .regex(SALARY_MONTH_RE)
     .optional()
     .catch(undefined),
 });

@@ -1,6 +1,9 @@
 /** Maaş bölməsi (BE#28) üçün təmiz (pure) köməkçilər. */
 import { todayISO } from "@/lib/format";
 
+/** "yyyy-MM" ay formatının vahid mənbəyi — route search-də, kartda, mock-larda təkrarlanmasın deyə. */
+export const SALARY_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 /** Cari mühasibat ayı "yyyy-MM" — backend `SalaryMonth.From(today)` ilə eyni əsas. */
 export const currentSalaryMonth = (): string => todayISO().slice(0, 7);
 

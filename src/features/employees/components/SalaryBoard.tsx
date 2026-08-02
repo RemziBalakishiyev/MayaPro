@@ -4,15 +4,13 @@ import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useCan } from "@/features/auth/store";
 import { useSalarySummary } from "../queries";
-import { currentSalaryMonth } from "../lib";
+import { SALARY_MONTH_RE, currentSalaryMonth } from "../lib";
 import { SalaryMonthSwitcher } from "./SalaryMonthSwitcher";
 import { SalaryCard } from "./SalaryCard";
 import { SalaryPayModal } from "./SalaryPayModal";
 import { SalaryDeductionModal } from "./SalaryDeductionModal";
 import { SalaryHistoryDrawer } from "./SalaryHistoryDrawer";
 import type { EmployeeSalarySummary } from "@/types";
-
-const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 interface Props {
   /** URL-dən gələn ay ("yyyy-MM") — yoxdursa/etibarsızdırsa cari ay istifadə olunur. */
@@ -22,7 +20,8 @@ interface Props {
 
 /** "Maaşlar" görünüşü — hər işçi bir kart, ay filtri, ödəniş/tutulma/tarixçə. */
 export function SalaryBoard({ month: monthProp, onMonthChange }: Props) {
-  const month = monthProp && MONTH_RE.test(monthProp) ? monthProp : currentSalaryMonth();
+  const month =
+    monthProp && SALARY_MONTH_RE.test(monthProp) ? monthProp : currentSalaryMonth();
   const { data: rows, isLoading, isError, error } = useSalarySummary(month);
   const canRecord = useCan()("salary.record");
   const canSetSalary = useCan()("salary.set");
