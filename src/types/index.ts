@@ -227,6 +227,41 @@ export interface Employee {
   phone: string;
   role: string;
   status: "Aktiv" | "Deaktiv";
+  /** BE#28 — razılaşılmış aylıq maaş (0 = hələ təyin olunmayıb). Additiv sahə. */
+  monthlySalary?: number;
+}
+
+/** BE#28 — maaş əməliyyatının növü: "payment" kassadan çıxır, "deduction" yalnız hesabdan tutulur. */
+export type SalaryEntryType = "payment" | "deduction";
+
+/**
+ * Bir işçinin bir ay üçün maaş vəziyyəti (GET /api/employees/salary-summary).
+ * `remaining = monthlySalary − paidTotal − deductionTotal`, mənfi ola bilər
+ * (artıq veriliş deməkdir).
+ */
+export interface EmployeeSalarySummary {
+  userId: string;
+  fullName: string;
+  role: string;
+  monthlySalary: number;
+  paidTotal: number;
+  deductionTotal: number;
+  remaining: number;
+}
+
+/** Maaş hesabının bir sətri (GET/POST /api/employees/{id}/salary-entries). */
+export interface SalaryEntry {
+  id: string;
+  userId: string;
+  type: SalaryEntryType;
+  amount: number;
+  note: string | null;
+  /** Pulun hərəkət etdiyi tarix (ödənişdə gün sonuna düşür). */
+  date: string;
+  /** Mühasibat ayı "yyyy-MM" — hansı ayın hesabına yazılır. */
+  month: string;
+  createdByUserId: string | null;
+  createdAt: string;
 }
 
 export interface Expense {

@@ -6,6 +6,7 @@ import type { PagedResult } from "@/lib/paging";
 import { useAuthStore } from "@/features/auth/store";
 import { resolveSalePaymentPlan, salesMoneySplit } from "@/features/sales/lib";
 import type { CreateSaleInput, SalesListParams, UpdateSaleInput } from "@/features/sales/types";
+import { SALARY_MONTH_RE, currentSalaryMonth } from "@/features/employees/lib";
 import type {
   Product,
   Sale,
@@ -18,6 +19,10 @@ import type {
   Closing,
   Category,
   ExpenseType,
+  Employee,
+  EmployeeSalarySummary,
+  SalaryEntry,
+  SalaryEntryType,
 } from "@/types";
 
 /** Yeni mal üçün giriş — hesablanan/avtomatik sahələr xaric. */
@@ -793,9 +798,17 @@ export const closingHandlers = {
       card: cardSales,
       credit: creditSales,
     } = salesMoneySplit(sales);
-    const expenses = (await db.expenses.list())
+    const storeExpenses = (await db.expenses.list())
       .filter((e) => e.date.slice(0, 10) === t)
       .reduce((a, e) => a + e.amount, 0);
+    // BE#28: bugün verilən maaş ödənişləri kassadan çıxan puldur — real backend
+    // (CloseDayHandler) bunu da `expenses` sahəsinə qatır, AYRICA sahə YOXDUR
+    // (wire format dondurulub, ADR-0006). Tutulmalar kassaya toxunmur, ona görə
+    // burada iştirak etmir.
+    const salaryPaid = (await db.salaryEntries.list())
+      .filter((e) => e.type === "payment" && e.date.slice(0, 10) === t)
+      .reduce((a, e) => a + e.amount, 0);
+    const expenses = storeExpenses + salaryPaid;
     const expectedCash = input.openingCash + cashSales - expenses;
     const difference = input.actualCash - expectedCash;
 
@@ -817,5 +830,112 @@ export const closingHandlers = {
       `${t} — fərq: ${fmtMoney(difference)}`,
     );
     return closing;
+  },
+};
+
+/** Ay girişi — boşdursa/etibarsızdırsa cari aya düşür (GetSalaryEntriesHandler ilə eyni davranış). */
+const resolveMonth = (month?: string | null): string =>
+  month && SALARY_MONTH_RE.test(month) ? month : currentSalaryMonth();
+
+/** Yeni maaş qeydi üçün giriş — id/date/createdAt server (mock) tərəfindən doldurulur. */
+export interface NewSalaryEntryInput {
+  type: SalaryEntryType;
+  amount: number;
+  note?: string | null;
+  month?: string | null;
+}
+
+/**
+ * İşçi maaş bölməsi (BE#28) — GetSalarySummaryHandler/CreateSalaryEntryHandler
+ * məntiqinin client-side güzgüsü. Aylıq baxış: `remaining` mənfi ola bilər
+ * (artıq veriliş).
+ */
+export const salaryHandlers = {
+  async summary(month?: string | null): Promise<EmployeeSalarySummary[]> {
+    const m = resolveMonth(month);
+    const [employees, entries] = await Promise.all([
+      db.employees.list(),
+      db.salaryEntries.list(),
+    ]);
+    const monthEntries = entries.filter((e) => e.month === m);
+    return employees.map((emp) => {
+      const paidTotal = monthEntries
+        .filter((e) => e.userId === emp.id && e.type === "payment")
+        .reduce((a, e) => a + e.amount, 0);
+      const deductionTotal = monthEntries
+        .filter((e) => e.userId === emp.id && e.type === "deduction")
+        .reduce((a, e) => a + e.amount, 0);
+      const monthlySalary = emp.monthlySalary ?? 0;
+      return {
+        userId: emp.id,
+        fullName: emp.name,
+        role: emp.role,
+        monthlySalary,
+        paidTotal,
+        deductionTotal,
+        remaining: monthlySalary - paidTotal - deductionTotal,
+      };
+    });
+  },
+
+  async entries(employeeId: string, month?: string | null): Promise<SalaryEntry[]> {
+    const m = resolveMonth(month);
+    const all = await db.salaryEntries.list();
+    return all
+      .filter((e) => e.userId === employeeId && e.month === m)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+  },
+
+  async createEntry(
+    employeeId: string,
+    input: NewSalaryEntryInput,
+  ): Promise<SalaryEntry> {
+    if (!(input.amount > 0)) throw new Error("Məbləğ sıfırdan böyük olmalıdır");
+    const emp = await db.employees.get(employeeId);
+    if (!emp) throw new Error("İşçi tapılmadı");
+
+    const currentUserId = useAuthStore.getState().user?.id ?? "emp_1";
+    const entry: SalaryEntry = {
+      id: uid("sal"),
+      userId: employeeId,
+      type: input.type,
+      amount: input.amount,
+      note: input.note?.trim() || null,
+      // Date — pulun hərəkət etdiyi an (bugün, real backend `dateProvider.UtcNow` ilə eyni).
+      date: todayISO(),
+      month: resolveMonth(input.month),
+      createdByUserId: currentUserId,
+      createdAt: new Date().toISOString(),
+    };
+    await db.salaryEntries.create(entry);
+    await logActivity(
+      "Maaş əməliyyatı",
+      `${emp.name} — ${fmtMoney(entry.amount)} ${
+        entry.type === "payment" ? "ödəniş verildi" : "tutuldu"
+      }`,
+    );
+    return entry;
+  },
+
+  async deleteEntry(employeeId: string, entryId: string): Promise<void> {
+    const entry = await db.salaryEntries.get(entryId);
+    if (!entry || entry.userId !== employeeId)
+      throw new Error("Maaş əməliyyatı tapılmadı");
+    const emp = await db.employees.get(employeeId);
+    await db.salaryEntries.remove(entryId);
+    await logActivity(
+      "Maaş əməliyyatını sildi",
+      `${emp?.name ?? "İşçi"} — ${fmtMoney(entry.amount)}`,
+    );
+  },
+
+  async setSalary(employeeId: string, monthlySalary: number): Promise<Employee> {
+    if (!(monthlySalary >= 0)) throw new Error("Maaş mənfi ola bilməz");
+    const updated = await db.employees.update(employeeId, { monthlySalary });
+    await logActivity(
+      "Maaş təyin etdi",
+      `${updated.name} — ${fmtMoney(monthlySalary)}/ay`,
+    );
+    return updated;
   },
 };

@@ -46,6 +46,20 @@ export function DayEndCard() {
   const toast = useToast();
   const t = todayISO();
   // Gün cəmləri serverdən (mock rejimdə mock summary) — GET /api/reports/summary?period=today
+  //
+  // FE#57 qeydi: bugünkü işçi maaş ÖDƏNİŞLƏRİ (BE#28) kassadan çıxan pul olduğu
+  // üçün "Kassada olmalı" hesabına daxil edilməlidir, amma bunun üçün ayrıca
+  // sahə YOXDUR — nə bu `GetSummaryHandler` cavabında (`SummaryData.expenses`),
+  // nə də bağlanış cavabında (`ClosingDto`, backend orada məbləği mövcud
+  // `expenses` sahəsinə qatır, ADR-0006 görə wire format dondurulub). Ayrıca
+  // "İşçi ödənişləri: −X ₼" sətri əlavə etmək üçün bütün işçilərin bugünkü
+  // maaş sətirlərini client-də əlavə sorğu ilə çəkib cəmləmək lazım gələrdi —
+  // bu, tapşırıqda qadağan olunan workaround-dur, ona görə YAZILMAYIB.
+  // Nəticə: closing FAKTİKİ olaraq düzgündür (server-side CloseDayHandler
+  // ödənişi `expenses`-ə əlavə edir), lakin BAĞLAMADAN ƏVVƏLKİ bu önizləmə
+  // (useSummary) bugünkü maaş ödənişini HƏLƏ NƏZƏRƏ ALMIR, çünki
+  // GetSummaryHandler BE#28 ilə yenilənməyib (yalnız Dashboard/CloseDay
+  // yeniləndi) — QA report-a bu fərq qeyd edilməlidir.
   const { data: summary } = useSummary("today");
   const { data: closings = [] } = useClosings();
   const { data: todayClosing } = useTodayClosing();

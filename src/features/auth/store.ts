@@ -17,6 +17,14 @@ export interface AuthUser {
  * sales.manage — satış düzəliş/sil + nisyə borc sətri silmə (OwnerOrManager)
  * customers.delete — müştəri silmə (OwnerOnly; borclu olsa belə)
  * Gün sonu (closings.write) və Ayarlar (settings.write) yalnız sahib-dədir
+ *
+ * BE#28 maaş icazələri (EmployeesEndpoints.cs ilə uyğun):
+ * - salary.record — ödəniş/tutulma yazmaq (OwnerOrManager)
+ * - salary.set — aylıq maaş təyini (OwnerOnly)
+ * - salary.delete — maaş sətrini silmək (OwnerOnly)
+ * Bütün maaş bölməsi satici üçün GİZLİDİR (öz maaşını da görmür) — səhifə
+ * bunu ayrıca `user.role !== "satici"` yoxlaması ilə idarə edir, çünki
+ * icazəsizlik "boş siyahı" deyil, bölmənin özünün görünməməsi deməkdir.
  */
 const CAPABILITIES: Record<Role, string[]> = {
   sahib: ["*"],
@@ -27,6 +35,7 @@ const CAPABILITIES: Record<Role, string[]> = {
     "sales.write",
     "sales.manage",
     "customers.write",
+    "salary.record",
   ],
   satici: ["sales.write", "customers.write"],
 };
