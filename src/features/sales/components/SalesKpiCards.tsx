@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import { StatCluster } from "@/components/ui/KpiCard";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useSalesKpi } from "@/features/reports/queries";
@@ -82,6 +82,7 @@ export function SalesKpiCards({ range }: Props) {
               onClick={retry}
               className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
             >
+              <RefreshCw size={12} />
               Yenidən
             </button>
           </div>

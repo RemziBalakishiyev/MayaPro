@@ -72,8 +72,10 @@ export function FilterBar({
     >
       {/* Üst sətir: axtarış + toqql düyməsi */}
       <div className="flex items-center gap-3 px-3 py-2.5">
-        {/* Axtarış inputu */}
-        <div className="relative flex-1">
+        {/* Axtarış inputu — `min-w-0` olmasa flex-1 input-un intrinsik
+            min-content enindən aşağı büzülə bilmir və `actions` slotu ilə
+            birgə dar ekranlarda (375px) sətir daşa bilər (FE#62). */}
+        <div className="relative min-w-0 flex-1">
           <Search
             size={14}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
