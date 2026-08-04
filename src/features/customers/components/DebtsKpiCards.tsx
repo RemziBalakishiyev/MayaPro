@@ -17,7 +17,7 @@ export function DebtsKpiCards({ range }: Props) {
   const retry = () => void refetch();
 
   return (
-    <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       <KpiCard
         label="Ümumi qalıq"
         value={data ? fmtMoney(data.totalOutstanding) : undefined}

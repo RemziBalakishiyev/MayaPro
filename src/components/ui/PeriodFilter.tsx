@@ -54,7 +54,19 @@ export function PeriodFilter({
 }: PeriodFilterProps) {
   const popoverId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const popRef = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement | null>(null);
+  // Klaviatura ilə naviqasiya: popover açılanda fokus içərisinə (birinci ay
+  // düyməsinə) keçir, bağlananda "Tarix seç" çipinə qaytarılır — portal
+  // document.body-yə render olunduğu üçün defolt Tab sırası fokusu itirər.
+  const setPopoverRef = (el: HTMLDivElement | null) => {
+    popRef.current = el;
+    if (el) {
+      const first = el.querySelector<HTMLElement>("button, input");
+      (first ?? el).focus();
+    } else {
+      triggerRef.current?.focus();
+    }
+  };
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(
     null,
@@ -153,7 +165,7 @@ export function PeriodFilter({
     open && coords
       ? createPortal(
           <div
-            ref={popRef}
+            ref={setPopoverRef}
             id={popoverId}
             role="dialog"
             aria-label="Tarix aralığı seç"

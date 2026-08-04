@@ -18,7 +18,7 @@ export function ProductsKpiCards({ range }: Props) {
   const retry = () => void refetch();
 
   return (
-    <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
       <KpiCard
         label="Mal sayı"
         value={data?.productCount}
@@ -32,9 +32,10 @@ export function ProductsKpiCards({ range }: Props) {
         value={data ? `${data.totalStockUnits} ədəd` : undefined}
         sub={
           data
-            ? `Bu dövrdə satılan: ${data.soldUnits} · alınan: ${data.purchasedUnits}`
+            ? `Satılan: ${data.soldUnits} · alınan: ${data.purchasedUnits}`
             : undefined
         }
+        subNote={data ? "dövr üzrə" : undefined}
         note="hazırda"
         isLoading={isLoading}
         isError={isError}

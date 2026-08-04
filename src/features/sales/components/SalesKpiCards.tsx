@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import { KpiCard } from "@/components/ui/KpiCard";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useSalesKpi } from "@/features/reports/queries";
@@ -22,13 +23,19 @@ export function SalesKpiCards({ range }: Props) {
   const { data, isLoading, isError, refetch } = useSalesKpi(range);
   const retry = () => void refetch();
 
+  // AC18 — naməlum qazanclı satışlar barədə xəbərdarlıq: adi boz alt mətndən
+  // fərqli, gözə çarpan (kəhrəba) rəngdə göstərilir ki, "Ümumi qazanc" rəqəminin
+  // bu satışları ehtiva ETMƏDİYİ aydın olsun.
   const unknownNote =
-    data && data.unknownProfitSalesCount > 0
-      ? `${data.unknownProfitSalesCount} satış naməlum, ${fmtMoney(data.unknownProfitAmount)} daxil edilməyib`
-      : undefined;
+    data && data.unknownProfitSalesCount > 0 ? (
+      <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
+        <AlertTriangle size={12} className="shrink-0" />
+        {`${data.unknownProfitSalesCount} satış naməlum, ${fmtMoney(data.unknownProfitAmount)} daxil edilməyib`}
+      </span>
+    ) : undefined;
 
   return (
-    <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+    <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
       <KpiCard
         label="Satış sayı"
         value={data?.salesCount}
