@@ -1,7 +1,4 @@
 import { useMemo } from "react";
-import { HandCoins, Search } from "lucide-react";
-import { StatCard } from "@/components/ui/StatCard";
-import { inputCls } from "@/components/ui/Input";
 import { fmtMoney } from "@/lib/format";
 import { phoneDigits } from "@/lib/phone";
 import { useOpenDebts } from "../queries";
@@ -9,29 +6,30 @@ import { OpenDebtsTable } from "./OpenDebtsTable";
 import type { Customer } from "@/types";
 
 interface Props {
+  /** Axtarış — idarəsi `BorclarPage`-in paylaşılan axtarış zolağındadır (FE#63). */
   q: string;
-  onQChange: (q: string) => void;
   customers: Customer[];
   onPay: (customer: Customer) => void;
   onView: (customer: Customer) => void;
+  /** Xarici kart içində göstərilir — öz border/shadow-u yoxdur (FE#63). */
+  embedded?: boolean;
 }
 
 /**
  * FE#40 — "Borclar" görünüşü: BE#21 `GET /api/customers/open-debts` üzərində
- * StatCard (ümumi qalıq + açıq borc sayı) + axtarışlı cədvəl. Ümumi rəqəmlər
- * axtarışdan asılı olmayaraq bütün cavaba əsaslanır ki, "Müştəri üzrə"
- * görünüşündəki cəmlə üst-üstə düşsün.
+ * axtarışlı cədvəl.
+ *
+ * FE#63 — əvvəllər cədvəl üstündə "Ümumi qalıq borc" adlı nəhəng StatCard
+ * göstərilirdi ki, bu, KPI panelindəki "Ümumi qalıq"dan (müştəri-üzrə cəm)
+ * FƏRQLİ bir hesablamaya (mənbə-üzrə cəm) əsaslanır və istifadəçini
+ * çaşdırırdı (3,529 vs 5,475). Ümumi rəqəmlər İNDİ YALNIZ KPI panelində
+ * yaşayır — bu görünüş cədvəlin ALTINDA sadəcə GÖRÜNƏN (axtarışdan sonrakı)
+ * sətirlərin kiçik cəm sətrini göstərir, fərqin səbəbi ("axtarışa görə
+ * dəyişir") aydın olsun deyə.
  */
-export function OpenDebtsView({
-  q,
-  onQChange,
-  customers,
-  onPay,
-  onView,
-}: Props) {
+export function OpenDebtsView({ q, customers, onPay, onView, embedded }: Props) {
   const { data, isLoading } = useOpenDebts();
   const items = data?.items ?? [];
-  const totalRemaining = data?.totalRemaining ?? 0;
 
   const customersById = useMemo(() => {
     const m = new Map<string, Customer>();
@@ -54,33 +52,17 @@ export function OpenDebtsView({
   }, [items, q]);
 
   const hasFilter = !!q.trim();
+  const visibleTotal = useMemo(
+    () => filtered.reduce((sum, d) => sum + d.remaining, 0),
+    [filtered],
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="relative max-w-sm">
-        <Search
-          size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-        />
-        <input
-          value={q}
-          onChange={(e) => onQChange(e.target.value)}
-          placeholder="Ad, telefon və ya mal adı üzrə axtar..."
-          className={`${inputCls} pl-8`}
-        />
-      </div>
-
-      <StatCard
-        label="Ümumi qalıq borc"
-        value={fmtMoney(totalRemaining)}
-        sub={`${items.length} açıq borc`}
-        icon={HandCoins}
-        tone="red"
-      />
-
+    <div className="space-y-2">
       <OpenDebtsTable
         debts={filtered}
         isLoading={isLoading}
+        embedded={embedded}
         customersById={customersById}
         onPay={onPay}
         onView={onView}
@@ -93,6 +75,25 @@ export function OpenDebtsView({
             : undefined
         }
       />
+
+      {!isLoading && filtered.length > 0 && (
+        <p
+          data-testid="open-debts-summary"
+          className="flex items-center justify-end gap-1.5 px-1 text-xs text-stone-500"
+        >
+          <span>Görünən:</span>
+          <span className="font-semibold tabular-nums text-stone-700">
+            {filtered.length} borc
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="font-semibold tabular-nums text-stone-700">
+            {fmtMoney(visibleTotal)}
+          </span>
+          {hasFilter && (
+            <span className="text-stone-400">(axtarışa uyğun)</span>
+          )}
+        </p>
+      )}
     </div>
   );
 }

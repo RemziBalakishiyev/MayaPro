@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebtsKpiCards } from "./DebtsKpiCards";
+import { DebtsKpiCards, DebtsPeriodLine } from "./DebtsKpiCards";
 import { useDebtsKpi } from "@/features/reports/queries";
 
 vi.mock("@/features/reports/queries", () => ({
@@ -19,8 +19,8 @@ const baseData = {
   oldestDebtDays: 42,
 };
 
-/** FE#61 — Nisyə Borclar səhifəsi KPI kompozisiyası. */
-describe("DebtsKpiCards", () => {
+/** FE#61/FE#63 — Nisyə Borclar səhifəsi KPI kompozisiyası. */
+describe("DebtsPeriodLine", () => {
   beforeEach(() => {
     mockUseDebtsKpi.mockReset();
   });
@@ -33,13 +33,32 @@ describe("DebtsKpiCards", () => {
       isError: false,
       refetch: vi.fn(),
     } as never);
-    render(<DebtsKpiCards range={{}} />);
+    render(<DebtsPeriodLine range={{}} />);
     expect(screen.getByText(/Bu dövrdə:/)).toBeInTheDocument();
     expect(screen.getByText(/borc yarandı/)).toBeInTheDocument();
     expect(screen.getByText(/ödəniş yığıldı/)).toBeInTheDocument();
   });
 
-  it("Ümumi qalıq / Borclu sayı / Ən köhnə borc günü StatCluster-də görünür", () => {
+  it("dövr yenilənərkən (isFetching) skeleton göstərir, 'Bu dövrdə' mətni yoxdur", () => {
+    mockUseDebtsKpi.mockReturnValue({
+      data: baseData,
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+    const { container } = render(<DebtsPeriodLine range={{}} />);
+    expect(screen.queryByText(/Bu dövrdə:/)).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".h-3.animate-pulse").length).toBe(1);
+  });
+});
+
+describe("DebtsKpiCards", () => {
+  beforeEach(() => {
+    mockUseDebtsKpi.mockReset();
+  });
+
+  it("Ümumi qalıq / Borclu sayı / Ən köhnə borc günü BORC VƏZİYYƏTİ panelində görünür", () => {
     mockUseDebtsKpi.mockReturnValue({
       data: baseData,
       isLoading: false,
@@ -49,13 +68,38 @@ describe("DebtsKpiCards", () => {
     } as never);
     render(<DebtsKpiCards range={{}} />);
     expect(screen.getByText("Ümumi qalıq")).toBeInTheDocument();
+    expect(screen.getByText(/4[.,]?200/)).toBeInTheDocument();
     expect(screen.getByText("Borclu sayı")).toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("Ən köhnə borc günü")).toBeInTheDocument();
     expect(screen.getByText("42 gün")).toBeInTheDocument();
   });
 
-  it("Ən böyük borclu kartı ad + məbləği göstərir", () => {
+  it("60+ gün ən köhnə borcu qırmızı rənglə vurğulayır", () => {
+    mockUseDebtsKpi.mockReturnValue({
+      data: { ...baseData, oldestDebtDays: 61 },
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+    render(<DebtsKpiCards range={{}} />);
+    expect(screen.getByText("61 gün")).toHaveClass("text-red-600");
+  });
+
+  it("30 gün (60-dan az) ən köhnə borcu qırmızı ilə vurğulamır", () => {
+    mockUseDebtsKpi.mockReturnValue({
+      data: { ...baseData, oldestDebtDays: 30 },
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+    render(<DebtsKpiCards range={{}} />);
+    expect(screen.getByText("30 gün")).not.toHaveClass("text-red-600");
+  });
+
+  it("Ən çox borclu kartı ad + məbləği göstərir", () => {
     mockUseDebtsKpi.mockReturnValue({
       data: baseData,
       isLoading: false,
@@ -64,11 +108,28 @@ describe("DebtsKpiCards", () => {
       refetch: vi.fn(),
     } as never);
     render(<DebtsKpiCards range={{}} />);
-    expect(screen.getByText("Ən böyük borclu")).toBeInTheDocument();
+    expect(screen.getByText("Ən çox borclu")).toBeInTheDocument();
     expect(screen.getByText("Elvin Məmmədov")).toBeInTheDocument();
   });
 
-  it("borclu yoxdursa 'Borclu yoxdur' göstərir", () => {
+  it("Ən çox borclu kartına klik ediləndə onSelectDebtor topDebtor adı ilə çağrılır", async () => {
+    const user = userEvent.setup();
+    const onSelectDebtor = vi.fn();
+    mockUseDebtsKpi.mockReturnValue({
+      data: baseData,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+    render(<DebtsKpiCards range={{}} onSelectDebtor={onSelectDebtor} />);
+    await user.click(
+      screen.getByRole("button", { name: /Elvin Məmmədov üzrə filtrlə/i }),
+    );
+    expect(onSelectDebtor).toHaveBeenCalledWith("Elvin Məmmədov");
+  });
+
+  it("borclu yoxdursa 'Borclu yoxdur' göstərir və kart klikə bağlanmır", () => {
     mockUseDebtsKpi.mockReturnValue({
       data: { ...baseData, topDebtor: null },
       isLoading: false,
@@ -78,6 +139,9 @@ describe("DebtsKpiCards", () => {
     } as never);
     render(<DebtsKpiCards range={{}} />);
     expect(screen.getByText("Borclu yoxdur")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Ən çox borclu" }),
+    ).toBeDisabled();
   });
 
   it("xəta halında panel 'Yüklənmədi' göstərir və Yenidən onRetry çağırır", async () => {
@@ -98,9 +162,9 @@ describe("DebtsKpiCards", () => {
   });
 
   // FE#65 — dövr çipi dəyişəndə (isFetching=true, isLoading=false, köhnə
-  // `data` `placeholderData` ilə saxlanılıb) YALNIZ "Bu dövrdə…" sətri
-  // loading göstərməlidir; StatCluster/KpiCard dəyişmədən qalmalıdır.
-  it("FE#65 — dövr yenilənərkən (isFetching) yalnız dövr sətri loading göstərir, panel sabit qalır", () => {
+  // `data` `placeholderData` ilə saxlanılıb) panel sabit qalmalıdır (bu
+  // panel period-dən asılı deyil, "Bu dövrdə" sətri ayrıca komponentdədir).
+  it("FE#65 — dövr yenilənərkən (isFetching) panel sabit qalır, skeleton göstərmir", () => {
     mockUseDebtsKpi.mockReturnValue({
       data: baseData,
       isLoading: false,
@@ -110,19 +174,10 @@ describe("DebtsKpiCards", () => {
     } as never);
     const { container } = render(<DebtsKpiCards range={{}} />);
 
-    // Dövr sətri skeleton göstərir, köhnə "Bu dövrdə…" mətni yoxdur.
-    expect(screen.queryByText(/Bu dövrdə:/)).not.toBeInTheDocument();
-
-    // StatCluster köhnə/mövcud data ilə görünür, skeleton yox.
     expect(screen.getByText("Ümumi qalıq")).toBeInTheDocument();
     expect(screen.getByText("Borclu sayı")).toBeInTheDocument();
     expect(screen.getByText("7")).toBeInTheDocument();
-
-    // Ən böyük borclu kartı da eyni şəkildə sabit qalır.
     expect(screen.getByText("Elvin Məmmədov")).toBeInTheDocument();
-
-    // Yeganə skeleton — dövr sətrindəki (h-3), StatCluster/KpiCard-da yox.
-    expect(container.querySelectorAll(".h-3.animate-pulse").length).toBe(1);
-    expect(container.querySelectorAll(".h-6.animate-pulse").length).toBe(0);
+    expect(container.querySelectorAll(".animate-pulse").length).toBe(0);
   });
 });
