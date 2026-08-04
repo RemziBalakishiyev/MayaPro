@@ -1,0 +1,106 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  suppliersApi,
+  type NewSupplier,
+  type UpdateSupplier,
+} from "./api";
+
+export const supplierKeys = {
+  all: ["suppliers"] as const,
+  payments: (id: string) => ["suppliers", id, "payments"] as const,
+  history: (id: string) => ["suppliers", id, "history"] as const,
+};
+
+export const useSuppliers = () =>
+  useQuery({
+    queryKey: supplierKeys.all,
+    queryFn: suppliersApi.list,
+  });
+
+/**
+ * Yalnız ödənişlər. UI-də `useSupplierHistory` (ilkin borc + ödəniş) istifadə olunur;
+ * bu hook `/payments` endpoint-i ilə geriyə uyğunluq üçün saxlanılır.
+ */
+export const useSupplierPayments = (supplierId: string | undefined) =>
+  useQuery({
+    queryKey: supplierKeys.payments(supplierId ?? ""),
+    queryFn: () => suppliersApi.listPayments(supplierId as string),
+    enabled: !!supplierId,
+  });
+
+/** İlkin borc + ödəniş tarixçəsi — xronoloji (köhnədən yeniyə). */
+export const useSupplierHistory = (supplierId: string | undefined) =>
+  useQuery({
+    queryKey: supplierKeys.history(supplierId ?? ""),
+    queryFn: () => suppliersApi.listHistory(supplierId as string),
+    enabled: !!supplierId,
+  });
+
+export const useCreateSupplier = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: NewSupplier) => suppliersApi.create(input),
+    onSuccess: (supplier) => {
+      // supplierKeys.all = ["suppliers"] → prefiks kimi history/payments açarlarını da
+      // əhatə edir; ilkin borc dərhal cədvəldə və tarixçədə görünür.
+      qc.invalidateQueries({ queryKey: supplierKeys.all });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+      if (supplier?.id) {
+        qc.invalidateQueries({ queryKey: supplierKeys.history(supplier.id) });
+      }
+    },
+  });
+};
+
+export const useUpdateSupplier = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateSupplier }) =>
+      suppliersApi.update(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: supplierKeys.all });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};
+
+export const useDeleteSupplier = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => suppliersApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: supplierKeys.all });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};
+
+export const useAddSupplierDebt = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ supplierId, amount }: { supplierId: string; amount: number }) =>
+      suppliersApi.addDebt(supplierId, amount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: supplierKeys.all });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};
+
+export const useAddSupplierPayment = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ supplierId, amount }: { supplierId: string; amount: number }) =>
+      suppliersApi.addPayment(supplierId, amount),
+    onSuccess: (_data, { supplierId }) => {
+      qc.invalidateQueries({ queryKey: supplierKeys.all });
+      qc.invalidateQueries({ queryKey: supplierKeys.payments(supplierId) });
+      qc.invalidateQueries({ queryKey: supplierKeys.history(supplierId) });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["activity"] });
+    },
+  });
+};

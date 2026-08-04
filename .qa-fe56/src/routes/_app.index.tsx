@@ -37,7 +37,7 @@ function DashboardPage() {
   if (isLoading || !d) {
     return (
       <div>
-        <PageHead title="Ana səhifə" subtitle="Bugünkü vəziyyət bir baxışda" />
+        <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
         <Spinner />
       </div>
     );
@@ -45,7 +45,7 @@ function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <PageHead title="Ana səhifə" subtitle="Bugünkü vəziyyət bir baxışda" />
+      <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
 
       <SignatureBand
         expectedCash={d.expectedCash}
@@ -57,40 +57,40 @@ function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Satış" value={fmtMoney(d.todayTotal)} icon={ShoppingCart} tone={d.todayTotal === 0 ? "stone" : "default"} />
+        <StatCard label="Bugünkü satış" value={fmtMoney(d.todayTotal)} icon={ShoppingCart} />
         <StatCard
-          label="Qazanc"
+          label="Bugünkü qazanc"
           value={fmtMoney(d.todayProfit)}
           sub={
             d.unknownProfitSalesCount > 0
-              ? `${d.unknownProfitSalesCount} satışın qazancı naməlum`
+              ? `${d.unknownProfitSalesCount} satışın qazancı naməlum (${fmtMoney(d.unknownProfitAmount)} satış)`
               : undefined
           }
           icon={TrendingUp}
-          tone={d.todayProfit === 0 ? "stone" : "green"}
+          tone="green"
         />
-        <StatCard label="Xərc" value={fmtMoney(d.todayExpenses)} icon={Receipt} tone={d.todayExpenses === 0 ? "stone" : "red"} />
-        <StatCard label="Nağd" value={fmtMoney(d.todayCash)} icon={Wallet} tone={d.todayCash === 0 ? "stone" : "default"} />
-        <StatCard label="Kart" value={fmtMoney(d.todayCard)} icon={CreditCard} tone={d.todayCard === 0 ? "stone" : "indigo"} />
-        <StatCard label="Nisyə" value={fmtMoney(d.todayCredit)} icon={HandCoins} tone={d.todayCredit === 0 ? "stone" : "amber"} />
-        <StatCard label="Anbar qiyməti" value={fmtMoney(d.stockValue)} sub="real maya ilə" icon={Package} tone={d.stockValue === 0 ? "stone" : "default"} />
-        <StatCard label="Alıcılar borcu" value={fmtMoney(d.receivables)} icon={Users} tone={d.receivables === 0 ? "stone" : "green"} />
-        <StatCard label="Satıcı borcu" value={fmtMoney(d.payables)} icon={Truck} tone={d.payables === 0 ? "stone" : "red"} />
-        <StatCard label="Bu ay qazanc" value={fmtMoney(d.expectedCash)} icon={Banknote} tone={d.expectedCash === 0 ? "stone" : "green"} />
+        <StatCard label="Bugünkü xərc" value={fmtMoney(d.todayExpenses)} icon={Receipt} tone="red" />
+        <StatCard label="Nağd satış" value={fmtMoney(d.todayCash)} icon={Wallet} />
+        <StatCard label="Kart satış" value={fmtMoney(d.todayCard)} icon={CreditCard} tone="indigo" />
+        <StatCard label="Nisyə satış" value={fmtMoney(d.todayCredit)} icon={HandCoins} tone="amber" />
+        <StatCard label="Anbar dəyəri" value={fmtMoney(d.stockValue)} sub="real maya ilə" icon={Package} />
+        <StatCard label="Mənə borclular" value={fmtMoney(d.receivables)} icon={Users} tone="green" />
+        <StatCard label="Mənim borclarım" value={fmtMoney(d.payables)} icon={Truck} tone="red" />
+        <StatCard label="Kassada olmalı" value={fmtMoney(d.expectedCash)} icon={Banknote} tone="green" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Günlük satış">
+        <Card title="Günlük satış (son 14 gün)">
           <DailyBarChart data={d.daily} />
         </Card>
-        <Card title="Aylıq qazanc">
+        <Card title="Aylıq qazanc (son 6 ay)">
           <TrendLineChart data={d.monthly} xKey="month" stroke="#b45309" />
         </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card
-          title="Ən çox satılanlar"
+          title="Ən çox satılan mallar"
           action={
             <Link
               to="/hesabatlar"
@@ -139,7 +139,7 @@ function DashboardPage() {
           )}
         </Card>
 
-        <Card title="Donmuş mallar">
+        <Card title="Satılmayan mallar (pul dondurur)">
           {d.frozen.length === 0 ? (
             <EmptyState icon={Snowflake} title="Donmuş mal yoxdur" />
           ) : (
@@ -170,7 +170,7 @@ function DashboardPage() {
           {d.recentSales.length === 0 ? (
             <EmptyState
               icon={ShoppingCart}
-              title="Bu gün hələ satış olmayıb"
+              title="Hələ satış yoxdur"
               hint="Satış edildikcə sonuncular burada görünəcək."
             />
           ) : (
@@ -208,7 +208,7 @@ function DashboardPage() {
           )}
         </Card>
 
-        <Card title="Son ödənişlər">
+        <Card title="Son ödənişlər (nisyə)">
           {d.recentPayments.length === 0 ? (
             <EmptyState
               icon={HandCoins}
