@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { ChevronDown, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { inputCls } from "@/components/ui/Input";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
@@ -24,7 +25,10 @@ import {
 } from "@/features/customers/queries";
 import { CustomersTable } from "@/features/customers/components/CustomersTable";
 import { CustomerDrawer } from "@/features/customers/components/CustomerDrawer";
-import { DebtsKpiCards } from "@/features/customers/components/DebtsKpiCards";
+import {
+  DebtsKpiCards,
+  DebtsPeriodLine,
+} from "@/features/customers/components/DebtsKpiCards";
 import { PaymentModal } from "@/features/customers/components/PaymentModal";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { EditCustomerModal } from "@/features/customers/components/EditCustomerModal";
@@ -76,6 +80,12 @@ export const Route = createFileRoute("/_app/borclar")({
 const ACTIVITY_PERIODS: BasePeriod[] = ["today", "week", "month", "all"];
 
 type DebtStatus = "borclu" | "odenilib" | "all";
+
+const STATUS_LABELS: Record<DebtStatus, string> = {
+  borclu: "Borclu",
+  odenilib: "Ödənilib",
+  all: "Hamısı",
+};
 
 const parseNum = (raw: string): number | undefined => {
   if (raw.trim() === "") return undefined;
@@ -139,10 +149,6 @@ function BorclarPage() {
     !!search.initial,
   ].filter(Boolean).length;
 
-  const [filtersOpen, setFiltersOpen] = useState(
-    () => activeFilterCount > 0,
-  );
-
   const filtered = useMemo(() => {
     const q = (search.q ?? "").trim().toLowerCase();
     const qDigits = phoneDigits(search.q ?? "");
@@ -184,11 +190,6 @@ function BorclarPage() {
     [filtered],
   );
 
-  const totalDebt = useMemo(
-    () => customers.reduce((s, c) => s + c.remainingDebt, 0),
-    [customers],
-  );
-
   const hasFilters = activeFilterCount > 0 || !!(search.q ?? "").trim();
 
   const clearFilters = () => {
@@ -196,6 +197,7 @@ function BorclarPage() {
       search: {
         q: search.q || undefined,
         customerId: search.customerId,
+        mode: search.mode,
         status: "borclu",
         borclu: undefined,
         minDebt: undefined,
@@ -217,6 +219,20 @@ function BorclarPage() {
     });
   };
 
+  const setQ = (val: string) =>
+    navigate({
+      search: (prev) => ({ ...prev, q: val || undefined }),
+    });
+
+  /**
+   * FE#63 — KPI panelindəki "Ən çox borclu" mini-kartına klik ediləndə
+   * cədvəli həmin müştəriyə filtrləyir (funksional keçid). KPI endpoint-i
+   * `customerId` qaytarmadığı üçün ad üzrə axtarış istifadə olunur — bu,
+   * hər iki görünüş rejimində (Borclar/Müştəri üzrə) artıq mövcud olan
+   * axtarış davranışı ilə eynidir.
+   */
+  const selectDebtor = (name: string) => setQ(name);
+
   // Seçilmiş müştərini cədvəldəki güncəl datadan götür (ödənişdən sonra yenilənsin)
   const liveSelected = selected
     ? (customers.find((c) => c.id === selected.id) ?? null)
@@ -224,11 +240,6 @@ function BorclarPage() {
   const livePayFor = payFor
     ? (customers.find((c) => c.id === payFor.id) ?? null)
     : null;
-
-  const subtitle =
-    hasFilters && filtered.length !== customers.length
-      ? `${filtered.length} / ${customers.length} müştəri · Qalıq: ${fmtMoney(filteredDebt)} (ümumi ${fmtMoney(totalDebt)})`
-      : `${customers.length} müştəri · Ümumi qalıq borc: ${fmtMoney(totalDebt)}`;
 
   const handleDelete = async () => {
     if (!deleteFor) return;
@@ -242,11 +253,47 @@ function BorclarPage() {
     }
   };
 
+  // FE#63 — aktiv filtrlər FilterBar çipləri üçün (musteri rejimi).
+  const activeFilters = [
+    status !== "borclu" && { id: "status", label: STATUS_LABELS[status] },
+    search.minDebt != null && {
+      id: "minDebt",
+      label: `Min: ${fmtMoney(search.minDebt)}`,
+    },
+    search.maxDebt != null && {
+      id: "maxDebt",
+      label: `Max: ${fmtMoney(search.maxDebt)}`,
+    },
+    search.activity !== "all" && {
+      id: "activity",
+      label: PERIOD_LABELS[search.activity],
+    },
+    search.phone && {
+      id: "phone",
+      label: search.phone === "var" ? "Telefon: var" : "Telefon: yox",
+    },
+    search.initial && { id: "initial", label: "İlkin borclu" },
+  ].filter(Boolean) as Array<{ id: string; label: string }>;
+
+  const handleRemoveFilter = (filterId: string) => {
+    if (filterId === "status") setStatus("borclu");
+    else if (filterId === "minDebt")
+      navigate({ search: (prev) => ({ ...prev, minDebt: undefined }) });
+    else if (filterId === "maxDebt")
+      navigate({ search: (prev) => ({ ...prev, maxDebt: undefined }) });
+    else if (filterId === "activity")
+      navigate({ search: (prev) => ({ ...prev, activity: "all" }) });
+    else if (filterId === "phone")
+      navigate({ search: (prev) => ({ ...prev, phone: undefined }) });
+    else if (filterId === "initial")
+      navigate({ search: (prev) => ({ ...prev, initial: undefined }) });
+  };
+
   return (
     <div>
       <PageHead
         title="Nisyə Borclar"
-        subtitle={`Borcu olan müştərilər və ödənişlər · ${subtitle}`}
+        subtitle="Borcu olan müştərilər və ödənişlər"
         actions={
           <Button size="md" icon={<Plus size={18} />} onClick={() => setNewOpen(true)}>
             Yeni müştəri
@@ -254,105 +301,209 @@ function BorclarPage() {
         }
       />
 
-      <PeriodFilter
-        value={range}
-        onChange={updateRange}
-        defaultKey="all"
-        className="mb-1.5"
-      />
-      <DebtsKpiCards range={range} />
+      {/* FE#63 — dövr bloku: PeriodFilter çipləri + bilavasitə altında "Bu
+          dövrdə…" sətri eyni konteynerdə ("Dövr:" etiketi bu əlaqəni
+          göstərir). Aşağıdakı BORC VƏZİYYƏTİ/ƏN ÇOX BORCLU panelləri isə
+          ANLIQ (dövrdən asılı olmayan) sahələr olduğu üçün BU konteynerdən
+          kənardadır. */}
+      <div className="mb-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-3 sm:p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-stone-400">
+            Dövr:
+          </span>
+          <PeriodFilter
+            value={range}
+            onChange={updateRange}
+            defaultKey="all"
+            className="min-w-0 flex-1"
+          />
+        </div>
+        <DebtsPeriodLine range={range} />
+      </div>
 
-      <DebtViewToggle value={mode} onChange={setMode} />
+      <DebtsKpiCards range={range} onSelectDebtor={selectDebtor} />
 
-      {mode === "borclar" && (
-        <OpenDebtsView
-          q={search.q ?? ""}
-          onQChange={(v) =>
-            navigate({
-              search: (prev) => ({ ...prev, q: v || undefined }),
-            })
-          }
-          customers={customers}
-          onPay={setPayFor}
-          onView={setSelected}
-        />
-      )}
+      {/* FE#63 — Görünüş toqqlları + axtarış/filterlər tək kart daxilində,
+          cədvəldən dərhal əvvəl (FilterBar dili). */}
+      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-card">
+        <div className="space-y-3 border-b border-stone-100 px-4 py-3 sm:px-5">
+          <DebtViewToggle value={mode} onChange={setMode} />
 
-      {mode === "musteri" && (
-        <>
-          <div className="mb-4 space-y-3">
-            <div className="relative max-w-sm">
+          {mode === "borclar" ? (
+            <div className="relative">
               <Search
                 size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
               />
               <input
                 value={search.q ?? ""}
-                onChange={(e) =>
-                  navigate({
-                    search: (prev) => ({ ...prev, q: e.target.value || undefined }),
-                  })
-                }
-                placeholder="Ad və ya telefon üzrə axtar..."
-                className={`${inputCls} pl-8`}
+                onChange={(e) => setQ(e.target.value)}
+                aria-label="Borc axtar"
+                placeholder="Ad, telefon və ya mal adı üzrə axtar..."
+                className={cn(inputCls, "h-12 pl-8 text-sm")}
               />
             </div>
+          ) : (
+            <FilterBar
+              searchValue={search.q ?? ""}
+              onSearchChange={setQ}
+              searchAriaLabel="Müştəri axtar"
+              searchPlaceholder="Ad və ya telefon üzrə axtar..."
+              activeCount={activeFilterCount}
+              activeFilters={activeFilters}
+              onRemoveFilter={handleRemoveFilter}
+              onClear={clearFilters}
+              clearLabel="Filterləri təmizlə"
+              label="Filterlər"
+            >
+              <div className="space-y-3">
+                <div>
+                  <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
+                    Status
+                  </p>
+                  <div
+                    role="tablist"
+                    aria-label="Status"
+                    className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
+                  >
+                    {(
+                      [
+                        { key: "borclu" as const, label: "Borclu" },
+                        { key: "odenilib" as const, label: "Ödənilib" },
+                        { key: "all" as const, label: "Hamısı" },
+                      ] as const
+                    ).map(({ key, label }) => {
+                      const active = status === key;
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setStatus(key)}
+                          className={cn(
+                            "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                            active
+                              ? "bg-emerald-700 text-white shadow-sm"
+                              : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            <div className="overflow-hidden rounded-xl border border-stone-200 bg-stone-50/60">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen((o) => !o)}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
-              >
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-stone-700">
-                  <SlidersHorizontal size={16} className="text-stone-500" />
-                  Filterlər
-                  {activeFilterCount > 0 && (
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </span>
-                <ChevronDown
-                  size={18}
-                  className={cn(
-                    "shrink-0 text-stone-400 transition-transform",
-                    filtersOpen && "rotate-180",
-                  )}
-                />
-              </button>
+                <div>
+                  <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
+                    Son əməliyyat
+                  </p>
+                  <div
+                    role="tablist"
+                    aria-label="Son əməliyyat dövrü"
+                    className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
+                  >
+                    {ACTIVITY_PERIODS.map((p) => {
+                      const active = search.activity === p;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() =>
+                            navigate({
+                              search: (prev) => ({ ...prev, activity: p }),
+                            })
+                          }
+                          className={cn(
+                            "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                            active
+                              ? "bg-emerald-700 text-white shadow-sm"
+                              : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+                          )}
+                        >
+                          {PERIOD_LABELS[p]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-              {filtersOpen && (
-                <div className="space-y-3 border-t border-stone-200 px-3 py-3">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <div>
-                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
-                      Status
-                    </p>
-                    <div
-                      role="tablist"
-                      aria-label="Status"
-                      className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
-                    >
+                    <label className="mb-1 block text-xs font-semibold text-stone-500">
+                      Min qalıq
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={search.minDebt ?? ""}
+                      onChange={(e) =>
+                        navigate({
+                          search: (prev) => ({
+                            ...prev,
+                            minDebt: parseNum(e.target.value),
+                          }),
+                        })
+                      }
+                      placeholder="0"
+                      className={cn(inputCls, "h-9 px-3 text-sm")}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-stone-500">
+                      Max qalıq
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={search.maxDebt ?? ""}
+                      onChange={(e) =>
+                        navigate({
+                          search: (prev) => ({
+                            ...prev,
+                            maxDebt: parseNum(e.target.value),
+                          }),
+                        })
+                      }
+                      placeholder="∞"
+                      className={cn(inputCls, "h-9 px-3 text-sm")}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-stone-500">
+                      Telefon
+                    </label>
+                    <div className="flex gap-0.5 rounded-xl border border-stone-200 bg-white p-1">
                       {(
                         [
-                          { key: "borclu" as const, label: "Borclu" },
-                          { key: "odenilib" as const, label: "Ödənilib" },
-                          { key: "all" as const, label: "Hamısı" },
+                          { key: undefined, label: "Hamısı" },
+                          { key: "var" as const, label: "Var" },
+                          { key: "yox" as const, label: "Yox" },
                         ] as const
                       ).map(({ key, label }) => {
-                        const active = status === key;
+                        const active = search.phone === key;
                         return (
                           <button
                             key={label}
                             type="button"
-                            role="tab"
-                            aria-selected={active}
-                            onClick={() => setStatus(key)}
+                            onClick={() =>
+                              navigate({
+                                search: (prev) => ({
+                                  ...prev,
+                                  phone: key,
+                                }),
+                              })
+                            }
                             className={cn(
-                              "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                              "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:text-sm",
                               active
                                 ? "bg-emerald-700 text-white shadow-sm"
-                                : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+                                : "text-stone-500 hover:bg-stone-50",
                             )}
                           >
                             {label}
@@ -361,181 +512,81 @@ function BorclarPage() {
                       })}
                     </div>
                   </div>
-
-                  <div>
-                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
-                      Son əməliyyat
-                    </p>
-                    <div
-                      role="tablist"
-                      aria-label="Son əməliyyat dövrü"
-                      className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
-                    >
-                      {ACTIVITY_PERIODS.map((p) => {
-                        const active = search.activity === p;
-                        return (
-                          <button
-                            key={p}
-                            type="button"
-                            role="tab"
-                            aria-selected={active}
-                            onClick={() =>
-                              navigate({
-                                search: (prev) => ({ ...prev, activity: p }),
-                              })
-                            }
-                            className={cn(
-                              "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                              active
-                                ? "bg-emerald-700 text-white shadow-sm"
-                                : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
-                            )}
-                          >
-                            {PERIOD_LABELS[p]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-stone-500">
-                        Min qalıq
-                      </label>
+                  <div className="flex items-end">
+                    <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-600">
                       <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        value={search.minDebt ?? ""}
+                        type="checkbox"
+                        checked={!!search.initial}
                         onChange={(e) =>
                           navigate({
                             search: (prev) => ({
                               ...prev,
-                              minDebt: parseNum(e.target.value),
+                              initial: e.target.checked || undefined,
                             }),
                           })
                         }
-                        placeholder="0"
-                        className={cn(inputCls, "h-9 px-3 text-sm")}
+                        className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
                       />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-stone-500">
-                        Max qalıq
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        value={search.maxDebt ?? ""}
-                        onChange={(e) =>
-                          navigate({
-                            search: (prev) => ({
-                              ...prev,
-                              maxDebt: parseNum(e.target.value),
-                            }),
-                          })
-                        }
-                        placeholder="∞"
-                        className={cn(inputCls, "h-9 px-3 text-sm")}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-stone-500">
-                        Telefon
-                      </label>
-                      <div className="flex gap-0.5 rounded-xl border border-stone-200 bg-white p-1">
-                        {(
-                          [
-                            { key: undefined, label: "Hamısı" },
-                            { key: "var" as const, label: "Var" },
-                            { key: "yox" as const, label: "Yox" },
-                          ] as const
-                        ).map(({ key, label }) => {
-                          const active = search.phone === key;
-                          return (
-                            <button
-                              key={label}
-                              type="button"
-                              onClick={() =>
-                                navigate({
-                                  search: (prev) => ({
-                                    ...prev,
-                                    phone: key,
-                                  }),
-                                })
-                              }
-                              className={cn(
-                                "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:text-sm",
-                                active
-                                  ? "bg-emerald-700 text-white shadow-sm"
-                                  : "text-stone-500 hover:bg-stone-50",
-                              )}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="flex items-end">
-                      <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-600">
-                        <input
-                          type="checkbox"
-                          checked={!!search.initial}
-                          onChange={(e) =>
-                            navigate({
-                              search: (prev) => ({
-                                ...prev,
-                                initial: e.target.checked || undefined,
-                              }),
-                            })
-                          }
-                          className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        İlkin borclu
-                      </label>
-                    </div>
+                      İlkin borclu
+                    </label>
                   </div>
-
-                  {activeFilterCount > 0 && (
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={clearFilters}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-                      >
-                        <X size={14} />
-                        Filterləri təmizlə
-                      </button>
-                    </div>
-                  )}
                 </div>
+              </div>
+            </FilterBar>
+          )}
+        </div>
+
+        <div className="p-3 pb-4 sm:px-4 sm:pb-4">
+          {mode === "borclar" && (
+            <OpenDebtsView
+              q={search.q ?? ""}
+              customers={customers}
+              onPay={setPayFor}
+              onView={setSelected}
+              embedded
+            />
+          )}
+
+          {mode === "musteri" && (
+            <div className="space-y-2">
+              <CustomersTable
+                customers={filtered}
+                isLoading={isLoading}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                embedded
+                onView={setSelected}
+                onPay={setPayFor}
+                onEdit={setEditFor}
+                onDelete={setDeleteFor}
+                emptyState={
+                  hasFilters
+                    ? {
+                        title: "Filterə uyğun müştəri yoxdur",
+                        description: "Axtarışı və ya filterləri dəyişin.",
+                      }
+                    : undefined
+                }
+              />
+              {!isLoading && filtered.length > 0 && (
+                <p className="flex items-center justify-end gap-1.5 px-1 text-xs text-stone-500">
+                  <span>Görünən:</span>
+                  <span className="font-semibold tabular-nums text-stone-700">
+                    {filtered.length} müştəri
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="font-semibold tabular-nums text-stone-700">
+                    {fmtMoney(filteredDebt)}
+                  </span>
+                  {hasFilters && (
+                    <span className="text-stone-400">(filtrə uyğun)</span>
+                  )}
+                </p>
               )}
             </div>
-          </div>
-
-          <CustomersTable
-            customers={filtered}
-            isLoading={isLoading}
-            canEdit={canEdit}
-            canDelete={canDelete}
-            onView={setSelected}
-            onPay={setPayFor}
-            onEdit={setEditFor}
-            onDelete={setDeleteFor}
-            emptyState={
-              hasFilters
-                ? {
-                    title: "Filterə uyğun müştəri yoxdur",
-                    description: "Axtarışı və ya filterləri dəyişin.",
-                  }
-                : undefined
-            }
-          />
-        </>
-      )}
+          )}
+        </div>
+      </div>
 
       <CustomerDrawer
         customer={liveSelected}

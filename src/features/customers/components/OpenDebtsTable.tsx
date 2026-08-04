@@ -17,6 +17,8 @@ interface Props {
   onPay: (customer: Customer) => void;
   onView: (customer: Customer) => void;
   emptyState?: { title: string; description?: string };
+  /** Xarici kart içində: border/shadow/radius yox (FE#63). */
+  embedded?: boolean;
 }
 
 /** 60+ gün — qırmızı, 30+ gün — sarı (amber), daha az — sakit boz. */
@@ -42,6 +44,7 @@ export function OpenDebtsTable({
   onPay,
   onView,
   emptyState,
+  embedded,
 }: Props) {
   const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
 
@@ -156,6 +159,7 @@ export function OpenDebtsTable({
       columns={columns}
       data={debts}
       isLoading={isLoading}
+      embedded={embedded}
       onRowClick={(d) => {
         const customer = customersById.get(d.customerId);
         if (customer) onView(customer);

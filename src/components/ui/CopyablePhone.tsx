@@ -16,6 +16,10 @@ async function copyText(text: string): Promise<boolean> {
  * Zəng düyməsi + klikləyəndə kopyalanan nömrə.
  * Nömrə həmişə `toStoredPhone` ilə normallaşdırılır (994XXXXXXXXX), belə ki
  * "050...", "+994...", "994..." formatlarının hamısı düzgün `tel:` linki verir.
+ *
+ * FE#63 — telefonu olmayan müştəri sətrində "—" əvəzinə heç nə göstərilmir
+ * (boş xana): telefonsuzluq faktı əhəmiyyətsiz "naməlum dəyər" kimi
+ * vurğulanmasın deyə.
  */
 export function CopyablePhone({
   phone,
@@ -28,7 +32,7 @@ export function CopyablePhone({
   const stored = toStoredPhone(phone);
 
   if (!stored) {
-    return <span className={className}>—</span>;
+    return null;
   }
 
   const display = formatPhoneDisplay(phone);

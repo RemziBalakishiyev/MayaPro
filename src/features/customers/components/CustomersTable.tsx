@@ -25,6 +25,8 @@ interface Props {
    * "all" — Müştərilər üçün (ümumi alış, alış sayı, qalıq borc);
    */
   variant?: "debtors" | "all";
+  /** Xarici kart içində: border/shadow/radius yox (FE#63). */
+  embedded?: boolean;
 }
 
 /** Son alış / son ödənişdən ən yenisi. */
@@ -120,6 +122,7 @@ export function CustomersTable({
   onDelete,
   emptyState,
   variant = "debtors",
+  embedded,
 }: Props) {
   const waTemplate = useSettingsStore((s) => s.whatsappTemplate);
   const columns = useMemo<ColumnDef<Customer, unknown>[]>(() => {
@@ -236,6 +239,7 @@ export function CustomersTable({
       columns={columns}
       data={customers}
       isLoading={isLoading}
+      embedded={embedded}
       emptyState={
         emptyState ?? {
           title: "Hələ müştəri yoxdur",
