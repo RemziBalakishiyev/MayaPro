@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Plus, Upload, Download, Printer } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
@@ -171,43 +171,42 @@ function MallarPage() {
 
   return (
     <div>
-      <PageHead
+      {/*
+        FE#69 (AC-13): səhifədə BİR əsas əməliyyat («Yeni mal»), qalan üç
+        əməliyyat «Digər əməliyyatlar» menyusundadır. Davranış və icazə
+        şərtləri dəyişməyib — yalnız təqdimat yeri dəyişib.
+      */}
+      <PageHeader
         title="Mallar / Anbar"
-        actions={
-          <>
-            {canWrite && (
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Upload size={14} />}
-                onClick={openImportModal}
-              >
-                Excel import
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Download size={14} />}
-              loading={exporting}
-              onClick={() => void exportExcel()}
-            >
-              Excel export
+        moreActions={[
+          ...(canWrite
+            ? [
+                {
+                  label: "Excel import",
+                  icon: <Upload size={16} />,
+                  onClick: openImportModal,
+                },
+              ]
+            : []),
+          {
+            label: exporting ? "Excel export (gözləyin...)" : "Excel export",
+            icon: <Download size={16} />,
+            onClick: () => void exportExcel(),
+            disabled: exporting,
+            title: exporting ? "Fayl hazırlanır" : undefined,
+          },
+          {
+            label: "Barkod/QR çap",
+            icon: <Printer size={16} />,
+            onClick: () => openLabelModal(),
+          },
+        ]}
+        primaryAction={
+          canWrite ? (
+            <Button size="md" icon={<Plus size={18} />} onClick={openNew}>
+              Yeni mal
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Printer size={14} />}
-              onClick={() => openLabelModal()}
-            >
-              Barkod/QR çap
-            </Button>
-            {canWrite && (
-              <Button size="md" icon={<Plus size={18} />} onClick={openNew}>
-                Yeni mal
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
 
