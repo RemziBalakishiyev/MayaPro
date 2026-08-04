@@ -31,7 +31,7 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-4 shadow-card",
+        "min-w-0 rounded-card border p-4 shadow-card",
         tone === "amber"
           ? "border-amber-300 bg-amber-50"
           : "border-stone-200 bg-white",
@@ -49,7 +49,7 @@ export function KpiCard({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+              className="focus-ring inline-flex min-h-[40px] shrink-0 items-center gap-1 rounded-chip bg-red-50 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
             >
               <RefreshCw size={12} />
               Yenidən
@@ -64,8 +64,15 @@ export function KpiCard({
       ) : (
         <>
           <p
+            title={
+              typeof value === "string" || typeof value === "number"
+                ? String(value)
+                : undefined
+            }
             className={cn(
-              "mt-1 whitespace-nowrap text-xl font-bold tabular-nums leading-tight lg:text-2xl",
+              // FE#69 (R-04): `money` = tabular-nums + min-w-0 + truncate —
+              // uzun məbləğ kartdan daşmır, tam dəyər `title`-dədir.
+              "money mt-1 text-xl font-bold leading-tight lg:text-2xl",
               tone === "amber" ? "text-amber-700" : "text-stone-900",
             )}
           >
@@ -112,7 +119,7 @@ export function StatCluster({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-stone-200 bg-white p-4 shadow-card",
+        "min-w-0 rounded-card border border-stone-200 bg-white p-4 shadow-card",
         className,
       )}
     >
@@ -123,7 +130,7 @@ export function StatCluster({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+              className="focus-ring inline-flex min-h-[40px] shrink-0 items-center gap-1 rounded-chip bg-red-50 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
             >
               <RefreshCw size={12} />
               Yenidən
@@ -135,7 +142,7 @@ export function StatCluster({
           {items.map((item) => (
             <div
               key={item.key}
-              className="py-2.5 first:pt-0 last:pb-0 sm:flex-1 sm:px-4 sm:py-0 sm:first:pl-0 sm:last:pr-0"
+              className="min-w-0 py-2.5 first:pt-0 last:pb-0 sm:flex-1 sm:px-4 sm:py-0 sm:first:pl-0 sm:last:pr-0"
             >
               <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                 {item.label}
@@ -144,7 +151,15 @@ export function StatCluster({
                 <div className="mt-1.5 h-6 w-2/3 animate-pulse rounded bg-stone-200" />
               ) : (
                 <>
-                  <p className="mt-1 whitespace-nowrap text-xl font-bold tabular-nums leading-tight text-stone-900 lg:text-2xl">
+                  <p
+                    title={
+                      typeof item.value === "string" ||
+                      typeof item.value === "number"
+                        ? String(item.value)
+                        : undefined
+                    }
+                    className="money mt-1 text-xl font-bold leading-tight text-stone-900 lg:text-2xl"
+                  >
                     {item.value}
                   </p>
                   {item.sub && (
@@ -179,7 +194,7 @@ export function AlertPill({ children, onClick, className }: AlertPillProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 active:scale-[0.98]",
+        "focus-ring inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 active:scale-[0.98]",
         className,
       )}
     >

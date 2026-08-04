@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { AlertTriangle, Check } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
+import { TONE_TEXT } from "@/lib/ui-tokens";
 import { fmtMoney, fmtMoneySigned, fmtDate } from "@/lib/format";
+import { cashDiffPresentation } from "./cash-diff-presentation";
 import { useClosings } from "../queries";
 import type { Closing } from "@/types";
 
@@ -64,16 +67,22 @@ export function ClosingHistory() {
         header: "Fərq",
         cell: ({ getValue }) => {
           const d = getValue() as number;
+          /*
+           * FE#69 (AC-12 / R-02): müsbət fərq yaşıl «uğur» deyil — kəhrəba
+           * «yoxlanmalı uyğunsuzluq»dur. Rəng yeganə siqnal olmasın deyə
+           * xəbərdarlıq ikonu və `title` izahı da verilir.
+           */
+          const p = cashDiffPresentation(d);
           return (
             <span
-              className={`font-bold tabular-nums ${
-                d < 0
-                  ? "text-red-600"
-                  : d > 0
-                    ? "text-emerald-700"
-                    : "text-stone-700"
-              }`}
+              title={p.title}
+              className={`inline-flex items-center gap-1 font-bold tabular-nums ${TONE_TEXT[p.tone]}`}
             >
+              {p.showWarningIcon ? (
+                <AlertTriangle size={14} aria-hidden className="shrink-0" />
+              ) : (
+                <Check size={14} aria-hidden className="shrink-0" />
+              )}
               {fmtMoneySigned(d, "±")}
             </span>
           );

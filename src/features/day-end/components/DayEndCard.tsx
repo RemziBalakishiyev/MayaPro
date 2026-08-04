@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Lock, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, Check, Lock, TrendingDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -116,6 +116,7 @@ export function DayEndCard() {
             value={fmtMoney(todayClosing.expectedCash)}
           />
           <StatCard label="Faktiki" value={fmtMoney(todayClosing.actualCash)} />
+          {/* AC-12: bağlanmış gün xülasəsində də müsbət fərq kəhrəbadır. */}
           <StatCard
             label="Fərq"
             value={fmtMoney(todayClosing.difference)}
@@ -123,8 +124,22 @@ export function DayEndCard() {
               todayClosing.difference < 0
                 ? "red"
                 : todayClosing.difference > 0
-                  ? "green"
-                  : "default"
+                  ? "amber"
+                  : "green"
+            }
+            valueIcon={
+              todayClosing.difference === 0 ? (
+                <Check size={18} aria-hidden className="shrink-0" />
+              ) : (
+                <AlertTriangle size={18} aria-hidden className="shrink-0" />
+              )
+            }
+            sub={
+              todayClosing.difference > 0
+                ? "Yoxlanmalı uyğunsuzluq (artıq məbləğ)"
+                : todayClosing.difference < 0
+                  ? "Kassada çatışmazlıq"
+                  : "Kassa düz gəlir"
             }
           />
         </div>
@@ -213,28 +228,45 @@ export function DayEndCard() {
           />
         </Field>
 
+        {/*
+          FE#69 (AC-12 / R-02): MÜSBƏT fərq uğur DEYİL — yoxlanmalı
+          uyğunsuzluqdur. Kəhrəba fon + xəbərdarlıq ikonu + izah mətni.
+          Yalnız `diff === 0` uğur rəngindədir; `diff < 0` qırmızı qalır.
+          `difference()` / `expectedCash()` düsturlarına TOXUNULMAYIB.
+        */}
         {diff !== null && (
           <div
-            className={`mt-4 flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-sm font-bold ring-1 ${
+            role="status"
+            className={`mt-4 flex items-start gap-2.5 rounded-control px-4 py-3.5 text-sm font-bold ring-1 ${
               diff < 0
                 ? "bg-red-50 text-red-700 ring-red-200"
                 : diff > 0
-                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                  : "bg-stone-50 text-stone-700 ring-stone-200"
+                  ? "bg-amber-50 text-amber-900 ring-amber-300"
+                  : "bg-emerald-50 text-emerald-800 ring-emerald-200"
             }`}
           >
             {diff < 0 ? (
-              <TrendingDown size={18} />
+              <TrendingDown size={18} aria-hidden className="mt-0.5 shrink-0" />
             ) : diff > 0 ? (
-              <TrendingUp size={18} />
+              <AlertTriangle size={18} aria-hidden className="mt-0.5 shrink-0" />
             ) : (
-              <Check size={18} />
+              <Check size={18} aria-hidden className="mt-0.5 shrink-0" />
             )}
-            {diff < 0
-              ? `Kassada çatışmayan məbləğ: ${fmtMoney(Math.abs(diff))}`
-              : diff > 0
-                ? `Kassada artıq məbləğ: ${fmtMoney(diff)}`
-                : `Kassa düz gəlir. Fərq: ${fmtMoney(0)}`}
+            <span className="min-w-0">
+              {diff < 0 ? (
+                `Kassada çatışmayan məbləğ: ${fmtMoney(Math.abs(diff))}`
+              ) : diff > 0 ? (
+                <>
+                  Yoxlanmalı uyğunsuzluq: kassada {fmtMoney(diff)} artıqdır.
+                  <span className="mt-0.5 block text-xs font-medium text-amber-800">
+                    Artıq məbləğ də uyğunsuzluqdur — sayımı və qeydə alınmamış
+                    əməliyyatları yoxlayın.
+                  </span>
+                </>
+              ) : (
+                `Kassa düz gəlir. Fərq: ${fmtMoney(0)}`
+              )}
+            </span>
           </div>
         )}
 

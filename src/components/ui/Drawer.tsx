@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useId, useRef } from "react";
 import type { ReactNode } from "react";
 import { Maximize2, Minimize2, X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { IconButton } from "./IconButton";
+import { lockBodyScroll } from "./dialog-layer";
 import { useDrawerExpandStore } from "./drawer-store";
 
 export interface DrawerProps {
@@ -60,6 +62,13 @@ export function Drawer({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // FE#69 — `aria-modal="true"` vədi ilə uzlaşdırma: drawer açıqkən arxa
+  // səhifə sürüşmür (Modal ilə ortaq sayğac).
+  useEffect(() => {
+    if (!open) return;
+    return lockBodyScroll();
+  }, [open]);
+
   // Açılanda fokus panelə keçir (daxildə autoFocus-lu sahə varsa ona toxunmur),
   // bağlananda isə paneli açan düyməyə qaytarılır — klaviatura ilə işləyən
   // istifadəçi siyahıda yerini itirmir.
@@ -95,7 +104,7 @@ export function Drawer({
       aria-pressed={isExpanded}
       title={isExpanded ? "Daralt" : "Genişlət"}
       className={cn(
-        "hidden h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition-colors sm:flex",
+        "focus-ring hidden min-h-[40px] shrink-0 items-center gap-1.5 rounded-control border px-3 text-sm font-semibold transition-colors sm:flex",
         isExpanded
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
           : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50 hover:text-stone-700",
@@ -123,14 +132,7 @@ export function Drawer({
       </h3>
       <div className="flex shrink-0 items-center gap-2">
         {expandButton}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Bağla"
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-        >
-          <X size={20} />
-        </button>
+        <IconButton label="Bağla" icon={<X size={20} />} onClick={onClose} />
       </div>
     </div>
   );
@@ -149,7 +151,7 @@ export function Drawer({
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          "absolute right-0 top-0 h-full w-full bg-white shadow-2xl outline-none transition-[max-width] duration-[250ms] ease-out",
+          "absolute right-0 top-0 h-full w-full bg-white shadow-panel outline-none transition-[max-width] duration-[250ms] ease-out",
           // Footer varsa: başlıq və footer sabit, yalnız orta hissə scroll olur.
           footer ? "flex flex-col" : "overflow-y-auto",
           panelWidth,
@@ -170,3 +172,11 @@ export function Drawer({
     </div>
   );
 }
+
+/**
+ * FE#69 — `DetailDrawer` dizayn sistemindəki standart addır: sətir/kart
+ * detalını göstərən sağ panel. Eyni komponentdir (`Drawer`), yeni davranış
+ * əlavə edilmir — ad vahidləşdirilir.
+ */
+export const DetailDrawer = Drawer;
+export type DetailDrawerProps = DrawerProps;
