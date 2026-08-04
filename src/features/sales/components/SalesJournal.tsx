@@ -1,14 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  Eye,
-  FileText,
-  Loader2,
-  Pencil,
-  Receipt,
-  Trash2,
-} from "lucide-react";
+import { Eye, FileText, Loader2, Pencil, Receipt, Trash2 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -71,8 +64,7 @@ export function SalesJournal() {
   const { data: customersData = [] } = useCustomers();
   const customerName = useMemo(() => {
     const map = new Map(customersData.map((c) => [c.id, c.name]));
-    return (s: Sale) =>
-      s.customerId ? (map.get(s.customerId) ?? null) : null;
+    return (s: Sale) => (s.customerId ? (map.get(s.customerId) ?? null) : null);
   }, [customersData]);
   const customerPhone = useMemo(() => {
     const map = new Map(customersData.map((c) => [c.id, c.phone]));
@@ -412,8 +404,14 @@ export function SalesJournal() {
   // Aktif filtrlər çiplər üçün — dövr PeriodFilter-in öz çipində göstərilir.
   const activeFilters = [
     pay && { id: "pay", label: pay },
-    minProfit != null && { id: "minProfit", label: `Min: ${fmtMoney(minProfit)}` },
-    maxProfit != null && { id: "maxProfit", label: `Max: ${fmtMoney(maxProfit)}` },
+    minProfit != null && {
+      id: "minProfit",
+      label: `Min: ${fmtMoney(minProfit)}`,
+    },
+    maxProfit != null && {
+      id: "maxProfit",
+      label: `Max: ${fmtMoney(maxProfit)}`,
+    },
     minQty != null && { id: "minQty", label: `Min say: ${minQty}` },
     maxQty != null && { id: "maxQty", label: `Max say: ${maxQty}` },
   ].filter(Boolean) as Array<{ id: string; label: string }>;
@@ -440,174 +438,190 @@ export function SalesJournal() {
           </h2>
         </div>
 
-        {/* FE#56 — dövr filtri KPI sırası ilə jurnal cədvəlini eyni aralıqla
-            paylaşır (AC16/AC17): tək seçim, iki ayrı dövr göstərici yoxdur. */}
-        <PeriodFilter value={range} onChange={updateRange} defaultKey="all" />
-        <SalesKpiCards range={range} />
-
-        <div className="flex flex-wrap items-stretch gap-2">
-          <FilterBar
-            searchValue={q ?? ""}
-            onSearchChange={(val) =>
-              navigate({
-                search: (prev) => ({
-                  ...prev,
-                  q: val || undefined,
-                }),
-              })
-            }
-            searchAriaLabel="Satış axtar"
-            searchPlaceholder="Axtar..."
-            activeCount={activeFilterCount}
-            activeFilters={activeFilters}
-            onRemoveFilter={handleRemoveFilter}
-            onClear={clearFilters}
-            clearLabel="Filterləri təmizlə"
-            label="Filterlər"
-          >
-            {/* 5 filter sütun grid (lg:5, md:3, sm:2, mobil:1) */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-              {/* Ödəniş */}
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">
-                  Ödəniş
-                </label>
-                <Select
-                  aria-label="Ödəniş"
-                  value={pay ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value as PaymentType | "";
-                    navigate({
-                      search: (prev) => ({
-                        ...prev,
-                        pay: v || undefined,
-                      }),
-                    });
-                  }}
-                  className="h-9 w-full text-sm"
-                >
-                  <option value="">Hamısı</option>
-                  <option value="Nağd">Nağd</option>
-                  <option value="Kart">Kart</option>
-                  <option value="Nisyə">Nisyə</option>
-                </Select>
-              </div>
-
-              {/* Min qazanc */}
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">
-                  Min qazanc
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  aria-label="Min qazanc"
-                  value={minProfit ?? ""}
-                  onChange={(e) =>
-                    navigate({
-                      search: (prev) => ({
-                        ...prev,
-                        minProfit: parseNum(e.target.value),
-                      }),
-                    })
-                  }
-                  placeholder="0"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
-                />
-              </div>
-
-              {/* Max qazanc */}
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">
-                  Max qazanc
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  aria-label="Max qazanc"
-                  value={maxProfit ?? ""}
-                  onChange={(e) =>
-                    navigate({
-                      search: (prev) => ({
-                        ...prev,
-                        maxProfit: parseNum(e.target.value),
-                      }),
-                    })
-                  }
-                  placeholder="∞"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
-                />
-              </div>
-
-              {/* Min say */}
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">
-                  Min say
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                  aria-label="Min say"
-                  value={minQty ?? ""}
-                  onChange={(e) =>
-                    navigate({
-                      search: (prev) => ({
-                        ...prev,
-                        minQty: parseNum(e.target.value),
-                      }),
-                    })
-                  }
-                  placeholder="1"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
-                />
-              </div>
-
-              {/* Max say */}
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">
-                  Max say
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                  aria-label="Max say"
-                  value={maxQty ?? ""}
-                  onChange={(e) =>
-                    navigate({
-                      search: (prev) => ({
-                        ...prev,
-                        maxQty: parseNum(e.target.value),
-                      }),
-                    })
-                  }
-                  placeholder="∞"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
-                />
-              </div>
-            </div>
-          </FilterBar>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            className="shrink-0 self-start"
-            icon={
-              exportingPdf ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <FileText size={14} />
-              )
-            }
-            onClick={() => void exportPdf()}
-            disabled={exportingPdf}
-          >
-            PDF hesabat
-          </Button>
+        {/* FE#56/FE#62 — dövr filtri KPI panelləri ilə eyni konteynerdə: bütün
+            SATIŞ/QAZANC rəqəmləri bu dövrə baxır, "Dövr:" etiketi bu əlaqəni
+            gözlə göstərir (AC16/AC17 — tək seçim, iki ayrı göstərici yoxdur). */}
+        <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-stone-400">
+              Dövr:
+            </span>
+            <PeriodFilter
+              value={range}
+              onChange={updateRange}
+              defaultKey="all"
+              className="min-w-0 flex-1"
+            />
+          </div>
+          <SalesKpiCards range={range} />
         </div>
+
+        {/* FE#62 — axtarış + Filterlər + PDF hesabat BİR sətirdə, eyni
+            hündürlükdə (FilterBar `actions` slotu) — ortada üzən yetim qrup
+            qalmır, hamısı cədvəl kartının başında tək kompozisiya təşkil edir. */}
+        <FilterBar
+          searchValue={q ?? ""}
+          onSearchChange={(val) =>
+            navigate({
+              search: (prev) => ({
+                ...prev,
+                q: val || undefined,
+              }),
+            })
+          }
+          searchAriaLabel="Satış axtar"
+          searchPlaceholder="Axtar..."
+          activeCount={activeFilterCount}
+          activeFilters={activeFilters}
+          onRemoveFilter={handleRemoveFilter}
+          onClear={clearFilters}
+          clearLabel="Filterləri təmizlə"
+          label="Filterlər"
+          actions={
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-12 shrink-0"
+              icon={
+                exportingPdf ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <FileText size={14} />
+                )
+              }
+              onClick={() => void exportPdf()}
+              disabled={exportingPdf}
+            >
+              <span className="hidden sm:inline">PDF hesabat</span>
+              <span className="sr-only sm:hidden">PDF hesabat</span>
+            </Button>
+          }
+        >
+          {/* 5 filter sütun grid (lg:5, md:3, sm:2, mobil:1) */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            {/* Ödəniş */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">
+                Ödəniş
+              </label>
+              <Select
+                aria-label="Ödəniş"
+                value={pay ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value as PaymentType | "";
+                  navigate({
+                    search: (prev) => ({
+                      ...prev,
+                      pay: v || undefined,
+                    }),
+                  });
+                }}
+                className="h-9 w-full text-sm"
+              >
+                <option value="">Hamısı</option>
+                <option value="Nağd">Nağd</option>
+                <option value="Kart">Kart</option>
+                <option value="Nisyə">Nisyə</option>
+              </Select>
+            </div>
+
+            {/* Min qazanc */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">
+                Min qazanc
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                aria-label="Min qazanc"
+                value={minProfit ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: (prev) => ({
+                      ...prev,
+                      minProfit: parseNum(e.target.value),
+                    }),
+                  })
+                }
+                placeholder="0"
+                className={cn(inputCls, "h-9 px-3 text-sm")}
+              />
+            </div>
+
+            {/* Max qazanc */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">
+                Max qazanc
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                aria-label="Max qazanc"
+                value={maxProfit ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: (prev) => ({
+                      ...prev,
+                      maxProfit: parseNum(e.target.value),
+                    }),
+                  })
+                }
+                placeholder="∞"
+                className={cn(inputCls, "h-9 px-3 text-sm")}
+              />
+            </div>
+
+            {/* Min say */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">
+                Min say
+              </label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                aria-label="Min say"
+                value={minQty ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: (prev) => ({
+                      ...prev,
+                      minQty: parseNum(e.target.value),
+                    }),
+                  })
+                }
+                placeholder="1"
+                className={cn(inputCls, "h-9 px-3 text-sm")}
+              />
+            </div>
+
+            {/* Max say */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">
+                Max say
+              </label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                aria-label="Max say"
+                value={maxQty ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: (prev) => ({
+                      ...prev,
+                      maxQty: parseNum(e.target.value),
+                    }),
+                  })
+                }
+                placeholder="∞"
+                className={cn(inputCls, "h-9 px-3 text-sm")}
+              />
+            </div>
+          </div>
+        </FilterBar>
       </div>
 
       <div className="p-3 pb-4 sm:px-4 sm:pb-4">
@@ -725,10 +739,7 @@ export function SalesJournal() {
         onDelete={(s) => setDeleteTarget(s)}
       />
 
-      <SaleEditDrawer
-        saleId={editId}
-        onClose={() => setEditId(null)}
-      />
+      <SaleEditDrawer saleId={editId} onClose={() => setEditId(null)} />
 
       <ConfirmModal
         open={!!deleteTarget}

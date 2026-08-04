@@ -27,6 +27,12 @@ export interface FilterBarProps {
   clearLabel?: string;
   /** Filterlər düyməsinin başlığı */
   label?: string;
+  /**
+   * Üst sətirdə "Filterlər" düyməsindən sonra göstərilən əlavə düymələr
+   * (məs. "PDF hesabat") — axtarış + Filterlər + bu əməliyyatlar HAMISI
+   * eyni sətirdə, eyni hündürlükdə otursun deyə (FE#62).
+   */
+  actions?: ReactNode;
   /** Xarici yerləşdirmə class-ları */
   className?: string;
 }
@@ -51,6 +57,7 @@ export function FilterBar({
   onClear,
   clearLabel = "Filterləri təmizlə",
   label = "Filterlər",
+  actions,
   className,
 }: FilterBarProps) {
   const panelId = useId();
@@ -65,8 +72,10 @@ export function FilterBar({
     >
       {/* Üst sətir: axtarış + toqql düyməsi */}
       <div className="flex items-center gap-3 px-3 py-2.5">
-        {/* Axtarış inputu */}
-        <div className="relative flex-1">
+        {/* Axtarış inputu — `min-w-0` olmasa flex-1 input-un intrinsik
+            min-content enindən aşağı büzülə bilmir və `actions` slotu ilə
+            birgə dar ekranlarda (375px) sətir daşa bilər (FE#62). */}
+        <div className="relative min-w-0 flex-1">
           <Search
             size={14}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
@@ -104,6 +113,8 @@ export function FilterBar({
             )}
           />
         </button>
+
+        {actions}
       </div>
 
       {/* Aktif filtrlər çiplər sırasında (panel bağlı olsa da görünsün) */}
