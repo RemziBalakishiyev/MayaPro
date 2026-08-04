@@ -287,6 +287,14 @@ export function DayEndCard() {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={doClose}
+        /*
+         * FE#69 senior review — `ConfirmModal` indi `onConfirm`-in Promise
+         * nəticəsini gözləyir (F-43) və YALNIZ ona görə bağlanır. `doClose`
+         * asinxrondur, ona görə `isPending` verilmədən düymə gözləmə zamanı
+         * aktiv qalıb təkrar klikə (iki dəfə gün bağlama sorğusuna) icazə
+         * verirdi — kritik/dağıdıcı əməliyyat üçün qəbuledilməzdir.
+         */
+        isPending={closeDay.isPending}
         title="Gün sonu bağlanışı"
         confirmText="Bəli, günü bağla"
         message={`Kassada olmalı: ${fmtMoney(expected)}. Sayılan: ${fmtMoney(

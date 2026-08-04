@@ -161,13 +161,13 @@ modal/drawer-li səhifələr.
 
 ## Yekun
 
-**Normallaşdırılan primitivlər (12):** Button · Input · Textarea · Select ·
+**Normallaşdırılan primitivlər (16):** Button · Input · Textarea · Select ·
 ActionMenu · DataTable · EmptyState · FilterBar (→ FilterPopover/FilterDrawer) ·
 PeriodFilter (→ SegmentedDateFilter) · StatCard · KpiCard/StatCluster/AlertPill ·
 Modal · Drawer (→ DetailDrawer) · ConfirmModal (→ ConfirmDialog) · Toast ·
 PageHead (→ PageHeader).
 
-**Yeni yaradılan primitivlər (11):** AppShell · Sidebar · TopHeader ·
+**Yeni yaradılan primitivlər (13):** AppShell · Sidebar · TopHeader ·
 PageHeader · PageToolbar · GlobalProductSearch · LocalTableSearch ·
 IconButton · StatusBadge · TableToolbar · TablePagination · LoadingSkeleton ·
 InlineError (+ köməkçi modullar: `ui-tokens.ts`, `dialog-layer.ts`,
