@@ -21,6 +21,8 @@ import { expenseBySource } from "@/features/expenses/lib";
 import { salesMoneySplit } from "@/features/sales/lib";
 import { employeesApi } from "@/features/employees/api";
 import { closingsApi } from "@/features/day-end/api";
+import { isoInRange, type PeriodRange } from "@/components/ui/period-filter-lib";
+import { daysBetween, roundMoney } from "@/lib/format";
 import { inPeriod, sumBy, type Period } from "./lib";
 import type {
   Product,
@@ -31,6 +33,7 @@ import type {
   Employee,
   Closing,
   CustomerPayment,
+  PaymentType,
 } from "@/types";
 
 export interface DashboardDto {
@@ -167,6 +170,152 @@ async function mockSummary(period: Period): Promise<SummaryData> {
   };
 }
 
+/** BE#27 — GET /api/reports/products-kpi. Mallar səhifəsinin başlıq altı kartları. */
+export interface ProductsKpi {
+  productCount: number;
+  totalStockUnits: number;
+  totalCostValue: number;
+  totalSaleValue: number;
+  potentialProfit: number;
+  lowStockCount: number;
+  /** Dövr ərzində satılan say (yalnız bu sahə + purchasedUnits period-scoped-dur). */
+  soldUnits: number;
+  purchasedUnits: number;
+}
+
+export interface PaymentTypeKpi {
+  type: PaymentType;
+  revenue: number;
+  profit: number;
+}
+
+/** BE#27 — GET /api/reports/sales-kpi. Satış jurnalı üstündəki KPI sırası. */
+export interface SalesKpi {
+  salesCount: number;
+  totalRevenue: number;
+  totalProfit: number;
+  unknownProfitSalesCount: number;
+  unknownProfitAmount: number;
+  byPayment: PaymentTypeKpi[];
+  avgSale: number;
+}
+
+export interface TopDebtor {
+  name: string;
+  amount: number;
+}
+
+/** BE#27 — GET /api/reports/debts-kpi. Nisyə Borclar səhifəsinin KPI sırası. */
+export interface DebtsKpi {
+  totalOutstanding: number;
+  debtorCount: number;
+  topDebtor: TopDebtor | null;
+  periodNewDebt: number;
+  periodCollected: number;
+  oldestDebtDays: number | null;
+}
+
+const kpiQuery = (range: PeriodRange): string => {
+  const q = new URLSearchParams();
+  if (range.from) q.set("from", range.from);
+  if (range.to) q.set("to", range.to);
+  const s = q.toString();
+  return s ? `?${s}` : "";
+};
+
+/**
+ * MOCK: products-kpi. `purchasedUnits` üçün mock DB-də anbar giriş
+ * tarixçəsi saxlanılmır — dövr ərzində yaradılmış məhsulların ilkin sayı ilə
+ * təxmini yaxınlaşma edilir (real backend BE#27 dəqiq stok hərəkətindən hesablayır).
+ */
+async function mockProductsKpi(range: PeriodRange): Promise<ProductsKpi> {
+  const [products, sales] = await Promise.all([
+    db.products.list(),
+    db.sales.list(),
+  ]);
+  const periodSales = sales.filter((s) =>
+    isoInRange(s.createdAt, range.from, range.to),
+  );
+  const periodNewProducts = products.filter((p) =>
+    isoInRange(p.createdAt, range.from, range.to),
+  );
+  return {
+    productCount: products.length,
+    totalStockUnits: sumBy(products, (p) => p.quantity),
+    totalCostValue: roundMoney(sumBy(products, (p) => p.realCostPerUnit * p.quantity)),
+    totalSaleValue: roundMoney(sumBy(products, (p) => p.salePrice * p.quantity)),
+    potentialProfit: roundMoney(
+      sumBy(products, (p) => (p.salePrice - p.realCostPerUnit) * p.quantity),
+    ),
+    lowStockCount: products.filter((p) => p.quantity <= p.minStock).length,
+    soldUnits: sumBy(periodSales, (s) => s.quantity),
+    purchasedUnits: sumBy(periodNewProducts, (p) => p.initialQuantity),
+  };
+}
+
+/** MOCK: sales-kpi — Satış Jurnalı ilə eyni qayda (BE#19 nağd/kart/nisyə bölgüsü). */
+async function mockSalesKpi(range: PeriodRange): Promise<SalesKpi> {
+  const sales = await db.sales.list();
+  const ps = sales.filter((s) => isoInRange(s.createdAt, range.from, range.to));
+  const known = ps.filter((s) => s.profit != null);
+  const unknown = ps.filter((s) => s.profit == null);
+  const split = salesMoneySplit(ps);
+  const profitByType = (t: PaymentType): number =>
+    roundMoney(
+      sumBy(
+        ps.filter((s) => s.paymentType === t && s.profit != null),
+        (s) => s.profit ?? 0,
+      ),
+    );
+  const byPayment: PaymentTypeKpi[] = [
+    { type: "Nağd", revenue: split.cash, profit: profitByType("Nağd") },
+    { type: "Kart", revenue: split.card, profit: profitByType("Kart") },
+    { type: "Nisyə", revenue: split.credit, profit: profitByType("Nisyə") },
+  ];
+  return {
+    salesCount: ps.length,
+    totalRevenue: roundMoney(sumBy(ps, (s) => s.totalAmount)),
+    totalProfit: roundMoney(sumBy(known, (s) => s.profit ?? 0)),
+    unknownProfitSalesCount: unknown.length,
+    unknownProfitAmount: roundMoney(sumBy(unknown, (s) => s.totalAmount)),
+    byPayment,
+    avgSale: ps.length > 0 ? roundMoney(sumBy(ps, (s) => s.totalAmount) / ps.length) : 0,
+  };
+}
+
+/** MOCK: debts-kpi — snapshot sahələr (qalıq/borclu sayı/ən böyük borclu) həmişə "hazırda". */
+async function mockDebtsKpi(range: PeriodRange): Promise<DebtsKpi> {
+  const [customers, sales, payments] = await Promise.all([
+    db.customers.list(),
+    db.sales.list(),
+    db.payments.list(),
+  ]);
+  const debtors = customers.filter((c) => c.remainingDebt > 0);
+  const top = [...debtors].sort((a, b) => b.remainingDebt - a.remainingDebt)[0];
+  const openSales = sales.filter((s) => s.remainingAmount > 0);
+  const oldest = [...openSales].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  )[0];
+  return {
+    totalOutstanding: roundMoney(sumBy(customers, (c) => c.remainingDebt)),
+    debtorCount: debtors.length,
+    topDebtor: top ? { name: top.name, amount: top.remainingDebt } : null,
+    periodNewDebt: roundMoney(
+      sumBy(
+        sales.filter((s) => isoInRange(s.createdAt, range.from, range.to)),
+        (s) => s.remainingAmount,
+      ),
+    ),
+    periodCollected: roundMoney(
+      sumBy(
+        payments.filter((p) => isoInRange(p.date, range.from, range.to)),
+        (p) => p.amount,
+      ),
+    ),
+    oldestDebtDays: oldest ? daysBetween(oldest.createdAt) : null,
+  };
+}
+
 export const reportsApi = {
   /** Server dashboard aggregatı (real). Mock rejimdə null. */
   getDashboard: (): Promise<DashboardDto | null> =>
@@ -178,6 +327,24 @@ export const reportsApi = {
     USE_MOCK
       ? mockSummary(period)
       : apiClient.get<SummaryData>(`/api/reports/summary?period=${period}`),
+
+  /** FE#56 — Mallar səhifəsi başlıq altı KPI kartları. */
+  getProductsKpi: (range: PeriodRange): Promise<ProductsKpi> =>
+    USE_MOCK
+      ? mockProductsKpi(range)
+      : apiClient.get<ProductsKpi>(`/api/reports/products-kpi${kpiQuery(range)}`),
+
+  /** FE#56 — Satış jurnalı üstü KPI sırası (jurnal ilə eyni dövrü paylaşır). */
+  getSalesKpi: (range: PeriodRange): Promise<SalesKpi> =>
+    USE_MOCK
+      ? mockSalesKpi(range)
+      : apiClient.get<SalesKpi>(`/api/reports/sales-kpi${kpiQuery(range)}`),
+
+  /** FE#56 — Nisyə Borclar səhifəsi KPI sırası. */
+  getDebtsKpi: (range: PeriodRange): Promise<DebtsKpi> =>
+    USE_MOCK
+      ? mockDebtsKpi(range)
+      : apiClient.get<DebtsKpi>(`/api/reports/debts-kpi${kpiQuery(range)}`),
 
   /** Hesabatlar üçün xam kolleksiyalar (dashboard səhifəsi bunu ÇAĞIRMIR). */
   async getAll(): Promise<DashboardData> {

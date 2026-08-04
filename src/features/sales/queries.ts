@@ -8,14 +8,14 @@ import {
   type UpdateSaleInput,
 } from "./types";
 import type { PaymentType } from "@/types";
-import type { Period } from "@/features/reports/lib";
-import { periodToRange } from "./lib";
 
 /** Jurnal cədvəlində səhifə başına sətir. */
 export const JOURNAL_PAGE_SIZE = 10;
 
 export interface SalesJournalFilters {
-  period: Period;
+  /** FE#56 — paylaşılan PeriodFilter aralığı (əvvəlki `period` tab-ı əvəz edir). */
+  from?: string;
+  to?: string;
   paymentType?: PaymentType;
   q?: string;
   minProfit?: number;
@@ -52,10 +52,10 @@ export const useSales = () =>
 
 /** Satış jurnalı — filterli siyahı (DataTable 10-luq pagination). */
 export const useSalesJournal = (filters: SalesJournalFilters) => {
-  const range = periodToRange(filters.period);
   const query = filters.q?.trim() || undefined;
   const params: SalesListParams = {
-    ...range,
+    from: filters.from,
+    to: filters.to,
     paymentType: filters.paymentType,
     q: query,
     minProfit: filters.minProfit,

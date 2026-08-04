@@ -3,38 +3,13 @@
  *
  * Xərc növləri siyahısı `features/expense-types`-ə köçürüldü (useExpenseTypes) —
  * burada yalnız mənbə bölgüsü kimi hesablamalar qalır.
- */
-import { daysAgoISO, fmtMoney, todayISO } from "@/lib/format";
-import type { Period } from "@/features/reports/lib";
-import type { Expense, Product } from "@/types";
-
-/**
- * Xərclər səhifəsinin dövr → API aralığı (from/to, hər iki sərhəd daxil).
  *
- * Satışdakı `periodToRange` ilə QƏSDƏN ayrıdır: orada "month" SON 30 GÜN
- * deməkdir, burada isə (Hesabatlar səhifəsi və `inPeriod` ilə eyni) TƏQVİM
- * ayıdır — ayın 1-i … bu gün. "year" isə ilin 1 yanvarı … bu gün.
- * Nəticə `inPeriod(date, period)` ilə eyni pəncərəni verir ki, real backend
- * (BE#22 `?from=&to=`) və mock (client-side süzgəc) eyni sətirləri göstərsin.
+ * FE#56 — dövr → from/to çevrilməsi artıq paylaşılan `PeriodFilter`
+ * (`components/ui/period-filter-lib`) üzərindən gəlir; bu faylda ayrıca
+ * dövr-aralıq funksiyası saxlanmır.
  */
-export const expensePeriodToRange = (
-  period: Period,
-): { from?: string; to?: string } => {
-  const to = todayISO();
-  switch (period) {
-    case "today":
-      return { from: to, to };
-    case "week":
-      return { from: daysAgoISO(6), to };
-    case "month":
-      return { from: `${to.slice(0, 7)}-01`, to };
-    case "year":
-      return { from: `${to.slice(0, 4)}-01-01`, to };
-    case "all":
-    default:
-      return {};
-  }
-};
+import { fmtMoney } from "@/lib/format";
+import type { Expense, Product } from "@/types";
 
 /**
  * Mala bağlı xərcin 1 ədədin mayasına təsiri — backend

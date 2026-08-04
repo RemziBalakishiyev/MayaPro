@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import {
   reportsApi,
   type DashboardData,
   type DashboardDto,
+  type DebtsKpi,
+  type ProductsKpi,
+  type SalesKpi,
   type SummaryData,
 } from "./api";
 import type { Period } from "./lib";
@@ -296,4 +300,25 @@ export const useSummary = (period: Period) =>
   useQuery({
     queryKey: ["summary", period],
     queryFn: () => reportsApi.getSummary(period),
+  });
+
+/** FE#56 — Mallar səhifəsi KPI kartları (PeriodFilter-in from/to-su ilə). */
+export const useProductsKpi = (range: PeriodRange) =>
+  useQuery<ProductsKpi>({
+    queryKey: ["reports", "products-kpi", range.from ?? "", range.to ?? ""],
+    queryFn: () => reportsApi.getProductsKpi(range),
+  });
+
+/** FE#56 — Satış jurnalı üstü KPI kartları. */
+export const useSalesKpi = (range: PeriodRange) =>
+  useQuery<SalesKpi>({
+    queryKey: ["reports", "sales-kpi", range.from ?? "", range.to ?? ""],
+    queryFn: () => reportsApi.getSalesKpi(range),
+  });
+
+/** FE#56 — Nisyə Borclar səhifəsi KPI kartları. */
+export const useDebtsKpi = (range: PeriodRange) =>
+  useQuery<DebtsKpi>({
+    queryKey: ["reports", "debts-kpi", range.from ?? "", range.to ?? ""],
+    queryFn: () => reportsApi.getDebtsKpi(range),
   });

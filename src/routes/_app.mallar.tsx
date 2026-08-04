@@ -5,6 +5,8 @@ import { Plus, Upload, Download, Printer, Loader2 } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { PeriodFilter } from "@/components/ui/PeriodFilter";
+import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
 import { USE_MOCK } from "@/lib/api-client";
 import { downloadFile } from "@/lib/download";
@@ -25,6 +27,7 @@ import { ProductForm } from "@/features/products/components/ProductForm";
 import { StockAdjustModal } from "@/features/products/components/StockAdjustModal";
 import { LabelPrintModal } from "@/features/products/components/LabelPrintModal";
 import { ExcelImportModal } from "@/features/products/components/ExcelImportModal";
+import { ProductsKpiCards } from "@/features/products/components/ProductsKpiCards";
 import type { Product } from "@/types";
 
 const searchSchema = z.object({
@@ -34,6 +37,9 @@ const searchSchema = z.object({
     .enum(["Stokda var", "Azalır", "Bitib", "Satılmır", "Ziyana satılır"])
     .optional(),
   loc: z.string().optional(),
+  /** FE#56 — paylaşılan PeriodFilter (yalnız period-scoped KPI-lara təsir edir). */
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_app/mallar")({
@@ -105,6 +111,12 @@ function MallarPage() {
 
   const updateFilter = (patch: ProductFilterValues) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }) });
+
+  const range: PeriodRange = { from: search.from, to: search.to };
+  const updateRange = (patch: PeriodRange) =>
+    navigate({
+      search: (prev) => ({ ...prev, from: patch.from, to: patch.to }),
+    });
 
   const openNew = () => {
     setEditing(null);
@@ -207,6 +219,14 @@ function MallarPage() {
           </>
         }
       />
+
+      <PeriodFilter
+        value={range}
+        onChange={updateRange}
+        defaultKey="all"
+        className="mb-3"
+      />
+      <ProductsKpiCards range={range} />
 
       <ProductFilters
         value={search}

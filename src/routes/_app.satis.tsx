@@ -9,7 +9,9 @@ const optNum = z.preprocess((v) => {
 }, z.number().optional());
 
 const searchSchema = z.object({
-  period: z.enum(["today", "week", "month", "all"]).default("all"),
+  /** FE#56 — paylaşılan PeriodFilter (from/to); köhnə `period` tab-ları əvəz olunub. */
+  from: z.string().optional(),
+  to: z.string().optional(),
   pay: z.enum(["Nağd", "Kart", "Nisyə"]).optional(),
   q: z.string().optional(),
   minProfit: optNum,

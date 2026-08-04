@@ -5,19 +5,18 @@ import { Plus } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { PeriodFilter } from "@/components/ui/PeriodFilter";
+import { isoInRange, type PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
 import { fmtMoney } from "@/lib/format";
-import { inPeriod } from "@/features/reports/lib";
 import { useExpenses, useDeleteExpense } from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
 import { ExpenseDetailDrawer } from "@/features/expenses/components/ExpenseDetailDrawer";
 import {
-  DEFAULT_EXPENSE_PERIOD,
   ExpenseFilters,
   type ExpenseFilterValues,
 } from "@/features/expenses/components/ExpenseFilters";
-import { expensePeriodToRange } from "@/features/expenses/lib";
 import { useProducts } from "@/features/products/queries";
 import { useCan } from "@/features/auth/store";
 import type { Expense } from "@/types";
@@ -26,13 +25,12 @@ const searchSchema = z.object({
   /** Axtarış — xərc adı və qeyd üzrə (boş sətir URL-dən silinir). */
   q: z.string().optional(),
   /**
-   * Filtrlər URL-də saxlanılır (F5-dən sonra itmir).
-   * `.catch` → keçərsiz dəyər (məs. ?period=xyz) route xətası vermir, defolta düşür.
+   * FE#56 — paylaşılan PeriodFilter (əvvəlki `period` tab-ı əvəz edir).
+   * Səhifənin əvvəlki defolt davranışı ("Bu ay") `PeriodFilter defaultKey="month"`
+   * ilə qorunur.
    */
-  period: z
-    .enum(["today", "week", "month", "year", "all"])
-    .default(DEFAULT_EXPENSE_PERIOD)
-    .catch(DEFAULT_EXPENSE_PERIOD),
+  from: z.string().optional(),
+  to: z.string().optional(),
   source: z.enum(["all", "general", "product"]).default("all").catch("all"),
   /** Xərc növü (expense-types siyahısındakı ad). */
   type: z.string().optional(),
@@ -47,11 +45,10 @@ function XerclerPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const toast = useToast();
-  const { period, source, type, q } = search;
+  const { source, type, q } = search;
+  const range: PeriodRange = { from: search.from, to: search.to };
 
-  // Dövr → from/to (təqvim ayı/il semantikası) → API sorğusu (BE#22).
-  // "Hamısı"da heç bir parametr göndərilmir.
-  const range = useMemo(() => expensePeriodToRange(period), [period]);
+  // from/to birbaşa API sorğusuna gedir (BE#22). "Hamısı"da heç bir parametr göndərilmir.
   const {
     data: expenses = [],
     isLoading,
@@ -67,13 +64,18 @@ function XerclerPage() {
   const [deleteFor, setDeleteFor] = useState<Expense | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
 
+  const updateRange = (patch: PeriodRange) =>
+    navigate({
+      search: (prev) => ({ ...prev, from: patch.from, to: patch.to }),
+    });
+
   // Cədvəldə görünən sətirlər. Dövr süzgəci burada da tətbiq olunur: mock
   // rejimdə backend filtri yoxdur (bütün siyahı gəlir), real rejimdə isə
-  // `inPeriod` API pəncərəsi ilə eyni nəticəni verir → ikiqat süzgəc zərərsizdir.
+  // `isoInRange` API pəncərəsi ilə eyni nəticəni verir → ikiqat süzgəc zərərsizdir.
   const visibleExpenses = useMemo(() => {
     const needle = (q ?? "").trim().toLowerCase();
     return expenses.filter((e) => {
-      if (!inPeriod(e.date, period)) return false;
+      if (!isoInRange(e.date, range.from, range.to)) return false;
       if (source !== "all" && e.source !== source) return false;
       if (type && e.category !== type) return false;
       if (
@@ -83,7 +85,7 @@ function XerclerPage() {
         return false;
       return true;
     });
-  }, [expenses, period, source, type, q]);
+  }, [expenses, range.from, range.to, source, type, q]);
 
   // Alt cəm BÜTÜN filtrlənmiş sətirlərə aiddir — cədvəlin cari səhifəsinə yox.
   const filteredTotal = useMemo(
@@ -124,10 +126,7 @@ function XerclerPage() {
   };
 
   const hasFilter =
-    period !== DEFAULT_EXPENSE_PERIOD ||
-    source !== "all" ||
-    !!type ||
-    !!q?.trim();
+    !!search.from || !!search.to || source !== "all" || !!type || !!q?.trim();
 
   return (
     <div>
@@ -150,8 +149,15 @@ function XerclerPage() {
         }
       />
 
+      <PeriodFilter
+        value={range}
+        onChange={updateRange}
+        defaultKey="month"
+        className="mb-3"
+      />
+
       <ExpenseFilters
-        value={{ q, period, source, type }}
+        value={{ q, source, type }}
         onChange={updateFilter}
       />
 
