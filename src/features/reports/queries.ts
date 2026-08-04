@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import {
   reportsApi,
@@ -302,11 +302,22 @@ export const useSummary = (period: Period) =>
     queryFn: () => reportsApi.getSummary(period),
   });
 
-/** FE#56 — Mallar səhifəsi KPI kartları (PeriodFilter-in from/to-su ilə). */
+/**
+ * FE#56 — Mallar səhifəsi KPI kartları (PeriodFilter-in from/to-su ilə).
+ *
+ * FE#65 — cavab snapshot (dövrdən asılı olmayan: `productCount`,
+ * `totalStockUnits`, `totalCostValue`, `totalSaleValue`, `potentialProfit`,
+ * `lowStockCount`) və period-scoped (`soldUnits`, `purchasedUnits`) sahələri
+ * eyni sorğuda qaytarır. Dövr çipi dəyişəndə `queryKey` dəyişdiyi üçün
+ * `placeholderData: keepPreviousData` ilə köhnə nəticə saxlanılır ki, yalnız
+ * "Bu dövrdə…" sətri (komponentdə `isFetching`-ə görə) loading göstərsin,
+ * StatCluster/KpiCard/AlertPill isə yeni nəticə gələnə qədər sabit qalsın.
+ */
 export const useProductsKpi = (range: PeriodRange) =>
   useQuery<ProductsKpi>({
     queryKey: ["reports", "products-kpi", range.from ?? "", range.to ?? ""],
     queryFn: () => reportsApi.getProductsKpi(range),
+    placeholderData: keepPreviousData,
   });
 
 /** FE#56 — Satış jurnalı üstü KPI kartları. */
@@ -316,9 +327,17 @@ export const useSalesKpi = (range: PeriodRange) =>
     queryFn: () => reportsApi.getSalesKpi(range),
   });
 
-/** FE#56 — Nisyə Borclar səhifəsi KPI kartları. */
+/**
+ * FE#56 — Nisyə Borclar səhifəsi KPI kartları.
+ *
+ * FE#65 — `totalOutstanding`/`debtorCount`/`topDebtor`/`oldestDebtDays`
+ * snapshot, `periodNewDebt`/`periodCollected` isə period-scoped sahələrdir.
+ * `placeholderData: keepPreviousData` ilə dövr dəyişəndə köhnə nəticə
+ * saxlanılır (bax `useProductsKpi` şərhi).
+ */
 export const useDebtsKpi = (range: PeriodRange) =>
   useQuery<DebtsKpi>({
     queryKey: ["reports", "debts-kpi", range.from ?? "", range.to ?? ""],
     queryFn: () => reportsApi.getDebtsKpi(range),
+    placeholderData: keepPreviousData,
   });

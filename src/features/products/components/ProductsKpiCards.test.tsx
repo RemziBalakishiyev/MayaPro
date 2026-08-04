@@ -121,4 +121,39 @@ describe("ProductsKpiCards", () => {
     await user.click(retryButtons[0]);
     expect(refetch).toHaveBeenCalledTimes(1);
   });
+
+  // FE#65 — dövr çipi dəyişəndə (isFetching=true, isLoading=false, köhnə
+  // `data` `placeholderData` ilə saxlanılıb) YALNIZ "Bu dövrdə…" sətri
+  // loading göstərməlidir; StatCluster/KpiCard/AlertPill dəyişmədən qalmalıdır.
+  it("FE#65 — dövr yenilənərkən (isFetching) yalnız dövr sətri loading göstərir, panel sabit qalır", () => {
+    mockUseProductsKpi.mockReturnValue({
+      data: baseData,
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      refetch: vi.fn(),
+    } as never);
+    const { container } = render(<ProductsKpiCards range={{}} />);
+
+    // Dövr sətri skeleton göstərir, köhnə "Bu dövrdə…" mətni yoxdur.
+    expect(screen.queryByText(/Bu dövrdə:/)).not.toBeInTheDocument();
+
+    // Anbar paneli (StatCluster) köhnə/mövcud data ilə görünür, skeleton yox.
+    expect(screen.getByText("Mal sayı")).toBeInTheDocument();
+    expect(screen.getByText("16")).toBeInTheDocument();
+
+    // Satış dəyəri kartı (KpiCard) da eyni şəkildə sabit qalır.
+    expect(screen.getByText("Satış dəyəri")).toBeInTheDocument();
+    expect(screen.getByText(/Potensial qazanc/)).toBeInTheDocument();
+
+    // Azalan mal xəbərdarlıq çipi yox olmur.
+    expect(
+      screen.getByRole("button", { name: /4 mal azalır/ }),
+    ).toBeInTheDocument();
+
+    // Yeganə skeleton — dövr sətrindəki (h-3), StatCluster/KpiCard-da yox
+    // (onlar h-6 skeleton bar istifadə edir).
+    expect(container.querySelectorAll(".h-3.animate-pulse").length).toBe(1);
+    expect(container.querySelectorAll(".h-6.animate-pulse").length).toBe(0);
+  });
 });

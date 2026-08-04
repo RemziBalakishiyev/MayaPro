@@ -14,15 +14,21 @@ interface Props {
  * kimi göstərilir. `periodNewDebt/periodCollected` isə yeganə dövrə bağlı
  * cütdür — PeriodFilter çiplərinin birbaşa altındakı "Bu dövrdə…" sətrində,
  * dövrlə eyni vizual qrupda yer alır.
+ *
+ * FE#65 — dövr çipi dəyişəndə `useDebtsKpi` `placeholderData` ilə köhnə
+ * nəticəni saxlayır, buna görə StatCluster/KpiCard `isLoading`-ə (yalnız İLK
+ * yüklənmədə true) əsaslanır və sabit qalır; YALNIZ "Bu dövrdə…" sətri
+ * `isFetching`-ə görə yenilənərkən loading göstərir.
  */
 export function DebtsKpiCards({ range }: Props) {
-  const { data, isLoading, isError, refetch } = useDebtsKpi(range);
+  const { data, isLoading, isFetching, isError, refetch } =
+    useDebtsKpi(range);
   const retry = () => void refetch();
 
   return (
     <div className="mb-4">
       <p className="mb-4 min-h-[1rem] text-xs text-stone-500">
-        {isLoading ? (
+        {isFetching ? (
           <span className="inline-block h-3 w-56 animate-pulse rounded bg-stone-100 align-middle" />
         ) : isError ? (
           "Bu dövrdə: —"

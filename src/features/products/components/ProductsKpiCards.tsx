@@ -20,15 +20,21 @@ interface Props {
  * göstərilmirlər: yeganə dövrə bağlı cüt (`soldUnits`/`purchasedUnits`)
  * PeriodFilter çiplərinin birbaşa altındakı "Bu dövrdə…" sətrinə keçib, bu da
  * onu vizual olaraq dövrlə eyni qrupda, KPI panelindən isə ayrı saxlayır.
+ *
+ * FE#65 — dövr çipi dəyişəndə `useProductsKpi` `placeholderData` ilə köhnə
+ * nəticəni saxlayır, buna görə StatCluster/KpiCard/AlertPill `isLoading`-ə
+ * (yalnız İLK yüklənmədə true) əsaslanır və sabit qalır; YALNIZ "Bu dövrdə…"
+ * sətri `isFetching`-ə görə yenilənərkən loading göstərir.
  */
 export function ProductsKpiCards({ range, onLowStockClick }: Props) {
-  const { data, isLoading, isError, refetch } = useProductsKpi(range);
+  const { data, isLoading, isFetching, isError, refetch } =
+    useProductsKpi(range);
   const retry = () => void refetch();
 
   return (
     <div className="mb-4">
       <p className="mb-4 min-h-[1rem] text-xs text-stone-500">
-        {isLoading ? (
+        {isFetching ? (
           <span className="inline-block h-3 w-48 animate-pulse rounded bg-stone-100 align-middle" />
         ) : isError ? (
           "Bu dövrdə: —"
