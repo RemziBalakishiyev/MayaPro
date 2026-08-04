@@ -257,9 +257,10 @@ export function DayEndCard() {
                 `Kassada çatışmayan məbləğ: ${fmtMoney(Math.abs(diff))}`
               ) : diff > 0 ? (
                 <>
-                  Yoxlanmalı uyğunsuzluq: kassada {fmtMoney(diff)} artıqdır.
+                  {/* Etiket: E-03 (audit «Etiket və mətn dəyişiklikləri») */}
+                  Kassa uyğun gəlmir — {fmtMoney(diff)} artıq çıxdı, yoxlayın
                   <span className="mt-0.5 block text-xs font-medium text-amber-800">
-                    Artıq məbləğ də uyğunsuzluqdur — sayımı və qeydə alınmamış
+                    Artıq məbləğ də uyğunsuzluqdur: sayımı və qeydə alınmamış
                     əməliyyatları yoxlayın.
                   </span>
                 </>
