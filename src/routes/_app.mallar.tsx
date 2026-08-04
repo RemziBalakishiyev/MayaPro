@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, Upload, Download, Printer, Loader2 } from "lucide-react";
+import { Plus, Upload, Download, Printer } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -188,15 +188,9 @@ function MallarPage() {
             <Button
               variant="secondary"
               size="sm"
-              icon={
-                exporting ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Download size={14} />
-                )
-              }
+              icon={<Download size={14} />}
+              loading={exporting}
               onClick={() => void exportExcel()}
-              disabled={exporting}
             >
               Excel export
             </Button>

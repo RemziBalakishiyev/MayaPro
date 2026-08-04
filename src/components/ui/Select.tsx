@@ -373,8 +373,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           onKeyDown={onTriggerKeyDown}
           onBlur={onBlur as unknown as FocusEventHandler<HTMLButtonElement>}
           className={cn(
-            "relative flex h-12 w-full items-center rounded-xl border border-stone-300 bg-white pl-4 pr-11 text-left text-base outline-none transition-[border-color,box-shadow,background-color]",
-            "hover:border-stone-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20",
+            "relative flex h-12 w-full items-center rounded-control border border-stone-300 bg-white pl-4 pr-11 text-left text-base outline-none transition-[border-color,box-shadow,background-color]",
+            // FE#69 — Input/Textarea ilə eyni fokus dili (`focus-visible`)
+            "hover:border-stone-400 focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/20",
             "disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-500 disabled:hover:border-stone-300",
             open && "border-emerald-500 ring-4 ring-emerald-500/20",
             muted && !disabled ? "text-stone-400" : "text-stone-900",
