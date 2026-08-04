@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, Search } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { Plus } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { inputCls } from "@/components/ui/Input";
+import { LocalTableSearch } from "@/components/ui/LocalTableSearch";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -101,10 +101,10 @@ function MusterilerPage() {
 
   return (
     <div>
-      <PageHead
+      <PageHeader
         title="Müştərilər"
         subtitle={subtitle}
-        actions={
+        primaryAction={
           <Button
             size="md"
             icon={<Plus size={18} />}
@@ -115,27 +115,23 @@ function MusterilerPage() {
         }
       />
 
+      {/* FE#69 — lokal cədvəl axtarışı paylaşılan `LocalTableSearch`-ə
+          keçirildi: topbar-dakı qlobal axtarışdan həm görünüş, həm də
+          placeholder mətni ilə fərqlənir (AC-14). URL search sxemi dəyişməyib. */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1 max-w-sm">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-          />
-          <input
-            value={search.q ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: (prev) => ({ ...prev, q: e.target.value || undefined }),
-              })
-            }
-            placeholder="Ad və ya telefon üzrə axtar..."
-            className={`${inputCls} pl-8`}
-          />
-        </div>
+        <LocalTableSearch
+          value={search.q ?? ""}
+          onChange={(v) =>
+            navigate({ search: (prev) => ({ ...prev, q: v || undefined }) })
+          }
+          placeholder="Bu siyahıda axtar... (ad və ya telefon)"
+          ariaLabel="Müştəri siyahısında axtar"
+          className="min-w-[220px] max-w-sm flex-1"
+        />
 
         <label
           className={cn(
-            "flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 text-sm",
+            "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-control border bg-white px-3.5 text-sm font-medium",
             search.onlyDebtors
               ? "border-red-300 text-red-700"
               : "border-stone-200 text-stone-600",
