@@ -21,7 +21,7 @@ Sənəd `docs/ui-ux-current-state-audit.md` ilə eyni F-xx nömrələmə sistemi
 | **5. Təkrarlanma və paralel implementasiyalar** | 10 qrup: eyni işi görən fərqli implementasiyalar, «hansı qalmalı» tövsiyəsi və `F-xx` istinadı |
 | **6. Xülasə** | Saylar, ölü kod və test əhatəsi |
 
-**Əhatə təsdiqi:** `src/components/ui/` qovluğundakı **30 mənbə faylının** (test faylları istisna) hamısı bölmə 2 və 2.1-də sətirlə təmsil olunub; `src/features/*/components/` altındakı komponentlərin hamısı isə bölmə 3-də adı ilə keçir. Əskik komponent: **0**.
+**Əhatə təsdiqi:** `src/components/ui/` qovluğundakı **31 mənbə faylının** (test faylları və `.gitkeep` istisna; `icons/WhatsAppIcon.tsx` daxil) hamısı bölmə 2 və 2.1-də sətirlə təmsil olunub (28 sətir bölmə 2-də + 3 sətir bölmə 2.1-də); `src/features/*/components/` altındakı komponentlərin hamısı isə bölmə 3-də adı ilə keçir. Əskik komponent: **0**.
 
 ---
 
