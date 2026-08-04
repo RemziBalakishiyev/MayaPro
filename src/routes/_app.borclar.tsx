@@ -258,7 +258,7 @@ function BorclarPage() {
         value={range}
         onChange={updateRange}
         defaultKey="all"
-        className="mb-3"
+        className="mb-1.5"
       />
       <DebtsKpiCards range={range} />
 

@@ -10,7 +10,6 @@ import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
 import { USE_MOCK } from "@/lib/api-client";
 import { downloadFile } from "@/lib/download";
-import { fmtMoney } from "@/lib/format";
 import { useProducts, useDeleteProduct } from "@/features/products/queries";
 import { useCategories } from "@/features/categories/queries";
 import { useCan } from "@/features/auth/store";
@@ -104,11 +103,6 @@ function MallarPage() {
     });
   }, [products, search]);
 
-  const stockValue = useMemo(
-    () => products.reduce((s, p) => s + p.realCostPerUnit * p.quantity, 0),
-    [products],
-  );
-
   const updateFilter = (patch: ProductFilterValues) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }) });
 
@@ -117,6 +111,10 @@ function MallarPage() {
     navigate({
       search: (prev) => ({ ...prev, from: patch.from, to: patch.to }),
     });
+
+  // FE#61 — "Azalan mal" xəbərdarlıq çipinə klik status filtrini "Azalır"a keçirir.
+  const focusLowStock = () =>
+    navigate({ search: (prev) => ({ ...prev, status: "Azalır" }) });
 
   const openNew = () => {
     setEditing(null);
@@ -175,7 +173,6 @@ function MallarPage() {
     <div>
       <PageHead
         title="Mallar / Anbar"
-        subtitle={`${products.length} mal · Anbar dəyəri: ${fmtMoney(stockValue)}`}
         actions={
           <>
             {canWrite && (
@@ -224,9 +221,9 @@ function MallarPage() {
         value={range}
         onChange={updateRange}
         defaultKey="all"
-        className="mb-3"
+        className="mb-1.5"
       />
-      <ProductsKpiCards range={range} />
+      <ProductsKpiCards range={range} onLowStockClick={focusLowStock} />
 
       <ProductFilters
         value={search}
