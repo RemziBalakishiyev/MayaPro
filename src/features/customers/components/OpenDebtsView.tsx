@@ -28,7 +28,7 @@ interface Props {
  * dəyişir") aydın olsun deyə.
  */
 export function OpenDebtsView({ q, customers, onPay, onView, embedded }: Props) {
-  const { data, isLoading } = useOpenDebts();
+  const { data, isLoading, isError, refetch } = useOpenDebts();
   const items = data?.items ?? [];
 
   const customersById = useMemo(() => {
@@ -62,6 +62,8 @@ export function OpenDebtsView({ q, customers, onPay, onView, embedded }: Props) 
       <OpenDebtsTable
         debts={filtered}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         embedded={embedded}
         customersById={customersById}
         onPay={onPay}

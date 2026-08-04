@@ -25,6 +25,12 @@ const productTooltip = (p: Product): string =>
 interface Props {
   products: Product[];
   isLoading?: boolean;
+  /**
+   * FE#87 (TC-32.1/32.2): mal sorğusu şəbəkə xətası ilə uğursuz olduqda
+   * boş-siyahı mesajı ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
   /** Redaktə (mal yeniləmə) icazəsi — satıcıda gizli. Stok düzəlişi hamıda qalır. */
   canEdit?: boolean;
   onEdit: (product: Product) => void;
@@ -116,6 +122,8 @@ function ProductRowActions({
 export function ProductsTable({
   products,
   isLoading,
+  isError,
+  onRetry,
   canEdit = true,
   onEdit,
   onAdjust,
@@ -281,6 +289,9 @@ export function ProductsTable({
       columns={columns}
       data={products}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      errorMessage="Mallar yüklənmədi"
       emptyState={{
         title: "Mal tapılmadı",
         description: "Filterləri dəyişin və ya yeni mal əlavə edin.",

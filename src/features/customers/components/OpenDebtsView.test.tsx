@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OpenDebtsView } from "./OpenDebtsView";
 import { useOpenDebts } from "../queries";
@@ -134,5 +135,53 @@ describe("OpenDebtsView", () => {
     );
     expect(screen.getAllByText("QA Borclu").length).toBeGreaterThan(0);
     expect(screen.queryAllByText("—")).toHaveLength(0);
+  });
+
+  /**
+   * FE#87 (TC-32.9/32.10) — açıq borc sorğusu şəbəkə xətası ilə uğursuz
+   * olduqda boş-siyahı mesajı ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir;
+   * "Yenidən" `useOpenDebts().refetch`-ə bağlanır.
+   */
+  describe("şəbəkə xətası (FE#87)", () => {
+    it("isError=true olduqda InlineError göstərir, boş-siyahı mesajı YOX", () => {
+      mockUseOpenDebts.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        refetch: vi.fn(),
+      } as never);
+      render(
+        <OpenDebtsView
+          q=""
+          customers={customers}
+          onPay={vi.fn()}
+          onView={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText("Borclar yüklənmədi")).toBeInTheDocument();
+      expect(screen.queryByText("Açıq borc yoxdur")).not.toBeInTheDocument();
+    });
+
+    it("'Yenidən' düyməsinə klik useOpenDebts().refetch-i çağırır", async () => {
+      const refetch = vi.fn();
+      mockUseOpenDebts.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        refetch,
+      } as never);
+      const user = userEvent.setup();
+      render(
+        <OpenDebtsView
+          q=""
+          customers={customers}
+          onPay={vi.fn()}
+          onView={vi.fn()}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: /yenidən/i }));
+      expect(refetch).toHaveBeenCalledTimes(1);
+    });
   });
 });

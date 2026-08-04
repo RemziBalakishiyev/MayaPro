@@ -107,7 +107,12 @@ function BorclarPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const toast = useToast();
-  const { data: customers = [], isLoading } = useCustomers();
+  const {
+    data: customers = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useCustomers();
   const canEdit = useCan()("customers.write");
   const canDelete = useCan()("customers.delete");
   const deleteMut = useDeleteCustomer();
@@ -548,6 +553,8 @@ function BorclarPage() {
               <CustomersTable
                 customers={filtered}
                 isLoading={isLoading}
+                isError={isError}
+                onRetry={() => void refetch()}
                 canEdit={canEdit}
                 canDelete={canDelete}
                 embedded
