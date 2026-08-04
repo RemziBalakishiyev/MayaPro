@@ -294,7 +294,7 @@ Aşağıda eyni işi görən fərqli implementasiyalar qruplaşdırılıb. Hər 
 
 | Kateqoriya | Say |
 |---|---|
-| `src/components/ui/` paylaşılan komponentləri | 28 (25 komponent + `StatCluster`/`AlertPill` alt-komponentləri + `WhatsAppIcon`) |
+| `src/components/ui/` paylaşılan komponentləri | 28 (27 komponent + `StatCluster`/`AlertPill` alt-komponentləri daxil + `WhatsAppIcon`) |
 | `src/components/ui/` store və pure kitabxanaları | 3 |
 | `src/components/layout/` | 1 |
 | Feature komponentləri | 60+ (`src/features/*/components/`) |

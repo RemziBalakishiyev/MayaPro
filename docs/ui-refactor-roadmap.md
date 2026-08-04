@@ -616,7 +616,7 @@ Aşağıdakı cədvəl auditdəki **hər** `F-xx` tapıntısının hansı mərh�
 | F-20 | Aşağı | 6 | F-46 | Aşağı | 6 |
 | F-21 | Orta | 3 | F-47 | Orta | 3 |
 | F-22 | Yüksək | 1 | F-48 | Orta | 4 |
-| F-23 | Orta | 3 | F-49 | Aşağı | 6 |
+| F-23 | Aşağı | 3 | F-49 | Aşağı | 6 |
 | F-24 | Orta | 4 | F-50 | Yüksək | 2B |
 | F-25 | Orta | 4 | F-51 | Orta | 5 |
 | F-26 | Yüksək | 2A | F-52 | Orta | 3 |
