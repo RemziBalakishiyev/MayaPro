@@ -1,25 +1,6 @@
 /** Satış sətri üçün təmiz (pure) hesablamalar. */
-import { daysAgoISO, fmtDate, roundMoney, todayISO } from "@/lib/format";
-import type { Period } from "@/features/reports/lib";
+import { fmtDate, roundMoney } from "@/lib/format";
 import type { PaymentType, Sale } from "@/types";
-
-/** Period → API from/to (ISO tarix, gün səviyyəsi). */
-export const periodToRange = (
-  period: Period,
-): { from?: string; to?: string } => {
-  const to = todayISO();
-  switch (period) {
-    case "today":
-      return { from: to, to };
-    case "week":
-      return { from: daysAgoISO(6), to };
-    case "month":
-      return { from: daysAgoISO(29), to };
-    case "all":
-    default:
-      return {};
-  }
-};
 
 /** Endirimdən əvvəlki cəm (vahid qiymət × say). */
 export const lineTotal = (salePrice: number, qty: number): number =>

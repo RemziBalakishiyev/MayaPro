@@ -6,6 +6,8 @@ import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { inputCls } from "@/components/ui/Input";
+import { PeriodFilter } from "@/components/ui/PeriodFilter";
+import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -22,6 +24,7 @@ import {
 } from "@/features/customers/queries";
 import { CustomersTable } from "@/features/customers/components/CustomersTable";
 import { CustomerDrawer } from "@/features/customers/components/CustomerDrawer";
+import { DebtsKpiCards } from "@/features/customers/components/DebtsKpiCards";
 import { PaymentModal } from "@/features/customers/components/PaymentModal";
 import { NewCustomerModal } from "@/features/customers/components/NewCustomerModal";
 import { EditCustomerModal } from "@/features/customers/components/EditCustomerModal";
@@ -60,6 +63,9 @@ const searchSchema = z.object({
   activity: z.enum(["today", "week", "month", "all"]).default("all"),
   phone: z.enum(["var", "yox"]).optional(),
   initial: z.boolean().optional(),
+  /** FE#56 — paylaşılan PeriodFilter (KPI sırasının periodNewDebt/periodCollected sahələri). */
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
 
 export const Route = createFileRoute("/_app/borclar")({
@@ -107,6 +113,12 @@ function BorclarPage() {
     const c = customers.find((x) => x.id === search.customerId);
     if (c) setSelected(c);
   }, [search.customerId, customers]);
+
+  const range: PeriodRange = { from: search.from, to: search.to };
+  const updateRange = (patch: PeriodRange) =>
+    navigate({
+      search: (prev) => ({ ...prev, from: patch.from, to: patch.to }),
+    });
 
   const mode: DebtViewMode = search.mode ?? "borclar";
   const setMode = (next: DebtViewMode) => {
@@ -241,6 +253,14 @@ function BorclarPage() {
           </Button>
         }
       />
+
+      <PeriodFilter
+        value={range}
+        onChange={updateRange}
+        defaultKey="all"
+        className="mb-3"
+      />
+      <DebtsKpiCards range={range} />
 
       <DebtViewToggle value={mode} onChange={setMode} />
 

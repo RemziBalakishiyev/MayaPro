@@ -17,6 +17,8 @@ import { DataTable } from "@/components/ui/DataTable";
 import { EmptyValue } from "@/components/ui/EmptyValue";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { inputCls } from "@/components/ui/Input";
+import { PeriodFilter } from "@/components/ui/PeriodFilter";
+import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-store";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
@@ -26,13 +28,10 @@ import { ApiError, USE_MOCK } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/download";
 import { fmtDate, fmtMoney, fmtMoneySigned } from "@/lib/format";
-import {
-  PERIOD_LABELS,
-  type BasePeriod,
-} from "@/features/reports/lib";
 import { useEmployees } from "@/features/employees/queries";
-import { periodToRange, saleBatchExpense, saleDateTime } from "../lib";
+import { saleBatchExpense, saleDateTime } from "../lib";
 import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
+import { SalesKpiCards } from "./SalesKpiCards";
 import { useInvoiceDownload } from "../useInvoiceDownload";
 import { useInvoiceWhatsApp } from "../useInvoiceWhatsApp";
 import { SaleDetailDrawer } from "./SaleDetailDrawer";
@@ -40,8 +39,6 @@ import { SaleEditDrawer } from "./SaleEditDrawer";
 import type { PaymentType, Sale } from "@/types";
 
 const routeApi = getRouteApi("/_app/satis");
-
-const PERIODS: BasePeriod[] = ["today", "week", "month", "all"];
 
 const saleTime = (iso: string): string => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return fmtDate(iso, "dd.MM");
@@ -63,8 +60,13 @@ export function SalesJournal() {
   const canManage = useCan()("sales.manage");
   const deleteSale = useDeleteSale();
   const navigate = routeApi.useNavigate();
-  const { period, pay, q, minProfit, maxProfit, minQty, maxQty } =
+  const { from, to, pay, q, minProfit, maxProfit, minQty, maxQty } =
     routeApi.useSearch();
+  const range: PeriodRange = { from, to };
+  const updateRange = (patch: PeriodRange) =>
+    navigate({
+      search: (prev) => ({ ...prev, from: patch.from, to: patch.to }),
+    });
   const { data: employees = [] } = useEmployees();
   const { data: customersData = [] } = useCustomers();
   const customerName = useMemo(() => {
@@ -80,7 +82,8 @@ export function SalesJournal() {
     useInvoiceDownload();
   const { send: sendInvoiceWa, pendingId: waPendingId } = useInvoiceWhatsApp();
   const journal = useSalesJournal({
-    period,
+    from,
+    to,
     paymentType: pay,
     q,
     minProfit,
@@ -89,9 +92,9 @@ export function SalesJournal() {
     maxQty,
   });
 
-  // Axtarış və panel içindəki filtrlər ayrıca sayılır
+  // Axtarış və panel içindəki filtrlər ayrıca sayılır — dövr artıq FilterBar-da
+  // deyil, ayrıca PeriodFilter-də idarə olunur (FE#56, AC16).
   const activeFilterCount = [
-    period !== "all",
     !!pay,
     minProfit != null,
     maxProfit != null,
@@ -154,7 +157,8 @@ export function SalesJournal() {
 
   const sales = journal.data ?? [];
   const tableKey = [
-    period,
+    from ?? "",
+    to ?? "",
     pay ?? "",
     q ?? "",
     minProfit ?? "",
@@ -374,7 +378,6 @@ export function SalesJournal() {
     navigate({
       search: (prev) => ({
         ...prev,
-        period: "all",
         pay: undefined,
         minProfit: undefined,
         maxProfit: undefined,
@@ -390,7 +393,6 @@ export function SalesJournal() {
       toast.info("Export real backend rejimində işləyir");
       return;
     }
-    const { from, to } = periodToRange(period);
     const qs = new URLSearchParams();
     if (from) qs.set("from", from);
     if (to) qs.set("to", to);
@@ -407,9 +409,8 @@ export function SalesJournal() {
     }
   };
 
-  // Aktif filtrlər çiplər üçün
+  // Aktif filtrlər çiplər üçün — dövr PeriodFilter-in öz çipində göstərilir.
   const activeFilters = [
-    period !== "all" && { id: "period", label: PERIOD_LABELS[period] },
     pay && { id: "pay", label: pay },
     minProfit != null && { id: "minProfit", label: `Min: ${fmtMoney(minProfit)}` },
     maxProfit != null && { id: "maxProfit", label: `Max: ${fmtMoney(maxProfit)}` },
@@ -418,9 +419,7 @@ export function SalesJournal() {
   ].filter(Boolean) as Array<{ id: string; label: string }>;
 
   const handleRemoveFilter = (filterId: string) => {
-    if (filterId === "period")
-      navigate({ search: (prev) => ({ ...prev, period: "all" }) });
-    else if (filterId === "pay")
+    if (filterId === "pay")
       navigate({ search: (prev) => ({ ...prev, pay: undefined }) });
     else if (filterId === "minProfit")
       navigate({ search: (prev) => ({ ...prev, minProfit: undefined }) });
@@ -440,6 +439,11 @@ export function SalesJournal() {
             Satışlar
           </h2>
         </div>
+
+        {/* FE#56 — dövr filtri KPI sırası ilə jurnal cədvəlini eyni aralıqla
+            paylaşır (AC16/AC17): tək seçim, iki ayrı dövr göstərici yoxdur. */}
+        <PeriodFilter value={range} onChange={updateRange} defaultKey="all" />
+        <SalesKpiCards range={range} />
 
         <div className="flex flex-wrap items-stretch gap-2">
           <FilterBar
@@ -461,43 +465,6 @@ export function SalesJournal() {
             clearLabel="Filterləri təmizlə"
             label="Filterlər"
           >
-            {/* Dövr tab-ları */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-bold uppercase tracking-wide text-stone-400">
-                Dövr
-              </p>
-              <div
-                role="tablist"
-                aria-label="Dövr"
-                className="flex w-full min-w-0 flex-nowrap gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1"
-              >
-                {PERIODS.map((p) => {
-                  const active = period === p;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() =>
-                        navigate({
-                          search: (prev) => ({ ...prev, period: p }),
-                        })
-                      }
-                      className={cn(
-                        "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                        active
-                          ? "bg-emerald-700 text-white shadow-sm"
-                          : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
-                      )}
-                    >
-                      {PERIOD_LABELS[p]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* 5 filter sütun grid (lg:5, md:3, sm:2, mobil:1) */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
               {/* Ödəniş */}
