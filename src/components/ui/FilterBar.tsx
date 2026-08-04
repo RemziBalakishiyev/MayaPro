@@ -27,6 +27,12 @@ export interface FilterBarProps {
   clearLabel?: string;
   /** Filterlər düyməsinin başlığı */
   label?: string;
+  /**
+   * Üst sətirdə "Filterlər" düyməsindən sonra göstərilən əlavə düymələr
+   * (məs. "PDF hesabat") — axtarış + Filterlər + bu əməliyyatlar HAMISI
+   * eyni sətirdə, eyni hündürlükdə otursun deyə (FE#62).
+   */
+  actions?: ReactNode;
   /** Xarici yerləşdirmə class-ları */
   className?: string;
 }
@@ -51,6 +57,7 @@ export function FilterBar({
   onClear,
   clearLabel = "Filterləri təmizlə",
   label = "Filterlər",
+  actions,
   className,
 }: FilterBarProps) {
   const panelId = useId();
@@ -104,6 +111,8 @@ export function FilterBar({
             )}
           />
         </button>
+
+        {actions}
       </div>
 
       {/* Aktif filtrlər çiplər sırasında (panel bağlı olsa da görünsün) */}
