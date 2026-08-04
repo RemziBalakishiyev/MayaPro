@@ -70,7 +70,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
       <FilterBar
         searchValue={value.q ?? ""}
         onSearchChange={(q) => onChange({ q: q || undefined })}
-        searchPlaceholder="Xərc adı və ya qeyd üzrə axtar..."
+        searchPlaceholder="Bu siyahıda axtar..."
         searchAriaLabel="Xərc axtar"
         activeCount={activeFilterCount}
         activeFilters={activeFilters}

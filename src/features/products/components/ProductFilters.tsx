@@ -61,7 +61,7 @@ export function ProductFilters({
       <FilterBar
         searchValue={value.q ?? ""}
         onSearchChange={(q) => onChange({ q: q || undefined })}
-        searchPlaceholder="Ad, kateqoriya, xüsusiyyət üzrə axtar..."
+        searchPlaceholder="Bu siyahıda axtar..."
         searchAriaLabel="Mal axtar"
         activeCount={activeFilterCount}
         activeFilters={activeFilters}
