@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { KpiCard } from "@/components/ui/KpiCard";
+import { KpiCard, StatCluster } from "@/components/ui/KpiCard";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useSalesKpi } from "@/features/reports/queries";
 import { fmtMoney } from "@/lib/format";
@@ -16,16 +16,20 @@ const profitFor = (
 ): number | undefined => byPayment?.find((p) => p.type === type)?.profit;
 
 /**
- * Satış jurnalı üstü KPI sırası (FE#56, AC15/AC18/AC19) — jurnal filtri ilə
- * eyni PeriodFilter aralığını paylaşır, ayrıca dövr seçimi yoxdur.
+ * Satış jurnalı üstü KPI kompozisiyası (FE#61, FE#56 üzərində yenidən dizayn)
+ * — jurnal filtri ilə eyni PeriodFilter aralığını paylaşır, bütün sahələr
+ * artıq dövrə bağlı olduğu üçün ayrıca "hazırda" ayrımına ehtiyac yoxdur.
+ * Tək bərabər 7 kartlıq cərgə əvəzinə iyerarxiya: əsas nəticələr (say/satış/
+ * qazanc) + ödəniş növü üzrə bölgü tək panellərdə, "Orta satış" isə kiçik
+ * yan blokda.
  */
 export function SalesKpiCards({ range }: Props) {
   const { data, isLoading, isError, refetch } = useSalesKpi(range);
   const retry = () => void refetch();
 
-  // AC18 — naməlum qazanclı satışlar barədə xəbərdarlıq: adi boz alt mətndən
-  // fərqli, gözə çarpan (kəhrəba) rəngdə göstərilir ki, "Ümumi qazanc" rəqəminin
-  // bu satışları ehtiva ETMƏDİYİ aydın olsun.
+  // AC18 — naməlum qazanclı satışlar barədə xəbərdarlıq: "Ümumi qazanc"
+  // rəqəminin bu satışları ehtiva ETMƏDİYİ aydın olsun deyə gözə çarpan
+  // (kəhrəba) rəngdə, "Ümumi qazanc" statının altında göstərilir.
   const unknownNote =
     data && data.unknownProfitSalesCount > 0 ? (
       <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
@@ -35,51 +39,60 @@ export function SalesKpiCards({ range }: Props) {
     ) : undefined;
 
   return (
-    <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
-      <KpiCard
-        label="Satış sayı"
-        value={data?.salesCount}
+    <div className="mb-3 flex flex-col gap-3 lg:flex-row">
+      <StatCluster
+        className="lg:flex-[3]"
         isLoading={isLoading}
         isError={isError}
         onRetry={retry}
+        items={[
+          { key: "count", label: "Satış sayı", value: data?.salesCount },
+          {
+            key: "revenue",
+            label: "Ümumi satış",
+            value: data ? fmtMoney(data.totalRevenue) : undefined,
+          },
+          {
+            key: "profit",
+            label: "Ümumi qazanc",
+            value: data ? fmtMoney(data.totalProfit) : undefined,
+            sub: unknownNote,
+          },
+        ]}
       />
-      <KpiCard
-        label="Ümumi satış"
-        value={data ? fmtMoney(data.totalRevenue) : undefined}
+
+      <StatCluster
+        className="lg:flex-[3]"
         isLoading={isLoading}
         isError={isError}
         onRetry={retry}
+        items={[
+          {
+            key: "cash",
+            label: "Nağd qazanc",
+            value: data
+              ? fmtMoney(profitFor(data.byPayment, "Nağd") ?? 0)
+              : undefined,
+          },
+          {
+            key: "card",
+            label: "Kart qazanc",
+            value: data
+              ? fmtMoney(profitFor(data.byPayment, "Kart") ?? 0)
+              : undefined,
+          },
+          {
+            key: "credit",
+            label: "Nisyə qazanc",
+            value: data
+              ? fmtMoney(profitFor(data.byPayment, "Nisyə") ?? 0)
+              : undefined,
+          },
+        ]}
       />
+
       <KpiCard
-        label="Ümumi qazanc"
-        value={data ? fmtMoney(data.totalProfit) : undefined}
-        sub={unknownNote}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Nağd qazanc"
-        value={data ? fmtMoney(profitFor(data.byPayment, "Nağd") ?? 0) : undefined}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Kart qazanc"
-        value={data ? fmtMoney(profitFor(data.byPayment, "Kart") ?? 0) : undefined}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Nisyə qazanc"
-        value={data ? fmtMoney(profitFor(data.byPayment, "Nisyə") ?? 0) : undefined}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
+        className="lg:w-48 lg:shrink-0"
         label="Orta satış"
         value={data ? fmtMoney(data.avgSale) : undefined}
         isLoading={isLoading}

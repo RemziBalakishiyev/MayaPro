@@ -1,4 +1,4 @@
-import { KpiCard } from "@/components/ui/KpiCard";
+import { KpiCard, StatCluster } from "@/components/ui/KpiCard";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useDebtsKpi } from "@/features/reports/queries";
 import { fmtMoney } from "@/lib/format";
@@ -8,69 +8,91 @@ interface Props {
 }
 
 /**
- * Nisyə Borclar səhifəsi KPI sırası (FE#56, AC20-AC23).
- * `totalOutstanding/debtorCount/topDebtor/oldestDebtDays` anlıq (hazırda)
- * sahələrdir — PeriodFilter yalnız `periodNewDebt`/`periodCollected`-ə təsir edir.
+ * Nisyə Borclar səhifəsi KPI kompozisiyası (FE#61, FE#56 üzərində yenidən
+ * dizayn). `totalOutstanding/debtorCount/topDebtor/oldestDebtDays` anlıq
+ * sahələrdir və "hazırda" nişanı əvəzinə sadəcə dövr sətrindən AYRI panel
+ * kimi göstərilir. `periodNewDebt/periodCollected` isə yeganə dövrə bağlı
+ * cütdür — PeriodFilter çiplərinin birbaşa altındakı "Bu dövrdə…" sətrində,
+ * dövrlə eyni vizual qrupda yer alır.
+ *
+ * FE#65 — dövr çipi dəyişəndə `useDebtsKpi` `placeholderData` ilə köhnə
+ * nəticəni saxlayır, buna görə StatCluster/KpiCard `isLoading`-ə (yalnız İLK
+ * yüklənmədə true) əsaslanır və sabit qalır; YALNIZ "Bu dövrdə…" sətri
+ * `isFetching`-ə görə yenilənərkən loading göstərir.
  */
 export function DebtsKpiCards({ range }: Props) {
-  const { data, isLoading, isError, refetch } = useDebtsKpi(range);
+  const { data, isLoading, isFetching, isError, refetch } =
+    useDebtsKpi(range);
   const retry = () => void refetch();
 
   return (
-    <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-      <KpiCard
-        label="Ümumi qalıq"
-        value={data ? fmtMoney(data.totalOutstanding) : undefined}
-        note="hazırda"
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Borclu sayı"
-        value={data?.debtorCount}
-        note="hazırda"
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Ən böyük borclu"
-        value={data ? (data.topDebtor ? data.topDebtor.name : "Borclu yoxdur") : undefined}
-        sub={data?.topDebtor ? fmtMoney(data.topDebtor.amount) : undefined}
-        note="hazırda"
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Dövrdə yaranan borc"
-        value={data ? fmtMoney(data.periodNewDebt) : undefined}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Dövrdə yığılan ödəniş"
-        value={data ? fmtMoney(data.periodCollected) : undefined}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
-      <KpiCard
-        label="Ən köhnə borc günü"
-        value={
-          data
-            ? data.oldestDebtDays != null
-              ? `${data.oldestDebtDays} gün`
-              : "-"
-            : undefined
-        }
-        note="hazırda"
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={retry}
-      />
+    <div className="mb-4">
+      <p className="mb-4 min-h-[1rem] text-xs text-stone-500">
+        {isFetching ? (
+          <span className="inline-block h-3 w-56 animate-pulse rounded bg-stone-100 align-middle" />
+        ) : isError ? (
+          "Bu dövrdə: —"
+        ) : (
+          <>
+            Bu dövrdə:{" "}
+            <span className="font-semibold text-stone-700">
+              {fmtMoney(data?.periodNewDebt)}
+            </span>{" "}
+            borc yarandı ·{" "}
+            <span className="font-semibold text-stone-700">
+              {fmtMoney(data?.periodCollected)}
+            </span>{" "}
+            ödəniş yığıldı
+          </>
+        )}
+      </p>
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <StatCluster
+          className="sm:flex-[2]"
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={retry}
+          items={[
+            {
+              key: "outstanding",
+              label: "Ümumi qalıq",
+              value: data ? fmtMoney(data.totalOutstanding) : undefined,
+            },
+            {
+              key: "debtors",
+              label: "Borclu sayı",
+              value: data?.debtorCount,
+            },
+            {
+              key: "oldest",
+              label: "Ən köhnə borc günü",
+              value:
+                data && data.oldestDebtDays != null
+                  ? `${data.oldestDebtDays} gün`
+                  : data
+                    ? "-"
+                    : undefined,
+            },
+          ]}
+        />
+
+        <KpiCard
+          className="sm:w-64 sm:shrink-0"
+          label="Ən böyük borclu"
+          value={
+            data
+              ? data.topDebtor
+                ? data.topDebtor.name
+                : "Borclu yoxdur"
+              : undefined
+          }
+          sub={data?.topDebtor ? fmtMoney(data.topDebtor.amount) : undefined}
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={retry}
+        />
+      </div>
     </div>
   );
 }
