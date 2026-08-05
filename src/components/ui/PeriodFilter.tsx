@@ -18,6 +18,13 @@ import {
 
 export type { PeriodRange, QuickPeriodKey };
 
+/**
+ * FE#86 qeydi: köhnə issue-larda adı çəkilən `PageToolbar` komponenti kod
+ * bazasında heç vaxt mövcud olmayıb — bu `PeriodFilter` (tarix aralığı) və
+ * `FilterBar` (axtarış + filtr paneli) FE#69-dan bəri onun funksional
+ * ekvivalentidir və artıq Mallar/Xərclər/Borclar/Satış səhifələrində
+ * istifadə olunur.
+ */
 export interface PeriodFilterProps {
   /** URL search params-dan gələn cari aralıq (from/to). Mənbə həqiqətdir. */
   value: PeriodRange;
