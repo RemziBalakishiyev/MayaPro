@@ -77,7 +77,7 @@ function LoginPage() {
               {...register("phone", {
                 required: "Telefon nömrəsi mütləqdir",
               })}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="h-10 w-full rounded-lg border border-stone-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="0501112233"
             />
             {errors.phone && (
@@ -94,7 +94,7 @@ function LoginPage() {
               type="password"
               autoComplete="current-password"
               {...register("password", { required: "Şifrə mütləqdir" })}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="h-10 w-full rounded-lg border border-stone-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="••••••"
             />
             {errors.password && (

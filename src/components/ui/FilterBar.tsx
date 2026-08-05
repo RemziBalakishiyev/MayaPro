@@ -112,22 +112,34 @@ export function FilterBar({
       </div>
 
       {/* Aktif filtrlər çiplər sırasında (panel bağlı olsa da görünsün) */}
+      {/* gap-y-4: "X sil" düyməsinin 40x40px hit-slop-u (inset-[-8px])
+          çipin öz hündürlüyündən (24px) hər tərəfdən 8px böyükdür —
+          sətirlər arasında yalnız gap-2 (8px) olsaydı, üst-üstə düşən
+          sətirlərdəki toxunma sahələri bir-birinə keçə bilərdi. */}
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-stone-200">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-4 px-3 py-2 border-t border-stone-200">
           {activeFilters.map((filter) => (
             <div
               key={filter.id}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
             >
               <span>{filter.label}</span>
-              <button
-                type="button"
-                onClick={() => onRemoveFilter?.(filter.id)}
-                aria-label={`${filter.label} sil`}
-                className="focus-ring ml-0.5 inline-flex h-6 w-6 items-center justify-center rounded-tag hover:bg-emerald-100"
-              >
-                <X size={14} />
-              </button>
+              {/* FE#125 — minimum 40x40px toxunma hədəfi (design-system.md
+                  §1.6, AC-8/TC-6). `span` çipin daxilində orijinal 24px
+                  izini saxlayan mövqeləndirmə lövbəridir, faktiki `<button>`
+                  isə `absolute inset-[-8px]` ilə 40x40px-ə qədər genişlənir
+                  (çipin görünüşü/hündürlüyü dəyişmir, yalnız toxunma sahəsi
+                  böyüyür). */}
+              <span className="relative ml-0.5 inline-flex h-6 w-6 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onRemoveFilter?.(filter.id)}
+                  aria-label={`${filter.label} sil`}
+                  className="focus-ring absolute inset-[-8px] inline-flex items-center justify-center rounded-tag hover:bg-emerald-100"
+                >
+                  <X size={14} />
+                </button>
+              </span>
             </div>
           ))}
         </div>

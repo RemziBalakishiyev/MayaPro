@@ -131,7 +131,14 @@ describe("PeriodFilter", () => {
       "true",
     );
 
-    await user.click(screen.getByLabelText("Tarix aralığını təmizlə"));
+    // FE#125 — minimum 40x40px toxunma hədəfi (design-system.md §1.6,
+    // AC-8/TC-6). İkon vizual olaraq kiçik qalır (size=12), lakin
+    // klikləmə sahəsi 40x40px-ə çatmalıdır.
+    const clearHandle = screen.getByLabelText("Tarix aralığını təmizlə");
+    expect(clearHandle.className).toContain("h-10");
+    expect(clearHandle.className).toContain("w-10");
+
+    await user.click(clearHandle);
 
     expect(screen.getByRole("tab", { name: "Hamısı" })).toHaveAttribute(
       "aria-selected",
