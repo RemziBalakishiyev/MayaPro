@@ -288,7 +288,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                             )
                           }
                           disabled={!hasPhone || waBusy}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-stone-300 disabled:hover:bg-transparent"
+                          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-stone-300 disabled:hover:bg-transparent"
                         >
                           {waBusy ? (
                             <Loader2 size={15} className="animate-spin" />
@@ -395,7 +395,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                             type="button"
                             aria-label="Nisyə borcu sil"
                             onClick={() => setCreditToDelete(h)}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
                           >
                             <Trash2 size={15} />
                           </button>

@@ -33,7 +33,7 @@ export interface PeriodFilterProps {
 
 const chipCls = (active: boolean) =>
   cn(
-    "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+    "inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
     active
       ? "bg-emerald-700 text-white shadow-sm"
       : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",

@@ -60,7 +60,7 @@ function ExpenseRowActions({
         <button
           type="button"
           onClick={() => onEdit(expense)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
+          className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
         >
           <Pencil size={14} />
           Düzəliş

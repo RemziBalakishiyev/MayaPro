@@ -34,8 +34,10 @@ export function Toasts() {
             <Icon size={16} />
             {t.msg}
             <button
+              type="button"
+              aria-label="Bağla"
               onClick={() => dismiss(t.id)}
-              className="ml-2 opacity-70 hover:opacity-100"
+              className="ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg opacity-70 hover:bg-white/10 hover:opacity-100"
             >
               <X size={14} />
             </button>

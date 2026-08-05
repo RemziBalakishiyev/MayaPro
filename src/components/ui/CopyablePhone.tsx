@@ -59,7 +59,7 @@ export function CopyablePhone({
           else toast.error("Nömrə kopyalanmadı");
         }}
         className={cn(
-          "rounded text-left tabular-nums underline-offset-2 hover:text-emerald-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+          "inline-flex min-h-[40px] items-center rounded text-left tabular-nums underline-offset-2 hover:text-emerald-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
           className ?? "text-xs text-stone-600",
         )}
       >
