@@ -77,7 +77,7 @@ export function ImageUpload({ value, onChange, disabled }: Props) {
               type="button"
               onClick={pick}
               disabled={disabled || uploading}
-              className="flex flex-1 items-center justify-center gap-1 py-1.5 text-xs font-semibold hover:bg-stone-900/80 disabled:opacity-50"
+              className="flex min-h-[40px] flex-1 items-center justify-center gap-1 py-1.5 text-xs font-semibold hover:bg-stone-900/80 disabled:opacity-50"
             >
               <RefreshCw size={12} /> Dəyiş
             </button>
@@ -85,7 +85,7 @@ export function ImageUpload({ value, onChange, disabled }: Props) {
               type="button"
               onClick={() => onChange("")}
               disabled={disabled || uploading}
-              className="flex flex-1 items-center justify-center gap-1 py-1.5 text-xs font-semibold hover:bg-red-600 disabled:opacity-50"
+              className="flex min-h-[40px] flex-1 items-center justify-center gap-1 py-1.5 text-xs font-semibold hover:bg-red-600 disabled:opacity-50"
             >
               <Trash2 size={12} /> Sil
             </button>
