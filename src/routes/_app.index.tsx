@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
+import { InlineError } from "@/components/ui/InlineError";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { useDashboardStats } from "@/features/reports/queries";
@@ -32,7 +33,23 @@ export const Route = createFileRoute("/_app/")({
 });
 
 function DashboardPage() {
-  const { data: d, isLoading } = useDashboardStats();
+  const { data: d, isLoading, isError, refetch } = useDashboardStats();
+
+  // FE#127 (TC-32): xəta vəziyyəti yüklənmə/boş vəziyyətdən ƏVVƏL yoxlanılır —
+  // şəbəkə/server xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən
+  // cəhd et" göstərilir.
+  if (isError) {
+    return (
+      <div>
+        <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+        <InlineError
+          message="Dashboard yüklənmədi"
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   if (isLoading || !d) {
     return (

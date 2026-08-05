@@ -6,7 +6,12 @@ import { useClosings } from "../queries";
 import type { Closing } from "@/types";
 
 export function ClosingHistory() {
-  const { data: closings = [], isLoading } = useClosings();
+  const {
+    data: closings = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useClosings();
 
   const rows = useMemo(
     () => [...closings].sort((a, b) => (a.date < b.date ? 1 : -1)),
@@ -88,6 +93,9 @@ export function ClosingHistory() {
       columns={columns}
       data={rows}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      errorMessage="Bağlanış tarixçəsi yüklənmədi"
       emptyState={{ title: "Bağlanış yoxdur" }}
     />
   );

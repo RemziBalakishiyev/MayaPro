@@ -6,6 +6,7 @@ import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Spinner } from "@/components/ui/Spinner";
+import { InlineError } from "@/components/ui/InlineError";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/_app/hesabatlar")({
 function HesabatlarPage() {
   const navigate = Route.useNavigate();
   const { period } = Route.useSearch();
-  const { data, isLoading } = useReportsData();
+  const { data, isLoading, isError, refetch } = useReportsData();
   // Xərc mənbəyi bölgüsü (Ümumi/Mala bağlı) üçün server summary — mövcud olduqda
   // ONDAN istifadə olunur (Xərclər səhifəsi ilə eyni rəqəm, FE#9/AC1-AC2).
   const { data: summary } = useSummary(period);
@@ -114,6 +115,22 @@ function HesabatlarPage() {
       lossSellers: lossSellers(products),
     };
   }, [data, period, summary]);
+
+  // FE#127 (TC-32): xəta vəziyyəti yüklənmə/boş vəziyyətdən ƏVVƏL yoxlanılır —
+  // şəbəkə/server xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən
+  // cəhd et" göstərilir.
+  if (isError) {
+    return (
+      <div>
+        <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
+        <InlineError
+          message="Hesabatlar yüklənmədi"
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   if (isLoading || !view) {
     return (

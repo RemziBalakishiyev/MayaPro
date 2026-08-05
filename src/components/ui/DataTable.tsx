@@ -14,6 +14,7 @@ import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Spinner } from "./Spinner";
 import { EmptyState } from "./EmptyState";
+import { InlineError } from "./InlineError";
 
 // Sütunlara responsiv gizlətmə üçün className vermək imkanı.
 declare module "@tanstack/react-table" {
@@ -27,6 +28,17 @@ export interface DataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
   isLoading?: boolean;
+  /**
+   * FE#127 (TC-32): sorğu şəbəkə/server xətası ilə uğursuz olduqda `true`
+   * olmalıdır. Bu halda "boş siyahı" (`emptyState`) ƏVƏZİNƏ `InlineError` +
+   * "Yenidən cəhd et" düyməsi göstərilir — istifadəçi xətanı boş nəticə ilə
+   * qarışdırmır.
+   */
+  isError?: boolean;
+  /** `isError` true olduqda "Yenidən cəhd et" düyməsinin klik handler-i. */
+  onRetry?: () => void;
+  /** Xəta mesajı (defolt: "Siyahı yüklənmədi"). */
+  errorMessage?: string;
   emptyState?: { title: string; description?: string };
   /** Səhifədəki sətir sayı (defolt 10) */
   pageSize?: number;
@@ -47,6 +59,9 @@ export function DataTable<TData>({
   columns,
   data,
   isLoading,
+  isError,
+  onRetry,
+  errorMessage = "Siyahı yüklənmədi",
   emptyState,
   pageSize = 10,
   hidePagination = false,
@@ -70,6 +85,18 @@ export function DataTable<TData>({
           initialState: { pagination: { pageSize } },
         }),
   });
+
+  // FE#127 (TC-32): xəta vəziyyəti «boş nəticə»dən ƏVVƏL yoxlanılır — şəbəkə
+  // xətası heç vaxt yanıldıcı "boş siyahı" kimi göstərilmir.
+  if (isError) {
+    return (
+      <InlineError
+        message={errorMessage}
+        hint="Şəbəkə və ya server cavab vermədi."
+        onRetry={onRetry}
+      />
+    );
+  }
 
   if (isLoading) {
     return (
