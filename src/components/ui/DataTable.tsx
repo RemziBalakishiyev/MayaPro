@@ -171,7 +171,7 @@ export function DataTable<TData>({
                         <button
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
-                          className="inline-flex cursor-pointer select-none items-center gap-1 hover:text-stone-700"
+                          className="inline-flex min-h-[40px] cursor-pointer select-none items-center gap-1 hover:text-stone-700"
                         >
                           {flexRender(
                             header.column.columnDef.header,

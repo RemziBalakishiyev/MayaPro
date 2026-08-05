@@ -17,4 +17,19 @@ describe("CopyablePhone", () => {
     expect(screen.getByText("+994 50 123 45 67")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /zəng et/i })).toBeInTheDocument();
   });
+
+  // FE#84 (AC-8/TC-6) — kopyalama düyməsi ən azı 40px toxunma hədəfinə malik olmalıdır.
+  it("kopyalama düyməsi min-h-[40px] toxunma hədəfi class-ına malikdir", () => {
+    render(<CopyablePhone phone="0501234567" />);
+    const copyBtn = screen.getByRole("button", { name: /kopyala/i });
+    expect(copyBtn).toHaveClass("min-h-[40px]");
+  });
+
+  // FE#84 (senior re-review) — "Zəng et" linki də ən azı 40px toxunma hədəfinə malik olmalıdır.
+  it("zəng et linki h-10 w-10 toxunma hədəfi class-larına malikdir", () => {
+    render(<CopyablePhone phone="0501234567" />);
+    const callLink = screen.getByRole("link", { name: /zəng et/i });
+    expect(callLink).toHaveClass("h-10");
+    expect(callLink).toHaveClass("w-10");
+  });
 });

@@ -374,7 +374,7 @@ export function QuickSaleScreen() {
               }}
               disabled={!canWa || waPending}
               className={cn(
-                "inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold text-white transition-colors",
+                "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold text-white transition-colors",
                 "bg-[#25D366] hover:bg-[#1eba57] active:bg-[#15954a]",
                 "disabled:cursor-not-allowed disabled:opacity-50",
               )}

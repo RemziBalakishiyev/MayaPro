@@ -27,7 +27,7 @@ export function SalaryMonthSwitcher({ month, onChange, size = "md" }: Props) {
         type="button"
         aria-label="Əvvəlki ay"
         onClick={() => onChange(shiftSalaryMonth(month, -1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-800"
+        className="flex h-10 w-10 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-800"
       >
         <ChevronLeft size={16} />
       </button>
@@ -39,7 +39,7 @@ export function SalaryMonthSwitcher({ month, onChange, size = "md" }: Props) {
         aria-label="Sonrakı ay"
         disabled={nextDisabled}
         onClick={() => onChange(shiftSalaryMonth(month, 1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+        className="flex h-10 w-10 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-stone-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <ChevronRight size={16} />
       </button>

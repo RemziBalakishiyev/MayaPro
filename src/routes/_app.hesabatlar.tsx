@@ -136,7 +136,7 @@ function HesabatlarPage() {
                 key={p}
                 onClick={() => navigate({ search: { period: p } })}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
+                  "inline-flex min-h-[40px] items-center rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
                   period === p
                     ? "bg-white text-emerald-700 shadow-sm"
                     : "text-stone-500 hover:text-stone-700",

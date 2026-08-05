@@ -193,12 +193,12 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                 <a
                   href={`tel:+${customer.phone.replace(/\D/g, "")}`}
                   title="Zəng et"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700 ring-1 ring-stone-200 transition-colors hover:bg-emerald-50"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700 ring-1 ring-stone-200 transition-colors hover:bg-emerald-50"
                 >
                   <Phone size={16} />
                 </a>
               ) : (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-stone-500 ring-1 ring-stone-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-stone-500 ring-1 ring-stone-200">
                   <Phone size={16} />
                 </span>
               )}
@@ -288,7 +288,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                             )
                           }
                           disabled={!hasPhone || waBusy}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-stone-300 disabled:hover:bg-transparent"
+                          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[#25D366] transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-stone-300 disabled:hover:bg-transparent"
                         >
                           {waBusy ? (
                             <Loader2 size={15} className="animate-spin" />
@@ -395,7 +395,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                             type="button"
                             aria-label="Nisyə borcu sil"
                             onClick={() => setCreditToDelete(h)}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
                           >
                             <Trash2 size={15} />
                           </button>

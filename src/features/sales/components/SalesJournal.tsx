@@ -320,7 +320,7 @@ export function SalesJournal() {
               <button
                 type="button"
                 onClick={() => setDetailId(s.id)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
               >
                 <Eye size={14} />
                 Detal
@@ -331,7 +331,7 @@ export function SalesJournal() {
                 aria-label={`${s.productName} qaiməsi`}
                 onClick={() => void downloadInvoice(s.id)}
                 disabled={invoicePending}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100 text-stone-600 transition-colors hover:bg-stone-200 disabled:opacity-50"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-stone-100 text-stone-600 transition-colors hover:bg-stone-200 disabled:opacity-50"
               >
                 {invoicePending ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -484,7 +484,7 @@ export function SalesJournal() {
                       }),
                     });
                   }}
-                  className="h-9 w-full text-sm"
+                  className="h-10 w-full text-sm"
                 >
                   <option value="">Hamısı</option>
                   <option value="Nağd">Nağd</option>
@@ -512,7 +512,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="0"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-10 px-3 text-sm")}
                 />
               </div>
 
@@ -535,7 +535,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="∞"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-10 px-3 text-sm")}
                 />
               </div>
 
@@ -560,7 +560,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="1"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-10 px-3 text-sm")}
                 />
               </div>
 
@@ -585,7 +585,7 @@ export function SalesJournal() {
                     })
                   }
                   placeholder="∞"
-                  className={cn(inputCls, "h-9 px-3 text-sm")}
+                  className={cn(inputCls, "h-10 px-3 text-sm")}
                 />
               </div>
             </div>

@@ -190,7 +190,7 @@ export function ActionMenu({
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors",
+          "inline-flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors",
           "hover:bg-stone-50 hover:text-stone-800",
           open && "bg-stone-100 text-stone-800 ring-2 ring-stone-200",
         )}
