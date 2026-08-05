@@ -3,6 +3,8 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { Store } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Field";
+import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/features/auth/store";
 import { authApi } from "@/features/auth/api";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
@@ -66,43 +68,31 @@ function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">
-              Telefon
-            </label>
-            <input
+          {/* FE#125 — hər iki input paylaşılan `Field` + `Input`
+              primitivlərinə köçürüldü: ad hoc `h-10` yamağı əvəzinə DS-in
+              standart `h-12` (48px) kontrol hündürlüyü, `rounded-control`
+              radiusu və vahid `focus-visible` halqası istifadə olunur
+              (design-system.md §1.6/§1.7), Button ilə vizual ardıcıllıq
+              qorunur. */}
+          <Field label="Telefon" error={errors.phone?.message}>
+            <Input
               type="tel"
               inputMode="tel"
               autoComplete="username"
               {...register("phone", {
                 required: "Telefon nömrəsi mütləqdir",
               })}
-              className="h-10 w-full rounded-lg border border-stone-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="0501112233"
             />
-            {errors.phone && (
-              <p className="mt-1 text-xs font-medium text-red-600">
-                {errors.phone.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">
-              Şifrə
-            </label>
-            <input
+          </Field>
+          <Field label="Şifrə" error={errors.password?.message}>
+            <Input
               type="password"
               autoComplete="current-password"
               {...register("password", { required: "Şifrə mütləqdir" })}
-              className="h-10 w-full rounded-lg border border-stone-300 px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="••••••"
             />
-            {errors.password && (
-              <p className="mt-1 text-xs font-medium text-red-600">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
+          </Field>
 
           {serverError && (
             <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200">
