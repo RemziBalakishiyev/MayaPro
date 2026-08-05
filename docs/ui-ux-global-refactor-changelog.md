@@ -4,8 +4,9 @@ Branch: `task/FE#69-ui-primitives` (baza: `task/FE#68-ui-ux-audit`, çünki
 FE#68 sənədləri hələ `main`-ə merge olunmayıb).
 
 Hər addım ayrıca commit-dir; hər commit-də `npm run build` (`tsc && vite
-build`) və `npm test` (vitest) **exit 0** ilə keçib. Sınıq aralıq commit
-yoxdur.
+build`) və `npm test` (vitest) **exit 0** ilə keçib. Addım 1–8-dəki
+commit-lərin heç biri sınıq deyil (istisna: bax Addım 9, burada `main`-dən
+gələn bir konflikt-həll commit-inin sınıq olduğu sənədləşdirilib).
 
 | Addım | Commit | Mövzu |
 |---|---|---|
@@ -274,11 +275,12 @@ və PR GitHub tərəfindən MERGEABLE/CLEAN təsdiqlənib):
 
 - Sınıq aralıq commit `a6330ae` `main`-in tarixçəsinə heç vaxt düşmür —
   AC-23 tam ödənilir.
-- Branch-dəki 20 commit (Addım 1–8 + aralıq düzəlişlər) `main`-də tək
+- Branch-dəki bütün commit-lər (hazırda 21 ədəd: Addım 1–8 + aralıq
+  düzəlişlər, o cümlədən bu sənədləşdirmə commit-ləri) `main`-də tək
   commit-ə yığılır — AC-22/TC-26-nın gözlədiyi 4–6 commit nominalına
   uyğun, sadə və oxunaqlı tarixçə təmin edir.
 - Rebase/fixup yolu (AC-2) eyni nəticəni verə bilərdi, lakin əlavə risk
-  (20 commit-lik interaktiv rebase, force-push) gətirir, PR artıq təsdiq
+  (21 commit-lik interaktiv rebase, force-push) gətirir, PR artıq təsdiq
   olunduğu üçün əlavə dəyər yaratmır.
 
 **Doğrulama:** squash-merge-dən sonra `main`-də `npm run build`, `npm
