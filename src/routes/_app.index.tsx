@@ -19,7 +19,8 @@ import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
-import { Spinner } from "@/components/ui/Spinner";
+import { InlineError } from "@/components/ui/InlineError";
+import { Skeleton } from "@/components/ui/LoadingSkeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { useDashboardStats } from "@/features/reports/queries";
@@ -32,13 +33,38 @@ export const Route = createFileRoute("/_app/")({
 });
 
 function DashboardPage() {
-  const { data: d, isLoading } = useDashboardStats();
+  const { data: d, isLoading, isError, refetch } = useDashboardStats();
+
+  // FE#103 (TC-32): xəta vəziyyəti boş/yüklənən vəziyyətdən ƏVVƏL yoxlanılır —
+  // şəbəkə xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən" göstərilir.
+  if (isError) {
+    return (
+      <div>
+        <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+        <InlineError
+          message="Dashboard yüklənmədi"
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   if (isLoading || !d) {
     return (
       <div>
         <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
-        <Spinner />
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
       </div>
     );
   }

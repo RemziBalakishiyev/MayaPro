@@ -7,9 +7,20 @@ import type { Employee } from "@/types";
 interface Props {
   employees: Employee[];
   isLoading?: boolean;
+  /**
+   * FE#103 (TC-32): işçi sorğusu şəbəkə xətası ilə uğursuz olduqda
+   * boş-siyahı mesajı ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
-export function EmployeesTable({ employees, isLoading }: Props) {
+export function EmployeesTable({
+  employees,
+  isLoading,
+  isError,
+  onRetry,
+}: Props) {
   const columns = useMemo<ColumnDef<Employee, unknown>[]>(
     () => [
       {
@@ -55,6 +66,9 @@ export function EmployeesTable({ employees, isLoading }: Props) {
       columns={columns}
       data={employees}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      errorMessage="İşçilər yüklənmədi"
       emptyState={{ title: "İşçi tapılmadı" }}
     />
   );

@@ -5,7 +5,8 @@ import { TrendingDown, Snowflake, AlertTriangle, Check } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
-import { Spinner } from "@/components/ui/Spinner";
+import { InlineError } from "@/components/ui/InlineError";
+import { Skeleton } from "@/components/ui/LoadingSkeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/_app/hesabatlar")({
 function HesabatlarPage() {
   const navigate = Route.useNavigate();
   const { period } = Route.useSearch();
-  const { data, isLoading } = useReportsData();
+  const { data, isLoading, isError, refetch } = useReportsData();
   // Xərc mənbəyi bölgüsü (Ümumi/Mala bağlı) üçün server summary — mövcud olduqda
   // ONDAN istifadə olunur (Xərclər səhifəsi ilə eyni rəqəm, FE#9/AC1-AC2).
   const { data: summary } = useSummary(period);
@@ -115,11 +116,36 @@ function HesabatlarPage() {
     };
   }, [data, period, summary]);
 
+  // FE#103 (TC-32): xəta vəziyyəti boş/yüklənən vəziyyətdən ƏVVƏL yoxlanılır —
+  // şəbəkə xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən" göstərilir.
+  if (isError) {
+    return (
+      <div>
+        <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
+        <InlineError
+          message="Hesabatlar yüklənmədi"
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
+
   if (isLoading || !view) {
     return (
       <div>
         <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
-        <Spinner />
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
       </div>
     );
   }
