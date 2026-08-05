@@ -340,11 +340,14 @@ function BorclarPage() {
               ariaLabel="Borc siyahısında axtar"
             />
           ) : (
+            /* FE#94 — "musteri" rejimi də lokal axtarışdır (qlobal mal
+               axtarışından fərqli); FE#69/FE#85-in təyin etdiyi standart
+               placeholder mətni ilə uyğunlaşdırılıb. */
             <FilterBar
               searchValue={search.q ?? ""}
               onSearchChange={setQ}
               searchAriaLabel="Müştəri axtar"
-              searchPlaceholder="Ad və ya telefon üzrə axtar..."
+              searchPlaceholder="Bu siyahıda axtar... (ad və ya telefon)"
               activeCount={activeFilterCount}
               activeFilters={activeFilters}
               onRemoveFilter={handleRemoveFilter}
