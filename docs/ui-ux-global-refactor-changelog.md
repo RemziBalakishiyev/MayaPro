@@ -14,7 +14,16 @@ yoxdur.
 | 3/6 | `eb031f4` | AppShell / Sidebar / TopHeader / PageHeader layout standartı |
 | 4/6 | `221f144` | Cədvəl qatı və vəziyyət dili |
 | 5/6 | `c2ed226` | KPI/pul təqdimatı, overlay dili, kassa fərqi semantikası |
-| 6/6 | *(bu commit)* | Sənədlər |
+| 6/6 | `110fbde` | Sənədlər |
+
+QA-dan (`docs/qa-report-FE69.md`, commit `b591e45`) sonra aşkarlanan
+uyğunsuzluqlar aşağıdakı əlavə commit-lərlə düzəldildi (bax "Addım 7"):
+
+| Commit | Mövzu |
+|---|---|
+| `f120226` | `DataTable.isError`/`InlineError`/`onRetry` real sorğu vəziyyətinə qoşulması (FE#87, TC-32) |
+| `c772418` | `xercler.tsx` InlineError mesajının digər səhifələrlə uyğunlaşdırılması (FE#87) |
+| `204ab55` | Borclar "Müştəri üzrə" rejiminin lokal axtarış placeholder-i (FE#94, AC-14/TC-15) |
 
 ---
 
@@ -159,6 +168,67 @@ modal/drawer-li səhifələr.
 
 ---
 
+## Addım 7 — QA-dan sonrakı düzəlişlər (FE#87, FE#94)
+
+`docs/qa-report-FE69.md` (commit `b591e45`) 6 addımlıq refactordan sonra iki
+uyğunsuzluq aşkarladı. Aşağıdakı 3 commit bu uyğunsuzluqları düzəldir; hər
+biri ayrıca PR ilə `task/FE#69-ui-primitives`-a merge olunub (#92, #95).
+
+### 7.1 — `f120226` — `fix(FE#87): sebeke xetasi bos siyahi kimi gorunmesin — InlineError/onRetry qosulmasi`
+
+**Nə dəyişdi**
+- Addım 4-də hazırlanan `DataTable.isError` / `onRetry` / `errorMessage`
+  propları və `InlineError` komponenti mövcud idi, lakin heç bir siyahı
+  səhifəsi bunları real React Query `isError`/`refetch` dəyərlərinə
+  qoşmamışdı (TC-32) — şəbəkə xətası boş siyahı mesajı kimi görünürdü.
+- `ProductsTable` (Mallar), `CustomersTable` (Müştərilər + Nisyə Borclar
+  → "müştəri" rejimi), `SuppliersTable` (Təchizatçılar): `isError` /
+  `onRetry` / `errorMessage` `DataTable`-a ötürüldü.
+- `OpenDebtsTable` / `OpenDebtsView` (Nisyə Borclar → "borclar" rejimi):
+  `useOpenDebts().isError` / `.refetch` qoşuldu.
+- `SalesJournal` (Satış jurnalı): `journal.isError` / `journal.refetch`
+  `DataTable`-a ötürüldü.
+- `_app.xercler.tsx` (Xərclər): əl ilə yazılmış xəta bloku `InlineError` +
+  `onRetry` ilə əvəz olundu.
+- Yeni component testlər: `ProductsTable.test.tsx`, `CustomersTable.test.tsx`,
+  `SuppliersTable.test.tsx`, `OpenDebtsView.test.tsx` — `isError`/`onRetry`
+  davranışı və regressiya (boş nəticə halında normal `EmptyState`) yoxlanılır.
+
+**Toxunulan səhifələr:** Mallar, Müştərilər, Nisyə Borclar (hər iki rejim),
+Təchizatçılar, Satış jurnalı, Xərclər.
+
+**Merge:** PR #92 (`task/FE87-network-error-inline` → `task/FE#69-ui-primitives`).
+
+### 7.2 — `c772418` — `refactor(FE87): xercler.tsx-də InlineError mesajını digər səhifələrlə uyğunlaşdır`
+
+**Nə dəyişdi**
+- 7.1-də Xərclər səhifəsinə qoşulan `InlineError` hələ `error.message`-i
+  birbaşa göstərirdi — şəbəkə xətasında bu, xam brauzer mətni (məs.
+  "Failed to fetch") ola bilər və istifadəçiyə mənasız görünür.
+- Mallar/Müştərilər/Təchizatçılar/Satış səhifələrindəki sabit, mənalı
+  Azərbaycanca mesaj naxışı ilə uyğunlaşdırıldı: `message="Xərclər
+  yüklənmədi"` (sabit mətn), istifadəsiz `error` destructure də silindi.
+
+**Toxunulan səhifələr:** Xərclər.
+
+### 7.3 — `204ab55` — `fix(borclar): standartlaşdır musteri rejiminin lokal axtarış placeholder-i (FE#94)`
+
+**Nə dəyişdi**
+- QA (AC-14/TC-15) aşkarladı ki, Nisyə Borclar səhifəsinin "müştəri"
+  rejimindəki `FilterBar` hələ köhnə "Ad və ya telefon üzrə axtar..."
+  mətnini istifadə edir; "borclar" rejimi Addım 4-də artıq düzəldilmişdi,
+  lakin bu fayl həmin dəyişikliyin əhatəsində deyildi.
+- `src/routes/_app.borclar.tsx`: "müştəri" rejiminin `FilterBar`
+  `searchPlaceholder`-i `musteriler.tsx`-dəki eyni standarta —
+  "Bu siyahıda axtar... (ad və ya telefon)" — uyğunlaşdırıldı. Axtarış
+  davranışı, filtr məntiqi və URL sxemi dəyişməyib, yalnız placeholder mətni.
+
+**Toxunulan səhifələr:** Nisyə Borclar ("müştəri" rejimi).
+
+**Merge:** PR #95 (`task/FE#94-borclar-search-placeholder` → `task/FE#69-ui-primitives`).
+
+---
+
 ## Yekun
 
 **Normallaşdırılan primitivlər (16):** Button · Input · Textarea · Select ·
@@ -174,8 +244,8 @@ InlineError (+ köməkçi modullar: `ui-tokens.ts`, `dialog-layer.ts`,
 `cash-diff-presentation.ts`).
 
 **Köçürülən səhifələr:** bütün route-lar (AppShell/TopHeader/Sidebar) ·
-Mallar · Müştərilər · Nisyə Borclar · Gün Sonu · Login · Satış (ödəniş
-təsdiqi).
+Mallar · Müştərilər · Nisyə Borclar · Təchizatçılar · Xərclər · Satış jurnalı ·
+Gün Sonu · Login · Satış (ödəniş təsdiqi).
 
 **Qalan işlər (sonrakı mərhələ):** yol xəritəsinin Mərhələ 1–6 səhifə-səviyyəli
 işləri — `MobileCard` (F-48), `DetailCard`/`DetailRow` (F-49), ölü kodun
