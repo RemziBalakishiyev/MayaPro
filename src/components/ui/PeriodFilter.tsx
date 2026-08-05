@@ -220,7 +220,7 @@ export function PeriodFilter({
                       setDraftFrom(e.target.value);
                       setError(null);
                     }}
-                    className={cn(inputCls, "h-9 px-2 text-sm")}
+                    className={cn(inputCls, "h-10 px-2 text-sm")}
                   />
                 </div>
                 <div>
@@ -235,7 +235,7 @@ export function PeriodFilter({
                       setDraftTo(e.target.value);
                       setError(null);
                     }}
-                    className={cn(inputCls, "h-9 px-2 text-sm")}
+                    className={cn(inputCls, "h-10 px-2 text-sm")}
                   />
                 </div>
               </div>

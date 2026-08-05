@@ -382,7 +382,7 @@ function BorclarPage() {
                           aria-selected={active}
                           onClick={() => setStatus(key)}
                           className={cn(
-                            "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                            "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors min-h-[40px]",
                             active
                               ? "bg-emerald-700 text-white shadow-sm"
                               : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
@@ -418,7 +418,7 @@ function BorclarPage() {
                             })
                           }
                           className={cn(
-                            "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                            "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors min-h-[40px]",
                             active
                               ? "bg-emerald-700 text-white shadow-sm"
                               : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
@@ -450,7 +450,7 @@ function BorclarPage() {
                         })
                       }
                       placeholder="0"
-                      className={cn(inputCls, "h-9 px-3 text-sm")}
+                      className={cn(inputCls, "h-10 px-3 text-sm")}
                     />
                   </div>
                   <div>
@@ -471,7 +471,7 @@ function BorclarPage() {
                         })
                       }
                       placeholder="∞"
-                      className={cn(inputCls, "h-9 px-3 text-sm")}
+                      className={cn(inputCls, "h-10 px-3 text-sm")}
                     />
                   </div>
                   <div>
@@ -500,7 +500,7 @@ function BorclarPage() {
                               })
                             }
                             className={cn(
-                              "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+                              "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:text-sm min-h-[40px]",
                               active
                                 ? "bg-emerald-700 text-white shadow-sm"
                                 : "text-stone-500 hover:bg-stone-50",
@@ -513,7 +513,7 @@ function BorclarPage() {
                     </div>
                   </div>
                   <div className="flex items-end">
-                    <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-600">
+                    <label className="flex h-10 w-full cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-600">
                       <input
                         type="checkbox"
                         checked={!!search.initial}

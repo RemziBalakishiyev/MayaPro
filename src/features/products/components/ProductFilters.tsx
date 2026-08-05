@@ -79,7 +79,7 @@ export function ProductFilters({
               aria-label="Kateqoriya"
               value={value.cat ?? ""}
               onChange={(e) => onChange({ cat: e.target.value || undefined })}
-              className="h-9 w-full text-sm"
+              className="h-10 w-full text-sm"
             >
               <option value="">Bütün kateqoriyalar</option>
               {categories.map((c) => (
@@ -102,7 +102,7 @@ export function ProductFilters({
                     | undefined,
                 })
               }
-              className="h-9 w-full text-sm"
+              className="h-10 w-full text-sm"
             >
               <option value="">Bütün statuslar</option>
               {STATUSES.map((s) => (
@@ -119,7 +119,7 @@ export function ProductFilters({
               aria-label="Anbar"
               value={value.loc ?? ""}
               onChange={(e) => onChange({ loc: e.target.value || undefined })}
-              className="h-9 w-full text-sm"
+              className="h-10 w-full text-sm"
             >
               <option value="">Bütün anbarlar</option>
               {locations.map((l) => (

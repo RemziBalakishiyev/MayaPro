@@ -193,12 +193,12 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                 <a
                   href={`tel:+${customer.phone.replace(/\D/g, "")}`}
                   title="Zəng et"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700 ring-1 ring-stone-200 transition-colors hover:bg-emerald-50"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700 ring-1 ring-stone-200 transition-colors hover:bg-emerald-50"
                 >
                   <Phone size={16} />
                 </a>
               ) : (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-stone-500 ring-1 ring-stone-200">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-stone-500 ring-1 ring-stone-200">
                   <Phone size={16} />
                 </span>
               )}
