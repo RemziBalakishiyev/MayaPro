@@ -457,7 +457,7 @@ export function SalesJournal() {
               })
             }
             searchAriaLabel="Satış axtar"
-            searchPlaceholder="Axtar..."
+            searchPlaceholder="Bu siyahıda axtar..."
             activeCount={activeFilterCount}
             activeFilters={activeFilters}
             onRemoveFilter={handleRemoveFilter}
