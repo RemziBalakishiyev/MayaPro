@@ -114,7 +114,12 @@ export function FilterBar({
 
       {/* Aktif filtrlər çiplər sırasında (panel bağlı olsa da görünsün) */}
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-stone-200">
+        // gap-y-4: X sil düyməsinin 40x40px hit-slop-u (inset-[-12px]) çipin
+        // öz hündürlüyündən (24px) 8px böyükdür hər tərəfdən — sətirlər
+        // arasında yalnız gap-2 (8px) olsaydı, iki üst-üstə sətirdəki
+        // toxunma sahələri bir-birinə keçirdi (yanlış çipin silinməsi
+        // riski). gap-y-4 (16px) bu üst-üstə düşməni aradan qaldırır.
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-4 px-3 py-2 border-t border-stone-200">
           {activeFilters.map((filter) => (
             <div
               key={filter.id}
