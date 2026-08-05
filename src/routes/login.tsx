@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/features/auth/store";
 import { authApi } from "@/features/auth/api";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
+import { Input } from "@/components/ui/Input";
+import { Field } from "@/components/ui/Field";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: () => {
@@ -22,7 +24,7 @@ interface LoginFormValues {
   password: string;
 }
 
-function LoginPage() {
+export function LoginPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -66,43 +68,25 @@ function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">
-              Telefon
-            </label>
-            <input
+          <Field label="Telefon" error={errors.phone?.message}>
+            <Input
               type="tel"
               inputMode="tel"
               autoComplete="username"
               {...register("phone", {
                 required: "Telefon nömrəsi mütləqdir",
               })}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="0501112233"
             />
-            {errors.phone && (
-              <p className="mt-1 text-xs font-medium text-red-600">
-                {errors.phone.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">
-              Şifrə
-            </label>
-            <input
+          </Field>
+          <Field label="Şifrə" error={errors.password?.message}>
+            <Input
               type="password"
               autoComplete="current-password"
               {...register("password", { required: "Şifrə mütləqdir" })}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="••••••"
             />
-            {errors.password && (
-              <p className="mt-1 text-xs font-medium text-red-600">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
+          </Field>
 
           {serverError && (
             <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200">
@@ -111,7 +95,10 @@ function LoginPage() {
           )}
 
           {/* FE#69 — paylaşılan `Button` + `loading` propu (F-42): əl ilə
-              yazılmış Loader2 naxışı əvəz olundu, hündürlük 52px-ə çatdı. */}
+              yazılmış Loader2 naxışı əvəz olundu, hündürlük 52px-ə çatdı
+              (FE#119: `size="lg"` DS Button min-h-[52px] + `focus-ring` +
+              avtomatik `aria-busy` — 40px minimum toxunma hədəfini artıqlaması
+              ilə ödəyir, əl ilə Loader2/disabled təkrarına ehtiyac yoxdur). */}
           <Button
             type="submit"
             size="lg"
