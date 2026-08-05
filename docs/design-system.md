@@ -157,7 +157,7 @@ Status: **N** = normallaşdırıldı (mövcud komponent, prop/variant səviyyəs
 | 2 | **Sidebar** | Y | `src/components/layout/Sidebar.tsx` | yox — `_app.tsx:134-185` `sidebarInner` |
 | 3 | **TopHeader** | Y | `src/components/layout/TopHeader.tsx` | yox — `_app.tsx:224-260` inline `header` |
 | 4 | **PageHeader** | N | `src/components/layout/PageHeader.tsx` | `PageHead` (inventar #32) — deprecated alias kimi qalır: `src/components/layout/PageHead.tsx` |
-| 5 | **PageToolbar** | Y | `src/components/layout/PageToolbar.tsx` | yox |
+| 5 | **PageToolbar** | Y | `src/components/layout/PageToolbar.tsx` | yox — real istifadə: `src/routes/_app.mallar.tsx:223`, `src/routes/_app.xercler.tsx:158` (FE#126) |
 | 6 | **GlobalProductSearch** | Y | `src/components/layout/GlobalProductSearch.tsx` | yox — `_app.tsx:238-250` xam input (F-50 nüsxə 1) |
 | 7 | **LocalTableSearch** | Y | `src/components/ui/LocalTableSearch.tsx` | yox — `FilterBar` daxilindəki input + 2 xam nüsxə (F-50) |
 | 8 | **Button** (variantlar) | N | `src/components/ui/Button.tsx` | inventar #4 |
@@ -165,7 +165,7 @@ Status: **N** = normallaşdırıldı (mövcud komponent, prop/variant səviyyəs
 | 10 | **SegmentedDateFilter** | N | `src/components/ui/PeriodFilter.tsx` (alias `SegmentedDateFilter`) | `PeriodFilter` (inventar #21) |
 | 11 | **StatCard** | N | `src/components/ui/StatCard.tsx` | inventar #25 |
 | 11a | **KpiCard / StatCluster / AlertPill** (birləşik KPI paneli) | N | `src/components/ui/KpiCard.tsx` | inventar #19, #19a, #19b |
-| 12 | **StatusBadge** | Y | `src/components/ui/StatusBadge.tsx` | `Badge` (inventar #3) qalır və dəyişmir |
+| 12 | **StatusBadge** | Y | `src/components/ui/StatusBadge.tsx` | `Badge` (inventar #3) qalır və dəyişmir — real istifadə: `src/features/products/components/ProductStatusBadge.tsx:26`, `src/features/customers/components/CustomersTable.tsx:216,276` (FE#126) |
 | 13 | **DataTable** | N | `src/components/ui/DataTable.tsx` | inventar #9 |
 | 14 | **TableToolbar** | Y | `src/components/ui/TableToolbar.tsx` | yox — real istifadə: `src/routes/_app.musteriler.tsx` (search + "yalnız borclular" filtri, FE#122) |
 | 15 | **TablePagination** | Y | `src/components/ui/TablePagination.tsx` | `DataTable` daxilində inline idi |
@@ -189,12 +189,23 @@ kilidi), `src/features/day-end/components/cash-diff-presentation.ts`
 **Əhatə yoxlaması:** FE#69 siyahısındakı 22 primitivin hamısı yuxarıdakı
 cədvəldədir — statusu olmayan primitiv: **0**.
 
-**Real səhifə istifadəsi (FE#122):** `PageToolbar`, `TableToolbar` və
+**Real səhifə istifadəsi (FE#122/FE#126):** `PageToolbar`, `TableToolbar` və
 `StatusBadge` FE#69 ilə yaradılıb və kod bazasında MÖVCUDDUR (bu, əvvəlki
 FE#86/PR#97-nin yanlış «heç vaxt mövcud olmayıb» iddiasının əksinədir — həmin
-iddia silinib). `TableToolbar` artıq bir real səhifədə (`src/routes/_app.musteriler.tsx`)
-istifadə olunur; `PageToolbar` və `StatusBadge`-in qalan səhifələrə köçürülməsi
-gələcək bir tapşırığın (dərin səhifə refaktoru) əhatəsindədir.
+iddia silinib). Hər üçü artıq real səhifələrdə istifadə olunur, ölü kod
+DEYİL:
+
+- `TableToolbar` — `src/routes/_app.musteriler.tsx:129` (search + "yalnız
+  borclular" filtri, FE#122)
+- `PageToolbar` — `src/routes/_app.mallar.tsx:223` (dövr filtri + KPI
+  kartları + mal filtrləri), `src/routes/_app.xercler.tsx:158` (dövr filtri +
+  xərc filtrləri) (FE#126)
+- `StatusBadge` — `src/features/products/components/ProductStatusBadge.tsx:26`
+  (Mallar cədvəli/kart statusu), `src/features/customers/components/CustomersTable.tsx:216,276`
+  (Müştərilər cədvəli/kart borc statusu) (FE#126)
+
+Qalan siyahı səhifələrinin (Satış, Təchizatçılar, İşçilər və s.) tam
+köçürülməsi gələcək bir tapşırığın (dərin səhifə refaktoru) əhatəsindədir.
 
 ---
 

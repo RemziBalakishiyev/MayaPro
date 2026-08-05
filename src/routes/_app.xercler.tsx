@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Plus } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
+import { PageToolbar } from "@/components/layout/PageToolbar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { InlineError } from "@/components/ui/InlineError";
@@ -150,16 +151,17 @@ function XerclerPage() {
         }
       />
 
-      <PeriodFilter
-        value={range}
-        onChange={updateRange}
-        defaultKey="month"
-        className="mb-3"
-      />
-
-      <ExpenseFilters
-        value={{ q, source, type }}
-        onChange={updateFilter}
+      {/* FE#69/FE#126 — dövr filtri + filtrlər paylaşılan `PageToolbar`
+          (period/filters slot-ları) daxilində göstərilir: səhifə alət
+          zolağı bütün səhifələrdə eyni yerdə/boşluqda olsun deyə
+          (AC-16). Sıra və məzmun dəyişməyib. */}
+      <PageToolbar
+        period={
+          <PeriodFilter value={range} onChange={updateRange} defaultKey="month" />
+        }
+        filters={
+          <ExpenseFilters value={{ q, source, type }} onChange={updateFilter} />
+        }
       />
 
       {isError ? (

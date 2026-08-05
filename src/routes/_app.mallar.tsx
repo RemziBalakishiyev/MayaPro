@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Plus, Upload, Download, Printer } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { PageToolbar } from "@/components/layout/PageToolbar";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
@@ -215,20 +216,24 @@ function MallarPage() {
         }
       />
 
-      <PeriodFilter
-        value={range}
-        onChange={updateRange}
-        defaultKey="all"
-        className="mb-1.5"
-      />
-      <ProductsKpiCards range={range} onLowStockClick={focusLowStock} />
+      {/* FE#69/FE#126 — dövr filtri + KPI kartları + filtrlər paylaşılan
+          `PageToolbar` (period/children slot-ları) daxilində göstərilir:
+          səhifə alət zolağı bütün səhifələrdə eyni yerdə/boşluqda olsun
+          deyə (AC-16). Sıra və məzmun dəyişməyib. */}
+      <PageToolbar
+        period={
+          <PeriodFilter value={range} onChange={updateRange} defaultKey="all" />
+        }
+      >
+        <ProductsKpiCards range={range} onLowStockClick={focusLowStock} />
 
-      <ProductFilters
-        value={search}
-        categories={categories}
-        locations={locations}
-        onChange={updateFilter}
-      />
+        <ProductFilters
+          value={search}
+          categories={categories}
+          locations={locations}
+          onChange={updateFilter}
+        />
+      </PageToolbar>
 
       <ProductsTable
         products={filtered}

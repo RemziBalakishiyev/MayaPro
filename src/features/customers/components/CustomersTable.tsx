@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, HandCoins, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { CopyablePhone } from "@/components/ui/CopyablePhone";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -213,9 +213,9 @@ export function CustomersTable({
       cell: ({ row }) => {
         const debt = row.original.remainingDebt;
         return (
-          <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
+          <StatusBadge tone={debt > 0 ? "danger" : "success"}>
             {debt > 0 ? "Borclu" : "Ödənilib"}
-          </Badge>
+          </StatusBadge>
         );
       },
     };
@@ -273,9 +273,9 @@ export function CustomersTable({
                   className="mt-0.5 text-left text-sm tabular-nums text-stone-400 underline-offset-2 hover:text-emerald-700 hover:underline"
                 />
               </div>
-              <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
+              <StatusBadge tone={debt > 0 ? "danger" : "success"}>
                 {debt > 0 ? "Borclu" : "Ödənilib"}
-              </Badge>
+              </StatusBadge>
             </div>
             <div className="mt-3 flex items-center justify-between">
               <span className="text-sm font-medium text-stone-500">
