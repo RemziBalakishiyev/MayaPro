@@ -44,7 +44,7 @@ export function CopyablePhone({
         title="Zəng et"
         aria-label={`Zəng et: ${display}`}
         onClick={(e) => e.stopPropagation()}
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
       >
         <Phone size={13} aria-hidden="true" />
       </a>
