@@ -54,7 +54,6 @@ function XerclerPage() {
     data: expenses = [],
     isLoading,
     isError,
-    error,
     refetch,
   } = useExpenses(range);
   const { data: products = [] } = useProducts();
@@ -164,8 +163,12 @@ function XerclerPage() {
       />
 
       {isError ? (
+        // Digər siyahı səhifələri (Mallar/Müştərilər/Təchizatçılar/Satış) ilə
+        // eyni naxış: sabit, mənalı Azərbaycanca mesaj — `error.message` birbaşa
+        // göstərilmir, çünki şəbəkə xətalarında bu, xam brauzer mətni ola bilər
+        // (məs. "Failed to fetch"), istifadəçiyə mənasız görünər.
         <InlineError
-          message={error instanceof Error ? error.message : "Xərclər yüklənmədi"}
+          message="Xərclər yüklənmədi"
           hint="Şəbəkə və ya server cavab vermədi."
           onRetry={() => void refetch()}
         />
