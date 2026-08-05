@@ -42,6 +42,12 @@ Dil qaydası: bütün mətnlər **Azərbaycanca**dır; ingiliscə qalıq mətn y
 | 21 | `src/routes/_app.mallar.tsx` — başlıqdakı 3 ikinci dərəcəli düymə | *(ayrı-ayrı düymələr)* | `Digər əməliyyatlar` menyusu (bəndlərin adları dəyişməyib: `Excel import`, `Excel export`, `Barkod/QR çap`) | Səhifədə bir əsas əməliyyat qalsın | AC-13 |
 | 22 | `src/routes/_app.mallar.tsx` — export gözləmə bəndi | `Excel export` | `Excel export (gözləyin...)` — yalnız yüklənərkən | Menyu bəndində gözləmə vəziyyəti göstərilsin | AC-9 |
 | 23 | `src/routes/_app.borclar.tsx` («Müştəri üzrə» rejimi, `FilterBar`) | `Ad və ya telefon üzrə axtar...` | `Bu siyahıda axtar... (ad və ya telefon)` | FE#69 taskı yalnız «Borclar» rejimini (sətir 7) əhatə etmişdi; «Müştəri üzrə» rejim FE#69 re-QA-da (FE#94) aşkarlanıb və eyni standarta uyğunlaşdırılıb | T-15, AC-14 |
+| 24 | `src/features/products/components/ProductsTable.tsx:294` | *(xəta vəziyyəti göstərilmirdi)* | `Mallar yüklənmədi` | Səhifə-spesifik xəta mətni (Mallar) — `DataTable`-ın ümumi mətni (sətir 18) əvəzinə real `isError`/`onRetry` ilə göstərilir | AC-1, FE#87 (Addım 7.1) |
+| 25 | `src/features/customers/components/CustomersTable.tsx:126` | *(xəta vəziyyəti göstərilmirdi)* | `Müştərilər yüklənmədi` | Səhifə-spesifik xəta mətni (Müştərilər) | AC-1, FE#87 (Addım 7.1) |
+| 26 | `src/features/customers/components/OpenDebtsTable.tsx:172` | *(xəta vəziyyəti göstərilmirdi)* | `Borclar yüklənmədi` | Səhifə-spesifik xəta mətni (Nisyə Borclar) | AC-1, FE#87 (Addım 7.1) |
+| 27 | `src/features/suppliers/components/SuppliersTable.tsx:180` | *(xəta vəziyyəti göstərilmirdi)* | `Təchizatçılar yüklənmədi` | Səhifə-spesifik xəta mətni (Təchizatçılar) | AC-1, FE#87 (Addım 7.1) |
+| 28 | `src/features/sales/components/SalesJournal.tsx:621` | *(xəta vəziyyəti göstərilmirdi)* | `Satış jurnalı yüklənmədi` | Səhifə-spesifik xəta mətni (Satış jurnalı) | AC-1, FE#87 (Addım 7.1) |
+| 29 | `src/routes/_app.xercler.tsx:171` | `error.message` (xam brauzer mətni, məs. `Failed to fetch`) | `Xərclər yüklənmədi` | Xam şəbəkə xətası istifadəçiyə mənasız görünürdü; digər səhifələrlə (Mallar/Müştərilər/Təchizatçılar/Satış) eyni sabit mətn naxışına uyğunlaşdırıldı | AC-1, FE#87 (Addım 7.2) |
 
 ---
 

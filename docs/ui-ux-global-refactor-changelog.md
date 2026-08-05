@@ -229,6 +229,26 @@ Təchizatçılar, Satış jurnalı, Xərclər.
 
 ---
 
+## Addım 8 — FE#123: `ui-terminology.md`-də səhifə-spesifik xəta mətnlərinin sənədləşdirilməsi
+
+**Nə dəyişdi**
+- QA/audit zamanı aşkarlandı ki, `docs/ui-terminology.md`-nin 1-ci cədvəlində
+  yalnız `DataTable`-ın ümumi xəta mətni (sətir 18: `Siyahı yüklənmədi`) var
+  idi — Addım 7.1/7.2-də (FE#87) 6 səhifəyə əlavə olunan səhifə-spesifik
+  `errorMessage`/`message` mətnləri cədvələ düşməmişdi.
+- `docs/ui-terminology.md` 1-ci cədvəlinə 6 yeni sətir (24–29) əlavə olundu:
+  Mallar (`ProductsTable.tsx:294`), Müştərilər (`CustomersTable.tsx:126`),
+  Nisyə Borclar (`OpenDebtsTable.tsx:172`), Təchizatçılar
+  (`SuppliersTable.tsx:180`), Satış jurnalı (`SalesJournal.tsx:621`), Xərclər
+  (`_app.xercler.tsx:171`) — hər sətirdə mətnin işlədiyi fayl:sətir göstərilir.
+- Yalnız sənəd düzəlişidir, `src/` toxunulmayıb, kodda dəyişiklik yoxdur.
+
+**Toxunulan səhifələr:** yoxdur (yalnız sənəd).
+
+**Build:** ✅
+
+---
+
 ## Yekun
 
 **Normallaşdırılan primitivlər (16):** Button · Input · Textarea · Select ·
