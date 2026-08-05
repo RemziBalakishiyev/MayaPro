@@ -249,6 +249,45 @@ Təchizatçılar, Satış jurnalı, Xərclər.
 
 ---
 
+## Addım 9 — FE#124: `a6330ae` sınıq aralıq commit-i — PR #83 squash-merge qərarı
+
+**Problem**
+
+Branch-in `main`-dən konflikt həll edən merge commit-i `a6330ae`
+(`src/components/ui/Toast.tsx`-də konflikt) sınıq test vəziyyətində
+commit olunub: `src/components/ui/Toast.test.tsx` hələ köhnə `aria-label`
+(`"Bağla"`) gözləyirdi, halbuki `Toast.tsx` branch tərəfindəki yeni
+`"Bildirişi bağla"` mətnini saxlamışdı (F-39, Addım 5). Bunun nəticəsində
+`a6330ae` təkbaşına `npm test`-i keçmir — sənədin girişində qeyd olunan
+"hər commit ayrı-ayrılıqda yaşıl olmalıdır" qaydasını (AC-23, bloklayıcı)
+pozur. Növbəti commit `30f592c` (branch-in HEAD-i) testi düzəldir və HEAD
+tam yaşıldır: `npm run build`, `npm test` (15 fayl / 98 test), `npx tsc
+--noEmit` — hamısı **exit 0**. Yəni bu, kod keyfiyyəti problemi deyil,
+artıq review-dan keçmiş, mergeable PR #83-ün git-tarixçəsi hygiene
+məsələsidir.
+
+**Qərar: squash-merge (AC-1)**
+
+PR #83 `main`-ə **squash-merge** ilə birləşdiriləcək (rebase/fixup
+alternativi — AC-2 — seçilmədi, çünki squash artıq tövsiyə olunan yoldur
+və PR GitHub tərəfindən MERGEABLE/CLEAN təsdiqlənib):
+
+- Sınıq aralıq commit `a6330ae` `main`-in tarixçəsinə heç vaxt düşmür —
+  AC-23 tam ödənilir.
+- Branch-dəki 20 commit (Addım 1–8 + aralıq düzəlişlər) `main`-də tək
+  commit-ə yığılır — AC-22/TC-26-nın gözlədiyi 4–6 commit nominalına
+  uyğun, sadə və oxunaqlı tarixçə təmin edir.
+- Rebase/fixup yolu (AC-2) eyni nəticəni verə bilərdi, lakin əlavə risk
+  (20 commit-lik interaktiv rebase, force-push) gətirir, PR artıq təsdiq
+  olunduğu üçün əlavə dəyər yaratmır.
+
+**Doğrulama:** squash-merge-dən sonra `main`-də `npm run build`, `npm
+test`, `npx tsc --noEmit` yenidən yoxlanılacaq (AC-3).
+
+**Toxunulan səhifələr:** yoxdur (yalnız git-tarixçə/sənəd).
+
+---
+
 ## Yekun
 
 **Normallaşdırılan primitivlər (16):** Button · Input · Textarea · Select ·
