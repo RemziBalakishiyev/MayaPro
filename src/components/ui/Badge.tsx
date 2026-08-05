@@ -32,10 +32,15 @@ export const STATUS_STYLE: Record<string, string> = {
 const FALLBACK = "bg-stone-50 text-stone-600 ring-stone-200/80";
 
 /**
- * FE#86 qeydi: köhnə issue-larda adı çəkilən `StatusBadge` komponenti kod
- * bazasında ayrıca mövcud olmayıb — bu `Badge` onun rolunu oynayır (11+
- * fayldan istifadə olunur, o cümlədən `ProductStatusBadge` vasitəsilə
- * `ProductsTable` və Mal detalı səhifəsində).
+ * FE#86 qeydi: köhnə issue-larda adı çəkilən `StatusBadge` komponenti o vaxt
+ * kod bazasında ayrıca mövcud olmayıb — bu `Badge` onun rolunu oynayırdı.
+ *
+ * FE#69/FE#126 yeniləməsi: `StatusBadge` (`./StatusBadge.tsx`) indi ayrıca
+ * mövcuddur və rəngi mətn açarından deyil, açıq semantik tondan alır (hər
+ * zaman ikon + mətn birlikdə). `ProductStatusBadge` və `CustomersTable`
+ * artıq bu köhnə `Badge`-i YOX, `StatusBadge`-i istifadə edir. Bu `Badge`
+ * komponenti isə digər 11+ fayldan (məs. `EmployeesTable`, `SalesJournal`,
+ * `ExpensesTable`) mətn açarlı çağırışlar üçün silinmədən qalır.
  */
 export interface BadgeProps {
   children: ReactNode;
