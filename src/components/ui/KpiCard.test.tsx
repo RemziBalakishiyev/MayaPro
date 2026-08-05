@@ -24,6 +24,15 @@ describe("KpiCard", () => {
     await user.click(screen.getByRole("button", { name: /yenidən/i }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  // FE#111 — Yenidən düyməsi minimum 40px toxunma hədəfini qorumalıdır
+  // (design-system.md §1.6, AC-8/TC-6).
+  it("Yenidən düyməsi minimum 40px toxunma hədəfi saxlayır", () => {
+    render(<KpiCard label="Mal sayı" isError onRetry={() => {}} />);
+    expect(screen.getByRole("button", { name: /yenidən/i }).className).toMatch(
+      /min-h-10/,
+    );
+  });
 });
 
 describe("StatCluster", () => {
@@ -57,6 +66,14 @@ describe("StatCluster", () => {
     await user.click(screen.getByRole("button", { name: /yenidən/i }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  // FE#111 — Yenidən düyməsi minimum 40px toxunma hədəfini qorumalıdır.
+  it("Yenidən düyməsi minimum 40px toxunma hədəfi saxlayır", () => {
+    render(<StatCluster items={items} isError onRetry={() => {}} />);
+    expect(screen.getByRole("button", { name: /yenidən/i }).className).toMatch(
+      /min-h-10/,
+    );
+  });
 });
 
 describe("AlertPill", () => {
@@ -67,5 +84,13 @@ describe("AlertPill", () => {
     const pill = screen.getByRole("button", { name: /4 mal azalır/ });
     await user.click(pill);
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  // FE#111 — minimum 40px toxunma hədəfini qorumalıdır.
+  it("minimum 40px toxunma hədəfi saxlayır", () => {
+    render(<AlertPill onClick={() => {}}>4 mal azalır</AlertPill>);
+    expect(
+      screen.getByRole("button", { name: /4 mal azalır/ }).className,
+    ).toMatch(/min-h-10/);
   });
 });
