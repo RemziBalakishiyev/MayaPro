@@ -41,6 +41,7 @@ Dil qaydası: bütün mətnlər **Azərbaycanca**dır; ingiliscə qalıq mətn y
 | 20 | `src/components/layout/Sidebar.tsx` — azalan mal sayı nişanı | *(tooltip yox idi)* | `N mal azalır` | Rəngli nişanın mənası mətnlə də verilsin | AC-10 |
 | 21 | `src/routes/_app.mallar.tsx` — başlıqdakı 3 ikinci dərəcəli düymə | *(ayrı-ayrı düymələr)* | `Digər əməliyyatlar` menyusu (bəndlərin adları dəyişməyib: `Excel import`, `Excel export`, `Barkod/QR çap`) | Səhifədə bir əsas əməliyyat qalsın | AC-13 |
 | 22 | `src/routes/_app.mallar.tsx` — export gözləmə bəndi | `Excel export` | `Excel export (gözləyin...)` — yalnız yüklənərkən | Menyu bəndində gözləmə vəziyyəti göstərilsin | AC-9 |
+| 23 | `src/routes/_app.borclar.tsx` («Müştəri üzrə» rejimi, `FilterBar`) | `Ad və ya telefon üzrə axtar...` | `Bu siyahıda axtar... (ad və ya telefon)` | FE#69 taskı yalnız «Borclar» rejimini (sətir 7) əhatə etmişdi; «Müştəri üzrə» rejim FE#69 re-QA-da (FE#94) aşkarlanıb və eyni standarta uyğunlaşdırılıb | T-15, AC-14 |
 
 ---
 
