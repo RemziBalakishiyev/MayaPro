@@ -12,6 +12,12 @@ import type { Customer, OpenDebt } from "@/types";
 interface Props {
   debts: OpenDebt[];
   isLoading?: boolean;
+  /**
+   * FE#87 (TC-32.9/32.10): açıq borc sorğusu şəbəkə xətası ilə uğursuz
+   * olduqda boş-siyahı mesajı ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
   /** customerId → tam müştəri qeydi (Ödəniş al / WhatsApp / drawer üçün). */
   customersById: Map<string, Customer>;
   onPay: (customer: Customer) => void;
@@ -40,6 +46,8 @@ function daysOldLabel(daysOld: number): string {
 export function OpenDebtsTable({
   debts,
   isLoading,
+  isError,
+  onRetry,
   customersById,
   onPay,
   onView,
@@ -159,6 +167,9 @@ export function OpenDebtsTable({
       columns={columns}
       data={debts}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      errorMessage="Borclar yüklənmədi"
       embedded={embedded}
       onRowClick={(d) => {
         const customer = customersById.get(d.customerId);

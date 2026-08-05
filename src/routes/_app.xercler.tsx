@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { InlineError } from "@/components/ui/InlineError";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import { isoInRange, type PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
@@ -53,7 +54,7 @@ function XerclerPage() {
     data: expenses = [],
     isLoading,
     isError,
-    error,
+    refetch,
   } = useExpenses(range);
   const { data: products = [] } = useProducts();
   const canWrite = useCan()("expenses.write");
@@ -162,9 +163,15 @@ function XerclerPage() {
       />
 
       {isError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm font-medium text-red-700">
-          {error instanceof Error ? error.message : "Xərclər yüklənmədi"}
-        </div>
+        // Digər siyahı səhifələri (Mallar/Müştərilər/Təchizatçılar/Satış) ilə
+        // eyni naxış: sabit, mənalı Azərbaycanca mesaj — `error.message` birbaşa
+        // göstərilmir, çünki şəbəkə xətalarında bu, xam brauzer mətni ola bilər
+        // (məs. "Failed to fetch"), istifadəçiyə mənasız görünər.
+        <InlineError
+          message="Xərclər yüklənmədi"
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
       ) : (
         <>
           <ExpensesTable

@@ -13,6 +13,13 @@ import type { Customer } from "@/types";
 interface Props {
   customers: Customer[];
   isLoading?: boolean;
+  /**
+   * FE#87 (TC-32.3/32.4, TC-32.9/32.10): müştəri sorğusu şəbəkə xətası ilə
+   * uğursuz olduqda boş-siyahı mesajı ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
+  errorMessage?: string;
   canEdit?: boolean;
   canDelete?: boolean;
   onView: (customer: Customer) => void;
@@ -114,6 +121,9 @@ function CustomerRowActions({
 export function CustomersTable({
   customers,
   isLoading,
+  isError,
+  onRetry,
+  errorMessage = "Müştərilər yüklənmədi",
   canEdit = false,
   canDelete = false,
   onView,
@@ -239,6 +249,9 @@ export function CustomersTable({
       columns={columns}
       data={customers}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      errorMessage={errorMessage}
       embedded={embedded}
       emptyState={
         emptyState ?? {

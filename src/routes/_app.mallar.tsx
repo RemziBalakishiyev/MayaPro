@@ -50,7 +50,12 @@ function MallarPage() {
   const toast = useToast();
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const { data: products = [], isLoading } = useProducts();
+  const {
+    data: products = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useProducts();
   const { data: categoryList = [] } = useCategories();
   const canWrite = useCan()("products.write");
   const deleteMut = useDeleteProduct();
@@ -228,6 +233,8 @@ function MallarPage() {
       <ProductsTable
         products={filtered}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         canEdit={canWrite}
         onEdit={(p) => {
           setEditing(p);

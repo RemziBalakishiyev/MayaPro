@@ -25,7 +25,12 @@ export const Route = createFileRoute("/_app/tedarukculer")({
 
 function TedarukculerPage() {
   const toast = useToast();
-  const { data: suppliers = [], isLoading } = useSuppliers();
+  const {
+    data: suppliers = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useSuppliers();
   const canWrite = useCan()("suppliers.write");
   const deleteMut = useDeleteSupplier();
 
@@ -74,6 +79,8 @@ function TedarukculerPage() {
       <SuppliersTable
         suppliers={suppliers}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         canWrite={canWrite}
         onView={setSelected}
         onAddDebt={setDebtFor}

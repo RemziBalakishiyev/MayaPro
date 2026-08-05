@@ -616,6 +616,9 @@ export function SalesJournal() {
           columns={columns}
           data={sales}
           isLoading={journal.isLoading}
+          isError={journal.isError}
+          onRetry={() => void journal.refetch()}
+          errorMessage="Satış jurnalı yüklənmədi"
           pageSize={JOURNAL_PAGE_SIZE}
           embedded
           onRowClick={(s) => setDetailId(s.id)}
