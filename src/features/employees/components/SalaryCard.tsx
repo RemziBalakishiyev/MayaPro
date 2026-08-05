@@ -101,14 +101,14 @@ export function SalaryCard({
                   if (e.key === "Escape") setEditing(false);
                 }}
                 aria-label={`${summary.fullName} — aylıq maaş`}
-                className="h-8 w-full min-w-0 rounded-lg border border-emerald-400 px-1.5 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="h-10 w-full min-w-0 rounded-lg border border-emerald-400 px-1.5 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
               <button
                 type="button"
                 aria-label="Yadda saxla"
                 onClick={() => void saveSalary()}
                 disabled={setSalaryMut.isPending}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-emerald-700 hover:bg-emerald-50"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-emerald-700 hover:bg-emerald-50"
               >
                 <Check size={15} />
               </button>
@@ -116,7 +116,7 @@ export function SalaryCard({
                 type="button"
                 aria-label="İmtina"
                 onClick={() => setEditing(false)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100"
               >
                 <X size={15} />
               </button>

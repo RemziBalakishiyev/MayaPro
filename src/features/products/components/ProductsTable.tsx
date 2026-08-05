@@ -95,7 +95,7 @@ function ProductRowActions({
       <button
         type="button"
         onClick={() => onAdjust(product, "add")}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+        className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
       >
         <Plus size={14} />
         Stok
@@ -106,7 +106,7 @@ function ProductRowActions({
           onClick={() => onPrintLabel(product)}
           aria-label={`${product.name} — barkod/QR etiket çap et`}
           title="Etiket çap et"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-800"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-800"
         >
           <Barcode size={15} />
         </button>

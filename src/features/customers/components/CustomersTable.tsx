@@ -108,7 +108,7 @@ function CustomerRowActions({
       <button
         type="button"
         onClick={() => onPay(customer)}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+        className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
       >
         <HandCoins size={14} />
         Ödəniş

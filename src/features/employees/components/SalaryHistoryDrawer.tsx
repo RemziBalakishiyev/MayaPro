@@ -104,7 +104,7 @@ export function SalaryHistoryDrawer({ employee, month, onClose }: Props) {
                         type="button"
                         aria-label="Sil"
                         onClick={() => setDeleteFor(e)}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 size={15} />
                       </button>

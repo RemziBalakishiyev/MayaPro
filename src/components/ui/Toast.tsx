@@ -52,7 +52,7 @@ export function Toasts() {
               onClick={() => dismiss(t.id)}
               aria-label="Bildirişi bağla"
               title="Bildirişi bağla"
-              className="focus-ring ml-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-chip opacity-80 transition-opacity hover:opacity-100"
+              className="focus-ring ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-chip opacity-80 transition-opacity hover:opacity-100"
             >
               <X size={14} />
             </button>

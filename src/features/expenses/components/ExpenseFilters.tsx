@@ -70,7 +70,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
       <FilterBar
         searchValue={value.q ?? ""}
         onSearchChange={(q) => onChange({ q: q || undefined })}
-        searchPlaceholder="Xərc adı və ya qeyd üzrə axtar..."
+        searchPlaceholder="Bu siyahıda axtar..."
         searchAriaLabel="Xərc axtar"
         activeCount={activeFilterCount}
         activeFilters={activeFilters}
@@ -91,7 +91,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
                 onChange={(e) =>
                   onChange({ source: e.target.value as ExpenseSourceFilter })
                 }
-                className="h-9 w-full text-sm"
+                className="h-10 w-full text-sm"
               >
                 {SOURCE_OPTIONS.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -109,7 +109,7 @@ export function ExpenseFilters({ value, onChange }: Props) {
                 aria-label="Xərc növü"
                 value={value.type ?? ""}
                 onChange={(e) => onChange({ type: e.target.value || undefined })}
-                className="h-9 w-full text-sm"
+                className="h-10 w-full text-sm"
               >
                 <option value="">Bütün növlər</option>
                 {expenseTypes.map((t) => (

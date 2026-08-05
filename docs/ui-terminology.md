@@ -48,6 +48,9 @@ Dil qaydası: bütün mətnlər **Azərbaycanca**dır; ingiliscə qalıq mətn y
 | 27 | `src/features/suppliers/components/SuppliersTable.tsx:180` | *(xəta vəziyyəti göstərilmirdi)* | `Təchizatçılar yüklənmədi` | Səhifə-spesifik xəta mətni (Təchizatçılar) | AC-1, FE#87 (Addım 7.1) |
 | 28 | `src/features/sales/components/SalesJournal.tsx:621` | *(xəta vəziyyəti göstərilmirdi)* | `Satış jurnalı yüklənmədi` | Səhifə-spesifik xəta mətni (Satış jurnalı) | AC-1, FE#87 (Addım 7.1) |
 | 29 | `src/routes/_app.xercler.tsx:171` | `error.message` (xam brauzer mətni, məs. `Failed to fetch`) | `Xərclər yüklənmədi` | Xam şəbəkə xətası istifadəçiyə mənasız görünürdü; digər səhifələrlə (Mallar/Müştərilər/Təchizatçılar/Satış) eyni sabit mətn naxışına uyğunlaşdırıldı | AC-1, FE#87 (Addım 7.2) |
+| 30 | `src/features/products/components/ProductFilters.tsx` — lokal axtarış placeholder-i | `Ad, kateqoriya, xüsusiyyət üzrə axtar...` | `Bu siyahıda axtar...` | Lokal cədvəl axtarışı qlobal axtarışla eyni terminologiyaya uyğunlaşdırılsın (`FilterBar` defolt mətni ilə üst-üstə düşsün) | T-15, AC-14 |
+| 31 | `src/features/expenses/components/ExpenseFilters.tsx` — lokal axtarış placeholder-i | `Xərc adı və ya qeyd üzrə axtar...` | `Bu siyahıda axtar...` | Eyni səbəb | T-15, AC-14 |
+| 32 | `src/features/sales/components/SalesJournal.tsx` — lokal axtarış placeholder-i | `Axtar...` | `Bu siyahıda axtar...` | Eyni səbəb | T-15, AC-14 |
 
 ---
 

@@ -174,7 +174,7 @@ export function DayEndCard() {
                 setTouched(true);
                 setOpeningCash(e.target.value);
               }}
-              className="w-28 rounded-lg border border-stone-300 px-2 py-1 text-right text-sm font-semibold tabular-nums focus:border-emerald-600 focus:outline-none"
+              className="h-10 w-28 rounded-lg border border-stone-300 px-2 text-right text-sm font-semibold tabular-nums focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           }
         />
