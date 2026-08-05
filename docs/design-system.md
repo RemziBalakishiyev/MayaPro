@@ -167,7 +167,7 @@ Status: **N** = normallaşdırıldı (mövcud komponent, prop/variant səviyyəs
 | 11a | **KpiCard / StatCluster / AlertPill** (birləşik KPI paneli) | N | `src/components/ui/KpiCard.tsx` | inventar #19, #19a, #19b |
 | 12 | **StatusBadge** | Y | `src/components/ui/StatusBadge.tsx` | `Badge` (inventar #3) qalır və dəyişmir |
 | 13 | **DataTable** | N | `src/components/ui/DataTable.tsx` | inventar #9 |
-| 14 | **TableToolbar** | Y | `src/components/ui/TableToolbar.tsx` | yox |
+| 14 | **TableToolbar** | Y | `src/components/ui/TableToolbar.tsx` | yox — real istifadə: `src/routes/_app.musteriler.tsx` (search + "yalnız borclular" filtri, FE#122) |
 | 15 | **TablePagination** | Y | `src/components/ui/TablePagination.tsx` | `DataTable` daxilində inline idi |
 | 16 | **FilterDrawer / FilterPopover** | N | `src/components/ui/FilterBar.tsx` (alias) | `FilterBar` (inventar #15) |
 | 17 | **DetailDrawer** | N | `src/components/ui/Drawer.tsx` (alias `DetailDrawer`) | `Drawer` (inventar #10) |
@@ -188,6 +188,13 @@ kilidi), `src/features/day-end/components/cash-diff-presentation.ts`
 
 **Əhatə yoxlaması:** FE#69 siyahısındakı 22 primitivin hamısı yuxarıdakı
 cədvəldədir — statusu olmayan primitiv: **0**.
+
+**Real səhifə istifadəsi (FE#122):** `PageToolbar`, `TableToolbar` və
+`StatusBadge` FE#69 ilə yaradılıb və kod bazasında MÖVCUDDUR (bu, əvvəlki
+FE#86/PR#97-nin yanlış «heç vaxt mövcud olmayıb» iddiasının əksinədir — həmin
+iddia silinib). `TableToolbar` artıq bir real səhifədə (`src/routes/_app.musteriler.tsx`)
+istifadə olunur; `PageToolbar` və `StatusBadge`-in qalan səhifələrə köçürülməsi
+gələcək bir tapşırığın (dərin səhifə refaktoru) əhatəsindədir.
 
 ---
 

@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { LocalTableSearch } from "@/components/ui/LocalTableSearch";
+import { TableToolbar } from "@/components/ui/TableToolbar";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -120,44 +121,49 @@ function MusterilerPage() {
         }
       />
 
-      {/* FE#69 — lokal cədvəl axtarışı paylaşılan `LocalTableSearch`-ə
-          keçirildi: topbar-dakı qlobal axtarışdan həm görünüş, həm də
-          placeholder mətni ilə fərqlənir (AC-14). URL search sxemi dəyişməyib. */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <LocalTableSearch
-          value={search.q ?? ""}
-          onChange={(v) =>
-            navigate({ search: (prev) => ({ ...prev, q: v || undefined }) })
-          }
-          placeholder="Bu siyahıda axtar... (ad və ya telefon)"
-          ariaLabel="Müştəri siyahısında axtar"
-          className="min-w-[220px] max-w-sm flex-1"
-        />
-
-        <label
-          className={cn(
-            "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-control border bg-white px-3.5 text-sm font-medium",
-            search.onlyDebtors
-              ? "border-red-300 text-red-700"
-              : "border-stone-200 text-stone-600",
-          )}
-        >
-          <input
-            type="checkbox"
-            checked={!!search.onlyDebtors}
-            onChange={(e) =>
-              navigate({
-                search: (prev) => ({
-                  ...prev,
-                  onlyDebtors: e.target.checked || undefined,
-                }),
-              })
+      {/* FE#69/FE#122 — lokal cədvəl axtarışı + "yalnız borclular" filtri
+          paylaşılan `TableToolbar` (search/actions slot-ları) daxilində
+          göstərilir: cədvəl üstü alət zolağı bütün siyahı səhifələrində
+          eyni yerdə/hündürlükdə olsun deyə (AC-14, AC-16). URL search
+          sxemi dəyişməyib. */}
+      <TableToolbar
+        search={
+          <LocalTableSearch
+            value={search.q ?? ""}
+            onChange={(v) =>
+              navigate({ search: (prev) => ({ ...prev, q: v || undefined }) })
             }
-            className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+            placeholder="Bu siyahıda axtar... (ad və ya telefon)"
+            ariaLabel="Müştəri siyahısında axtar"
+            className="min-w-[220px] max-w-sm flex-1"
           />
-          Yalnız borclular
-        </label>
-      </div>
+        }
+        actions={
+          <label
+            className={cn(
+              "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-control border bg-white px-3.5 text-sm font-medium",
+              search.onlyDebtors
+                ? "border-red-300 text-red-700"
+                : "border-stone-200 text-stone-600",
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={!!search.onlyDebtors}
+              onChange={(e) =>
+                navigate({
+                  search: (prev) => ({
+                    ...prev,
+                    onlyDebtors: e.target.checked || undefined,
+                  }),
+                })
+              }
+              className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            Yalnız borclular
+          </label>
+        }
+      />
 
       <CustomersTable
         variant="all"
