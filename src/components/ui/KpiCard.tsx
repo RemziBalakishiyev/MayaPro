@@ -49,7 +49,7 @@ export function KpiCard({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+              className="inline-flex min-h-[40px] shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
             >
               <RefreshCw size={12} />
               Yenidən
@@ -123,7 +123,7 @@ export function StatCluster({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+              className="inline-flex min-h-[40px] shrink-0 items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
             >
               <RefreshCw size={12} />
               Yenidən
@@ -179,7 +179,7 @@ export function AlertPill({ children, onClick, className }: AlertPillProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 active:scale-[0.98]",
+        "inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 active:scale-[0.98]",
         className,
       )}
     >
