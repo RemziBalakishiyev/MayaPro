@@ -519,7 +519,7 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
                               onClick={() => void handleGenerate(row.product)}
                               disabled={generatingId !== null}
                               aria-label={`${row.product.name} üçün barkod yarat`}
-                              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
+                              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
                             >
                               {generatingId === row.productId ? (
                                 <Loader2 size={13} className="animate-spin" />
