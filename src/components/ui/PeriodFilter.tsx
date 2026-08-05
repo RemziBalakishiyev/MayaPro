@@ -247,7 +247,7 @@ export function PeriodFilter({
               <button
                 type="button"
                 onClick={applyCustom}
-                className="mt-1 w-full rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+                className="mt-1 min-h-10 w-full rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
               >
                 Tətbiq et
               </button>
