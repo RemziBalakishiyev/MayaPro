@@ -5,8 +5,10 @@ import { TrendingDown, Snowflake, AlertTriangle, Check } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
-import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { InlineError } from "@/components/ui/InlineError";
+import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
+import { Skeleton } from "@/components/ui/LoadingSkeleton";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { useReportsData, useSummary } from "@/features/reports/queries";
@@ -45,10 +47,28 @@ export const Route = createFileRoute("/_app/hesabatlar")({
   component: HesabatlarPage,
 });
 
+function HesabatlarSkeleton() {
+  return (
+    <div role="status" aria-live="polite" aria-label="Hesabatlar yüklənir" className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-64" />
+        ))}
+      </div>
+      <span className="sr-only">Hesabatlar yüklənir...</span>
+    </div>
+  );
+}
+
 function HesabatlarPage() {
   const navigate = Route.useNavigate();
   const { period } = Route.useSearch();
-  const { data, isLoading } = useReportsData();
+  const { data, isLoading, isError, refetch } = useReportsData();
   // Xərc mənbəyi bölgüsü (Ümumi/Mala bağlı) üçün server summary — mövcud olduqda
   // ONDAN istifadə olunur (Xərclər səhifəsi ilə eyni rəqəm, FE#9/AC1-AC2).
   const { data: summary } = useSummary(period);
@@ -115,11 +135,32 @@ function HesabatlarPage() {
     };
   }, [data, period, summary]);
 
+  // FE#142 (TC-32): xəta vəziyyəti yüklənmə/boş vəziyyətdən ƏVVƏL yoxlanılır —
+  // şəbəkə/server xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən"
+  // göstərilir. AMMA yalnız `view` (hesablanmış hesabat datası) HEÇ VAXT
+  // uğurla yüklənməyibsə (`data === undefined`). Əvvəl uğurla yüklənmiş data
+  // varkən arxa-fon refetch-i uğursuz olarsa, TanStack Query `data`-nı
+  // ƏVVƏLKİ nəticə ilə saxlayır — bu halda artıq göstəriləcək DOĞRU hesabat
+  // var, ona görə onu tam InlineError ekranı ilə əvəz ETMİRİK (aşağıda kiçik
+  // xəbərdarlıq zolağı ilə göstərilir).
+  if (isError && !view) {
+    return (
+      <div>
+        <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
+        <InlineError
+          message="Hesabatlar yüklənmədi"
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
+
   if (isLoading || !view) {
     return (
       <div>
         <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
-        <Spinner />
+        <HesabatlarSkeleton />
       </div>
     );
   }
@@ -148,6 +189,15 @@ function HesabatlarPage() {
           </div>
         }
       />
+
+      {/* FE#142: arxa-fon refetch xətası — mövcud (köhnə/keçərli) hesabat
+          görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
+      {isError && (
+        <StaleDataBanner
+          message="Hesabatlar yenilənmədi — göstərilən məlumat köhnəlmiş ola bilər."
+          onRetry={() => void refetch()}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Satış" value={fmtMoney(view.sales)} />

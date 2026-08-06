@@ -65,6 +65,103 @@ describe("DataTable — vəziyyət dili", () => {
   });
 });
 
+/**
+ * FE#142 — `DataTable` arxa-fon (background) refetch xətası ilə uğursuz
+ * olduqda, əgər artıq göstəriləcək DOĞRU (köhnə/keçərli) `data` mövcuddursa,
+ * onu tam `InlineError` ekranı ilə ƏVƏZ ETMƏMƏLİDİR — mövcud cədvəl qalmalı,
+ * üstündə yalnız kiçik "yenilənmə uğursuz oldu" xəbərdarlıq zolağı
+ * göstərilməlidir. Tam `InlineError` YALNIZ göstəriləcək data heç uğurla
+ * yüklənməyibsə görünməlidir. `hasLoadedOnce` prop-u "uğurla yüklənmiş BOŞ
+ * siyahı + arxa-fon xətası" ilə "heç vaxt yüklənməyib" hallarını ayırd edir.
+ */
+describe("DataTable — arxa-fon refetch xətası (FE#142)", () => {
+  const rows = [
+    { ad: "Birinci", qiymet: "1,00 ₼" },
+    { ad: "İkinci", qiymet: "2,00 ₼" },
+  ];
+
+  it("isError=true, AMMA əvvəl uğurla yüklənmiş data MÖVCUDDUR → cədvəl qalır, tam InlineError göstərilmir, xəbərdarlıq zolağı görünür", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        isError
+        onRetry={vi.fn()}
+        errorMessage="Siyahı yüklənmədi"
+      />,
+    );
+
+    expect(screen.getByText("Birinci")).toBeInTheDocument();
+    expect(screen.getByText("İkinci")).toBeInTheDocument();
+    expect(screen.queryByText("Siyahı yüklənmədi")).not.toBeInTheDocument();
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(/yenilənmə uğursuz oldu/i);
+  });
+
+  it("xəbərdarlıq zolağındakı 'Yenidən' klik onRetry-ni çağırır", async () => {
+    const onRetry = vi.fn();
+    const user = userEvent.setup();
+    render(<DataTable columns={columns} data={rows} isError onRetry={onRetry} />);
+
+    await user.click(screen.getByRole("button", { name: /yenidən/i }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("isError=true, data=[], hasLoadedOnce=true (uğurla yüklənmiş boş nəticə) → EmptyState + StaleDataBanner, tam InlineError YOX", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[]}
+        isError
+        hasLoadedOnce
+        onRetry={vi.fn()}
+        errorMessage="Siyahı yüklənmədi"
+        emptyState={{ title: "Məlumat yoxdur" }}
+      />,
+    );
+
+    expect(screen.queryByText("Siyahı yüklənmədi")).not.toBeInTheDocument();
+    expect(screen.getByText("Məlumat yoxdur")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmə uğursuz oldu/i,
+    );
+  });
+
+  it("isError=true, data=[], hasLoadedOnce=false (heç vaxt yüklənməyib) → tam InlineError", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[]}
+        isError
+        hasLoadedOnce={false}
+        onRetry={vi.fn()}
+        errorMessage="Siyahı yüklənmədi"
+        emptyState={{ title: "Məlumat yoxdur" }}
+      />,
+    );
+
+    expect(screen.getByText("Siyahı yüklənmədi")).toBeInTheDocument();
+    expect(screen.queryByText("Məlumat yoxdur")).not.toBeInTheDocument();
+  });
+
+  it("isError=true, data=[], hasLoadedOnce ötürülməyib → köhnə fallback davranışı: tam InlineError (geriyə uyğunluq)", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[]}
+        isError
+        onRetry={vi.fn()}
+        errorMessage="Siyahı yüklənmədi"
+        emptyState={{ title: "Məlumat yoxdur" }}
+      />,
+    );
+
+    expect(screen.getByText("Siyahı yüklənmədi")).toBeInTheDocument();
+    expect(screen.queryByText("Məlumat yoxdur")).not.toBeInTheDocument();
+  });
+});
+
 describe("LocalTableSearch", () => {
   it("lokal axtarış placeholder-i qlobal axtarışdan fərqlidir (AC-14)", () => {
     render(<LocalTableSearch value="" onChange={() => {}} />);
