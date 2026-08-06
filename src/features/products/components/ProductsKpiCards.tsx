@@ -6,7 +6,7 @@ import { fmtMoney, fmtMoneySigned } from "@/lib/format";
 
 interface Props {
   range: PeriodRange;
-  /** "N mal azalır" çipinə klik — çağıran tərəf status filtrini "Azalır"a keçirir. */
+  /** "N malın stoku azalır" çipinə klik — çağıran tərəf status filtrini "Azalır"a keçirir. */
   onLowStockClick?: () => void;
 }
 
@@ -93,12 +93,14 @@ export function ProductsKpiCards({ range, onLowStockClick }: Props) {
         </div>
 
         {!isLoading && !isError && data && data.lowStockCount > 0 && (
+          // FE#70 (AC-3) — çip mətni PM nümunəsi ilə hərfi eynidir: "N malın
+          // stoku azalır". Klik davranışı dəyişməyib (status filtri "Azalır").
           <AlertPill
             className="w-full justify-center lg:w-auto lg:shrink-0 lg:justify-start lg:self-start"
             onClick={onLowStockClick}
           >
             <AlertTriangle size={14} className="shrink-0" />
-            {data.lowStockCount} mal azalır
+            {data.lowStockCount} malın stoku azalır
           </AlertPill>
         )}
       </div>

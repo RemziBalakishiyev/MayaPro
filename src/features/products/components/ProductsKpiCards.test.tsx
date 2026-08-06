@@ -90,7 +90,7 @@ describe("ProductsKpiCards", () => {
     render(
       <ProductsKpiCards range={{}} onLowStockClick={onLowStockClick} />,
     );
-    const pill = screen.getByRole("button", { name: /4 mal azalır/ });
+    const pill = screen.getByRole("button", { name: /4 malın stoku azalır/ });
     await user.click(pill);
     expect(onLowStockClick).toHaveBeenCalledTimes(1);
   });
@@ -103,7 +103,7 @@ describe("ProductsKpiCards", () => {
       refetch: vi.fn(),
     } as never);
     render(<ProductsKpiCards range={{}} />);
-    expect(screen.queryByText(/mal azalır/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/malın stoku azalır/)).not.toBeInTheDocument();
   });
 
   it("AC7 — xəta halında panel 'Yüklənmədi' göstərir və Yenidən onRetry çağırır", async () => {
@@ -148,7 +148,7 @@ describe("ProductsKpiCards", () => {
 
     // Azalan mal xəbərdarlıq çipi yox olmur.
     expect(
-      screen.getByRole("button", { name: /4 mal azalır/ }),
+      screen.getByRole("button", { name: /4 malın stoku azalır/ }),
     ).toBeInTheDocument();
 
     // Yeganə skeleton — dövr sətrindəki (h-3), StatCluster/KpiCard-da yox

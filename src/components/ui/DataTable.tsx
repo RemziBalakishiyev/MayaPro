@@ -69,6 +69,15 @@ export interface DataTableProps<TData> {
    * hər sətir bu funksiyanın qaytardığı kart kimi göstərilir; md-dən yuxarı cədvəl.
    */
   mobileCard?: (row: TData) => ReactNode;
+  /**
+   * FE#70 (AC-17) — uzun siyahılarda başlıq sətri (thead) görünən sahədə
+   * sabit qalsın. Opt-in (defolt `false`) — mövcud səhifələrin görünüşünə
+   * TƏSİR ETMİR. `true` verildikdə cədvəl bədəni daxili şaquli sürüşməyə
+   * malik olur (`max-h-[70vh] overflow-y-auto`), `thead` isə həmin daxili
+   * sürüşmə çərçivəsində `sticky top-0` ilə sabitlənir (səhifənin özü deyil,
+   * cədvəlin öz daxili sahəsi sürüşür — AC-B1 ilə uyğun).
+   */
+  stickyHeader?: boolean;
 }
 
 export function DataTable<TData>({
@@ -86,6 +95,7 @@ export function DataTable<TData>({
   embedded = false,
   onRowClick,
   mobileCard,
+  stickyHeader = false,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -216,12 +226,18 @@ export function DataTable<TData>({
       <div
         className={cn(
           "overflow-x-auto",
+          stickyHeader && "max-h-[70vh] overflow-y-auto",
           shellCls,
           mobileCard && "hidden md:block",
         )}
       >
         <table className="min-w-full divide-y divide-stone-200">
-          <thead className="bg-stone-50">
+          <thead
+            className={cn(
+              "bg-stone-50",
+              stickyHeader && "sticky top-0 z-10",
+            )}
+          >
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => {
