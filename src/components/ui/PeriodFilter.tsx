@@ -332,7 +332,7 @@ export function PeriodFilter({
                 clearCustom();
               }
             }}
-            className="ml-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded hover:bg-black/10"
+            className="focus-ring ml-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded hover:bg-black/10"
           >
             <X size={12} />
           </span>
