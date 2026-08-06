@@ -203,6 +203,10 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                 </span>
               )}
               {phoneDisplay ? (
+                // FE#153 — AC-8: mətnin özü ~20px hündürlükdədir, minimum
+                // 40x40px toxunma hədəfini `::before` hit-slop naxışı ilə
+                // (FilterBar.tsx-dəki nümunə) təmin edirik ki, vizual ölçü
+                // (font, sətir hündürlüyü) dəyişməsin.
                 <button
                   type="button"
                   title="Kopyalamaq üçün klikləyin"
@@ -215,7 +219,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                       toast.error("Nömrə kopyalanmadı");
                     }
                   }}
-                  className="min-w-0 text-left text-sm font-semibold tabular-nums text-stone-800 underline-offset-2 hover:text-emerald-700 hover:underline"
+                  className="focus-ring relative min-w-0 rounded text-left text-sm font-semibold tabular-nums text-stone-800 underline-offset-2 before:absolute before:inset-[-10px] before:content-[''] hover:text-emerald-700 hover:underline"
                 >
                   {phoneDisplay}
                 </button>
