@@ -2,10 +2,9 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { Plus } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { InlineError } from "@/components/ui/InlineError";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import { isoInRange, type PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
@@ -14,6 +13,7 @@ import { useExpenses, useDeleteExpense } from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
 import { ExpenseForm } from "@/features/expenses/components/ExpenseForm";
 import { ExpenseDetailDrawer } from "@/features/expenses/components/ExpenseDetailDrawer";
+import { ExpenseOutflowTag } from "@/features/expenses/components/amount-presentation";
 import {
   ExpenseFilters,
   type ExpenseFilterValues,
@@ -56,7 +56,7 @@ function XerclerPage() {
     isError,
     refetch,
   } = useExpenses(range);
-  const { data: products = [] } = useProducts();
+  const { data: products = [], isLoading: productsLoading } = useProducts();
   const canWrite = useCan()("expenses.write");
   const deleteMut = useDeleteExpense();
 
@@ -94,11 +94,6 @@ function XerclerPage() {
     [visibleExpenses],
   );
 
-  const productName = useMemo(() => {
-    const map = new Map(products.map((p) => [p.id, p.name]));
-    return (id: string | null) => (id ? (map.get(id) ?? "—") : "Ümumi xərc");
-  }, [products]);
-
   // Detal draweri id üzrə işləyir: xərc silinəndə/siyahıdan çıxanda drawer
   // avtomatik bağlanır (köhnəlmiş məlumat ekranda qalmır).
   const detailExpense = useMemo(
@@ -131,10 +126,10 @@ function XerclerPage() {
 
   return (
     <div>
-      <PageHead
+      <PageHeader
         title="Xərclər"
         subtitle="Xərc qeydləri və mala bağlı maya təsiri"
-        actions={
+        primaryAction={
           canWrite && (
             <Button
               size="md"
@@ -162,46 +157,43 @@ function XerclerPage() {
         onChange={updateFilter}
       />
 
-      {isError ? (
-        // Digər siyahı səhifələri (Mallar/Müştərilər/Təchizatçılar/Satış) ilə
-        // eyni naxış: sabit, mənalı Azərbaycanca mesaj — `error.message` birbaşa
-        // göstərilmir, çünki şəbəkə xətalarında bu, xam brauzer mətni ola bilər
-        // (məs. "Failed to fetch"), istifadəçiyə mənasız görünər.
-        <InlineError
-          message="Xərclər yüklənmədi"
-          hint="Şəbəkə və ya server cavab vermədi."
-          onRetry={() => void refetch()}
-        />
-      ) : (
-        <>
-          <ExpensesTable
-            expenses={visibleExpenses}
-            isLoading={isLoading}
-            canWrite={canWrite}
-            productName={productName}
-            emptyState={{
-              title: "Xərc tapılmadı",
-              description: hasFilter
-                ? "Filtrə uyğun xərc yoxdur — filtrləri dəyişin və ya təmizləyin."
-                : "«Yeni xərc» düyməsi ilə ilk xərci əlavə edin.",
-            }}
-            onRowClick={(e) => setDetailId(e.id)}
-            onEdit={openEdit}
-            onDelete={setDeleteFor}
-          />
+      <ExpensesTable
+        expenses={visibleExpenses}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
+        canWrite={canWrite}
+        products={products}
+        productsLoading={productsLoading}
+        emptyState={{
+          title: "Xərc tapılmadı",
+          description: hasFilter
+            ? "Filtrə uyğun xərc yoxdur — filtrləri dəyişin və ya təmizləyin."
+            : "«Yeni xərc» düyməsi ilə ilk xərci əlavə edin.",
+        }}
+        onRowClick={(e) => setDetailId(e.id)}
+        onEdit={openEdit}
+        onDelete={setDeleteFor}
+      />
 
-          {/* Canlı cəm — hər filtr dəyişikliyində eyni renderdə yenilənir. */}
-          {!isLoading && (
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50/60 px-4 py-3">
-              <span className="text-sm font-semibold text-stone-600">
-                Cəmi (filtrlənmiş):
-              </span>
-              <span className="text-lg font-bold tabular-nums text-red-600">
-                {fmtMoney(filteredTotal)}
-              </span>
-            </div>
-          )}
-        </>
+      {/* FE#76 (AC-12/TC-13) — aydın etiketli xülasə sətri: "Görünən xərclər:
+          N ədəd · 123.00 ₼". Hər filtr/axtarış/dövr dəyişikliyində eyni
+          renderdə yenilənir (`filteredTotal` davranışı qorunub). Digər siyahı
+          səhifələrinin (Müştərilər/Təchizatçılar) "Görünən: N" naxışı ilə
+          eyni yerləşmə — səhifələmə (`TablePagination`) ÜMUMİ sayı göstərir,
+          bu sətir isə CARİ FİLTRƏ uyğun görünən sayı/cəm. */}
+      {!isLoading && visibleExpenses.length > 0 && (
+        <p className="mt-2 flex flex-wrap items-center justify-end gap-1.5 px-1 text-sm text-stone-600">
+          <span className="font-semibold">Görünən xərclər:</span>
+          <span className="font-semibold tabular-nums text-stone-700">
+            {visibleExpenses.length} ədəd
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="font-bold tabular-nums text-stone-900">
+            {fmtMoney(filteredTotal)}
+          </span>
+          <ExpenseOutflowTag />
+        </p>
       )}
 
       <ExpenseDetailDrawer

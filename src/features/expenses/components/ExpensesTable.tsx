@@ -1,11 +1,14 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Link } from "@tanstack/react-router";
 import { Pencil, Trash2 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
-import { fmtMoney, fmtDate } from "@/lib/format";
-import type { Expense } from "@/types";
+import { EmptyValue } from "@/components/ui/EmptyValue";
+import { fmtDate } from "@/lib/format";
+import { ExpenseAmount } from "./amount-presentation";
+import type { Expense, Product } from "@/types";
 
 /** Xərc mənbəyi → badge mətni ("source" sahəsi backend/mock-dan). */
 const SOURCE_LABEL: Record<Expense["source"], string> = {
@@ -16,9 +19,19 @@ const SOURCE_LABEL: Record<Expense["source"], string> = {
 interface Props {
   expenses: Expense[];
   isLoading?: boolean;
+  /**
+   * FE#76 (AC-18): xərc sorğusu şəbəkə xətası ilə uğursuz olduqda boş-siyahı
+   * mesajı ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir (digər siyahı
+   * səhifələri — Mallar/Müştərilər/Təchizatçılar — ilə eyni `DataTable`
+   * standart naxışı).
+   */
+  isError?: boolean;
+  onRetry?: () => void;
   canWrite?: boolean;
-  /** productId → mal adı (bağlı mal sütunu üçün) */
-  productName: (id: string | null) => string;
+  /** Bağlı mal linki üçün tam mal siyahısı (AC-11/TC-18..20). */
+  products: Product[];
+  /** Mallar hələ yüklənir — "mal tapılmadı" flash etməsin deyə. */
+  productsLoading?: boolean;
   /** Boş nəticə mətni (aktiv filtrə görə dəyişir). */
   emptyState?: { title: string; description?: string };
   /** Sətrə/mobil karta klik — xərc detal draweri açılır. */
@@ -63,7 +76,7 @@ function ExpenseRowActions({
           className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
         >
           <Pencil size={14} />
-          Düzəliş
+          Düzəliş et
         </button>
       )}
       <ActionMenu
@@ -74,11 +87,59 @@ function ExpenseRowActions({
   );
 }
 
+/**
+ * FE#76 (AC-11/TC-18..20) — "Bağlı mal" hər yerdə eyni məntiqlə göstərilir:
+ * mal mövcuddursa Mallar səhifəsinə kliklənən keçid, mallar hələ yüklənirsə
+ * gözləmə mətni, mal tapılmırsa (silinib) `EmptyValue`, ümumi xərcdə isə
+ * sadə mətn. Klik `stopPropagation` ilə sətir/kart `onRowClick`
+ * (drawer açılışı) davranışını TETİKLEMİR.
+ */
+function ProductLink({
+  productId,
+  products,
+  productsLoading,
+  className,
+}: {
+  productId: string | null;
+  products: Product[];
+  productsLoading?: boolean;
+  className?: string;
+}) {
+  if (!productId) {
+    return <span className={className ?? "text-xs text-stone-400"}>Ümumi xərc</span>;
+  }
+  const product = products.find((p) => p.id === productId);
+  if (product) {
+    return (
+      <Link
+        to="/mallar/$id"
+        params={{ id: productId }}
+        onClick={(e) => e.stopPropagation()}
+        title={`${product.name} — mal detalına bax`}
+        aria-label={`${product.name} — mal detalına bax`}
+        className={
+          className ??
+          "text-xs font-medium text-emerald-700 underline-offset-2 hover:underline"
+        }
+      >
+        {product.name}
+      </Link>
+    );
+  }
+  if (productsLoading) {
+    return <span className="text-xs text-stone-400">Yüklənir…</span>;
+  }
+  return <EmptyValue label="mal tapılmadı" />;
+}
+
 export function ExpensesTable({
   expenses,
   isLoading,
+  isError,
+  onRetry,
   canWrite = false,
-  productName,
+  products,
+  productsLoading,
   emptyState,
   onRowClick,
   onEdit,
@@ -122,24 +183,22 @@ export function ExpensesTable({
       {
         id: "product",
         header: "Bağlı mal",
-        accessorFn: (e) => productName(e.productId),
-        cell: ({ row }) => {
-          const name = productName(row.original.productId);
-          return row.original.productId ? (
-            <span className="text-xs font-medium text-emerald-700">{name}</span>
-          ) : (
-            <span className="text-xs text-stone-400">{name}</span>
-          );
-        },
+        accessorFn: (e) =>
+          e.productId
+            ? (products.find((p) => p.id === e.productId)?.name ?? e.productId)
+            : "Ümumi xərc",
+        cell: ({ row }) => (
+          <ProductLink
+            productId={row.original.productId}
+            products={products}
+            productsLoading={productsLoading}
+          />
+        ),
       },
       {
         accessorKey: "amount",
         header: "Məbləğ",
-        cell: ({ getValue }) => (
-          <span className="font-bold tabular-nums text-red-600">
-            −{fmtMoney(getValue() as number)}
-          </span>
-        ),
+        cell: ({ getValue }) => <ExpenseAmount amount={getValue() as number} />,
       },
       {
         accessorKey: "note",
@@ -171,7 +230,7 @@ export function ExpensesTable({
           ]
         : []),
     ],
-    [productName, canWrite, onEdit, onDelete],
+    [products, productsLoading, canWrite, onEdit, onDelete],
   );
 
   return (
@@ -179,6 +238,9 @@ export function ExpensesTable({
       columns={columns}
       data={expenses}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      errorMessage="Xərclər yüklənmədi"
       onRowClick={onRowClick}
       emptyState={
         emptyState ?? {
@@ -195,17 +257,18 @@ export function ExpensesTable({
               </p>
               <p className="text-sm text-stone-400">{fmtDate(e.date)}</p>
             </div>
-            <span className="shrink-0 text-xl font-bold tabular-nums text-red-600">
-              −{fmtMoney(e.amount)}
-            </span>
+            <ExpenseAmount amount={e.amount} size="md" className="shrink-0 justify-end" />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {e.category?.trim() && <Badge>{e.category.trim()}</Badge>}
             <Badge>{SOURCE_LABEL[e.source] ?? "Ümumi"}</Badge>
             {e.productId && (
-              <span className="text-sm font-medium text-emerald-700">
-                {productName(e.productId)}
-              </span>
+              <ProductLink
+                productId={e.productId}
+                products={products}
+                productsLoading={productsLoading}
+                className="text-sm font-medium text-emerald-700 underline-offset-2 hover:underline"
+              />
             )}
           </div>
           {e.note && (
@@ -221,7 +284,7 @@ export function ExpensesTable({
                   onClick={() => onEdit(e)}
                   className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
                 >
-                  <Pencil size={18} /> Düzəliş
+                  <Pencil size={18} /> Düzəliş et
                 </button>
               )}
               <ActionMenu

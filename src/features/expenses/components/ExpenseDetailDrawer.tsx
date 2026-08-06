@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyValue } from "@/components/ui/EmptyValue";
 import { cn } from "@/lib/cn";
-import { fmtDate, fmtMoney, fmtMoneySigned } from "@/lib/format";
+import { fmtDate, fmtMoneySigned } from "@/lib/format";
 import { useAuthStore } from "@/features/auth/store";
 import { useEmployees } from "@/features/employees/queries";
 import { useProducts } from "@/features/products/queries";
 import { expenseCostImpactPerUnit } from "../lib";
+import { ExpenseAmount } from "./amount-presentation";
 import type { Expense } from "@/types";
 
 /** Mənbə → badge mətni (cədvəllə eyni sözlər). */
@@ -151,11 +152,10 @@ export function ExpenseDetailDrawer({
               )}
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-2xl font-extrabold tabular-nums text-red-600">
-                {/* Ekran oxuyucusu üçün: rəqəm tək başına mənasızdır. */}
-                <span className="sr-only">Xərc məbləği: </span>
-                {fmtMoney(expense.amount)}
-              </p>
+              {/* FE#76 (AC-7) — neytral/işarəsiz format, text-red-600 çıxarılıb;
+                  aşağıdakı "Mayaya təsiri" sətri (fmtMoneySigned) bu qaydaya
+                  aid DEYİL — o, ayrıca mayaya təsir göstəricisidir. */}
+              <ExpenseAmount amount={expense.amount} size="lg" className="justify-end" />
               <Badge className="mt-1">
                 {SOURCE_LABEL[expense.source] ?? "Ümumi"}
               </Badge>
