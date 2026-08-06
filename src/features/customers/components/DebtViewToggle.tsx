@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 export type DebtViewMode = "borclar" | "musteri";
 
-const VIEW_CARDS: {
+const VIEW_SEGMENTS: {
   key: DebtViewMode;
   label: string;
   desc: string;
@@ -25,9 +25,14 @@ const VIEW_CARDS: {
 ];
 
 /**
- * FE#40 — Nisyə Borclar səhifəsinin başındakı 2 böyük görünüş kartı. Seçim
- * `ExpenseForm`-dakı mənbə seçimi (`SourcePicker`) ilə eyni radio-kart
- * naxışını təkrarlayır ki, tətbiqdə vahid bir görünüş üslubu qalsın.
+ * FE#74 (AC1/AC2/AC3) — Nisyə Borclar səhifəsinin başındakı görünüş seçimi:
+ * FE#40-dakı 2 böyük radio-kart ƏVƏZİNƏ BİR sətirlik seqment kontrolu. Ox
+ * düymələri ilə naviqasiya (`move()`) FE#40-dan bəri DƏYİŞMƏYİB — yalnız
+ * vizual dil DS-in seqmentli kontrol naxışına (`PeriodFilter`/status
+ * tab-ları ilə eyni: `rounded-control` çərçivə + `rounded-chip` seqmentlər,
+ * `focus-ring-inset`, `min-h-[40px]`) uyğunlaşdırılıb. İzah mətni (AC3)
+ * seqmentin ALTINDA TƏK kiçik sətirdə, seçilən rejimə görə dəyişir — iki ayrı
+ * böyük təsvir kartı YOXDUR.
  */
 export function DebtViewToggle({
   value,
@@ -40,23 +45,25 @@ export function DebtViewToggle({
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const move = (dir: 1 | -1) => {
-    const current = VIEW_CARDS.findIndex((c) => c.key === value);
-    const next = (current + dir + VIEW_CARDS.length) % VIEW_CARDS.length;
-    onChange(VIEW_CARDS[next].key);
+    const current = VIEW_SEGMENTS.findIndex((c) => c.key === value);
+    const next = (current + dir + VIEW_SEGMENTS.length) % VIEW_SEGMENTS.length;
+    onChange(VIEW_SEGMENTS[next].key);
     refs.current[next]?.focus();
   };
 
+  const activeDesc = VIEW_SEGMENTS.find((s) => s.key === value)?.desc ?? "";
+
   return (
-    <div className="mb-4">
+    <div>
       <span id={labelId} className="sr-only">
         Görünüş
       </span>
       <div
         role="radiogroup"
         aria-labelledby={labelId}
-        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
+        className="inline-flex w-full min-w-0 flex-nowrap gap-0.5 rounded-control border border-stone-200 bg-white p-1 sm:w-auto"
       >
-        {VIEW_CARDS.map(({ key, label, desc, Icon }, idx) => {
+        {VIEW_SEGMENTS.map(({ key, label, Icon }, idx) => {
           const active = value === key;
           return (
             <button
@@ -79,41 +86,19 @@ export function DebtViewToggle({
                 }
               }}
               className={cn(
-                "flex items-start gap-2.5 rounded-2xl border-2 p-3.5 text-left transition-colors",
-                "focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-4 focus-visible:ring-emerald-500/20",
+                "focus-ring-inset inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-chip px-3.5 text-sm font-semibold transition-colors sm:flex-initial",
                 active
-                  ? "border-emerald-600 bg-emerald-50"
-                  : "border-stone-200 bg-white hover:border-stone-300",
+                  ? "bg-emerald-700 text-white shadow-sm"
+                  : "text-stone-600 hover:bg-stone-50 hover:text-stone-900",
               )}
             >
-              <span
-                aria-hidden
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                  active
-                    ? "bg-emerald-600 text-white"
-                    : "bg-stone-100 text-stone-500",
-                )}
-              >
-                <Icon size={20} />
-              </span>
-              <span className="min-w-0">
-                <span
-                  className={cn(
-                    "block text-base font-bold",
-                    active ? "text-emerald-800" : "text-stone-800",
-                  )}
-                >
-                  {label}
-                </span>
-                <span className="mt-0.5 block text-xs text-stone-500">
-                  {desc}
-                </span>
-              </span>
+              <Icon size={15} />
+              {label}
             </button>
           );
         })}
       </div>
+      <p className="mt-1.5 text-xs text-stone-500">{activeDesc}</p>
     </div>
   );
 }
