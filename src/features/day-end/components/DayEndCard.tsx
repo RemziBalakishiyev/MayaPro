@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { StatCard, type StatTone } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/toast-store";
-import { TONE_TEXT } from "@/lib/ui-tokens";
+import { TONE_SURFACE, TONE_TEXT } from "@/lib/ui-tokens";
 import { ApiError } from "@/lib/api-client";
 import { fmtMoney, fmtMoneySigned, fmtDate, todayISO } from "@/lib/format";
 import { useSummary } from "@/features/reports/queries";
@@ -355,16 +355,10 @@ export function DayEndCard() {
               Yalnız `diff === 0` uğur rəngindədir; `diff < 0` qırmızı qalır.
               `difference()` / `expectedCash()` düsturlarına TOXUNULMAYIB.
             */}
-            {diff !== null ? (
+            {diff !== null && diffPresentation ? (
               <div
                 role="status"
-                className={`flex items-start gap-2.5 rounded-control px-4 py-3.5 text-sm font-bold ring-1 ${
-                  diff < 0
-                    ? "bg-red-50 text-red-700 ring-red-200"
-                    : diff > 0
-                      ? "bg-amber-50 text-amber-900 ring-amber-300"
-                      : "bg-emerald-50 text-emerald-800 ring-emerald-200"
-                }`}
+                className={`flex items-start gap-2.5 rounded-control px-4 py-3.5 text-sm font-bold ring-1 ${TONE_SURFACE[diffPresentation.tone]}`}
               >
                 {diff < 0 ? (
                   <TrendingDown
