@@ -44,7 +44,11 @@ export function PayModal({ open, onClose, supplier }: Props) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={`Ödəniş et — ${supplier.name}`}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Təchizatçıya ödəniş et — ${supplier.name}`}
+    >
       <p className="mb-3 text-sm text-stone-600">
         Cari qalıq borc:{" "}
         <b className="text-red-600">{fmtMoney(max)}</b>
