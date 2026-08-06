@@ -8,6 +8,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import { isoInRange, type PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
+import { InlineError } from "@/components/ui/InlineError";
 import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
 import { fmtMoney } from "@/lib/format";
 import { useExpenses, useDeleteExpense } from "@/features/expenses/queries";
@@ -169,11 +170,18 @@ function XerclerPage() {
        * varkən arxa-fon refetch-i uğursuz olarsa, TanStack Query `data`-nı
        * ƏVVƏLKİ nəticə ilə saxlayır — bu halda mövcud siyahı qalır, üstündə
        * yalnız kiçik "yenilənmə uğursuz oldu" xəbərdarlıq zolağı göstərilir.
+       *
+       * Ötəri istifadə olunan xüsusi qırmızı `<div>` DS `InlineError`
+       * komponenti ilə əvəzləndi: digər səthlərlə (Dashboard/Hesabatlar/
+       * DataTable) eyni görünüş, `role="alert"` (a11y) və "Yenidən cəhd et"
+       * düyməsi (əvvəlki versiyada bu düymə heç yox idi).
        */}
       {isError && expenses.length === 0 ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm font-medium text-red-700">
-          {error instanceof Error ? error.message : "Xərclər yüklənmədi"}
-        </div>
+        <InlineError
+          message={error instanceof Error ? error.message : "Xərclər yüklənmədi"}
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
       ) : (
         <>
           {isError && (
