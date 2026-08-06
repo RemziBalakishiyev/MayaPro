@@ -16,6 +16,7 @@ import { EmptyState } from "./EmptyState";
 import { InlineError } from "./InlineError";
 import { TableSkeleton } from "./LoadingSkeleton";
 import { TablePagination } from "./TablePagination";
+import { StaleDataBanner } from "./StaleDataBanner";
 
 // Sütunlara responsiv gizlətmə üçün className vermək imkanı.
 declare module "@tanstack/react-table" {
@@ -36,6 +37,22 @@ export interface DataTableProps<TData> {
   isError?: boolean;
   onRetry?: () => void;
   errorMessage?: string;
+  /**
+   * FE#142: `data` tipcə həmişə array olduğu üçün (undefined ola bilməz),
+   * "heç vaxt uğurla yüklənməyib" halı defolt olaraq `data.length === 0`
+   * proxy-si ilə yoxlanılır. Bu proxy, TanStack Query-nin arxa-fon refetch
+   * xətasında ƏVVƏLKİ uğurlu (legitim BOŞ) nəticəni saxlaması səbəbindən,
+   * "heç vaxt yüklənməyib" ilə "uğurla yüklənmiş, lakin BOŞ + indi arxa-fon
+   * xətası" hallarını ayırd edə bilmir — hər ikisində `data` `[]`-dir.
+   *
+   * Çağıran komponent dəqiq siqnalı bilirsə (məs. sorğunun
+   * `dataUpdatedAt > 0` dəyəri — "ən azı bir dəfə uğurla yükləndi"), bu
+   * prop-u ötürsün: `true` — uğurla yüklənib (boş nəticə olsa belə),
+   * `false` — heç vaxt uğurla yüklənməyib. Ötürülməzsə (`undefined`), köhnə
+   * `data.length > 0` fallback-i istifadə olunur — mövcud çağıranlara (bu
+   * prop-u ötürməyənlərə) HEÇ BİR təsir etmir.
+   */
+  hasLoadedOnce?: boolean;
   emptyState?: { title: string; description?: string };
   /** Cədvəlin üstündəki alət zolağı (adətən `LocalTableSearch` + düymələr). */
   toolbar?: ReactNode;
@@ -61,6 +78,7 @@ export function DataTable<TData>({
   isError,
   onRetry,
   errorMessage = "Siyahı yüklənmədi",
+  hasLoadedOnce,
   emptyState,
   toolbar,
   pageSize = 10,
@@ -91,7 +109,20 @@ export function DataTable<TData>({
     : "rounded-card border border-stone-200 bg-white shadow-card";
 
   // Xəta vəziyyəti «boş nəticə»dən ƏVVƏL yoxlanılır (F-44).
-  if (isError) {
+  //
+  // FE#142: AMMA arxa-fon (background) refetch-i uğursuz olduqda `data`
+  // TanStack Query-nin sənədləşdirilmiş davranışına görə ƏVVƏLKİ uğurlu
+  // nəticəni saxlayır (undefined-ə sıfırlanmır) — yalnız `isError=true` olur.
+  // Bu halda artıq göstəriləcək DOĞRU data mövcuddur, ona görə tam
+  // `InlineError` ekranı ilə əvəz ETMİRİK: mövcud cədvəl/boş-siyahı vəziyyəti
+  // qalır, üstündə yalnız kiçik "yenilənmə uğursuz oldu" xəbərdarlıq zolağı
+  // göstərilir (aşağıda). Tam `InlineError` YALNIZ göstəriləcək data heç
+  // uğurla yüklənməyibsə görünür — "heç olmadı" `hasLoadedOnce` prop-u ilə
+  // (verilməyibsə köhnə `data.length === 0` proxy-si ilə) müəyyən edilir.
+  const neverLoadedSuccessfully =
+    hasLoadedOnce === undefined ? data.length === 0 : !hasLoadedOnce;
+
+  if (isError && neverLoadedSuccessfully) {
     return (
       <div className={cn(toolbar && "space-y-3")}>
         {toolbar}
@@ -116,9 +147,13 @@ export function DataTable<TData>({
   }
 
   if (data.length === 0) {
+    // FE#142: uğurla yüklənmiş (`hasLoadedOnce`) BOŞ siyahı + arxa-fon xətası
+    // → tam `InlineError` YOX, `EmptyState` + üstündə kiçik xəbərdarlıq
+    // zolağı — istifadəçi legitim boş nəticəni xəta ilə qarışdırmır.
     return (
-      <div className={cn(toolbar && "space-y-3")}>
+      <div className={cn((toolbar || isError) && "space-y-3")}>
         {toolbar}
+        {isError && <StaleDataBanner onRetry={onRetry} />}
         <EmptyState
           title={emptyState?.title ?? "Məlumat yoxdur"}
           hint={emptyState?.description}
@@ -137,6 +172,10 @@ export function DataTable<TData>({
   return (
     <div className="space-y-3">
       {toolbar}
+
+      {/* FE#142: arxa-fon refetch xətası — mövcud (köhnə/keçərli) data
+          görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
+      {isError && <StaleDataBanner onRetry={onRetry} />}
 
       {/* Mobil: kart görünüşü (md-dən aşağı) */}
       {mobileCard && (

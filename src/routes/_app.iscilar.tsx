@@ -34,8 +34,18 @@ const TABS = [
 function IscilarPage() {
   const navigate = Route.useNavigate();
   const { tab, month } = Route.useSearch();
-  const { data: employees = [], isLoading } = useEmployees();
+  const {
+    data: employees = [],
+    isLoading,
+    isError,
+    dataUpdatedAt,
+    refetch,
+  } = useEmployees();
   const user = useAuthStore((s) => s.user);
+  // FE#142: sorğu ən azı bir dəfə uğurla yüklənibmi — arxa-fon refetch
+  // xətasında `DataTable`-ın "heç vaxt yüklənməyib" ilə "uğurla yüklənmiş
+  // BOŞ siyahı" hallarını ayırd etməsi üçün.
+  const hasLoadedOnce = dataUpdatedAt > 0 || employees.length > 0;
 
   // BE#28 qərarı: maaş bölməsi satıcı üçün tamamilə gizlidir (öz maaşını da
   // görmür) — tab özü belə göstərilmir, "Fəaliyyət" görünüşünə düşür.
@@ -88,7 +98,13 @@ function IscilarPage() {
       ) : (
         <div className="grid gap-5 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <EmployeesTable employees={employees} isLoading={isLoading} />
+            <EmployeesTable
+              employees={employees}
+              isLoading={isLoading}
+              isError={isError}
+              onRetry={() => void refetch()}
+              hasLoadedOnce={hasLoadedOnce}
+            />
           </div>
           <div className="lg:col-span-2">
             <Card title="Fəaliyyət jurnalı">

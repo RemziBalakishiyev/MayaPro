@@ -9,7 +9,17 @@ import { useClosings } from "../queries";
 import type { Closing } from "@/types";
 
 export function ClosingHistory() {
-  const { data: closings = [], isLoading } = useClosings();
+  const {
+    data: closings = [],
+    isLoading,
+    isError,
+    dataUpdatedAt,
+    refetch,
+  } = useClosings();
+  // FE#142: sorğu ən azı bir dəfə uğurla yüklənibmi — arxa-fon refetch
+  // xətasında `DataTable`-ın "heç vaxt yüklənməyib" ilə "uğurla yüklənmiş
+  // BOŞ siyahı" hallarını ayırd etməsi üçün (maliyyə-həssas ekran).
+  const hasLoadedOnce = dataUpdatedAt > 0 || closings.length > 0;
 
   const rows = useMemo(
     () => [...closings].sort((a, b) => (a.date < b.date ? 1 : -1)),
@@ -97,6 +107,10 @@ export function ClosingHistory() {
       columns={columns}
       data={rows}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      hasLoadedOnce={hasLoadedOnce}
+      errorMessage="Bağlanış tarixçəsi yüklənmədi"
       emptyState={{ title: "Bağlanış yoxdur" }}
     />
   );

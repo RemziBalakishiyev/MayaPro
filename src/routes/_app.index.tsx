@@ -19,8 +19,10 @@ import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
-import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { InlineError } from "@/components/ui/InlineError";
+import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
+import { PageSkeleton } from "@/components/ui/LoadingSkeleton";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { useDashboardStats } from "@/features/reports/queries";
 import { SignatureBand } from "@/features/reports/components/SignatureBand";
@@ -32,13 +34,38 @@ export const Route = createFileRoute("/_app/")({
 });
 
 function DashboardPage() {
-  const { data: d, isLoading } = useDashboardStats();
+  const { data: d, isLoading, isError, refetch } = useDashboardStats();
+
+  // FE#142 (TC-32): xəta vəziyyəti yüklənmə/boş vəziyyətdən ƏVVƏL yoxlanılır —
+  // şəbəkə/server xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən"
+  // göstərilir. AMMA yalnız `d` (dashboard datası) HEÇ VAXT uğurla
+  // yüklənməyibsə (`data === undefined`). Əvvəl uğurla yüklənmiş data varkən
+  // arxa-fon refetch-i uğursuz olarsa, TanStack Query `data`-nı ƏVVƏLKİ
+  // nəticə ilə saxlayır — bu halda artıq göstəriləcək DOĞRU dashboard var,
+  // ona görə onu tam InlineError ekranı ilə əvəz ETMİRİK (aşağıda kiçik
+  // xəbərdarlıq zolağı ilə göstərilir).
+  if (isError && !d) {
+    return (
+      <div>
+        <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+        <InlineError
+          message="Dashboard yüklənmədi"
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
 
   if (isLoading || !d) {
     return (
       <div>
         <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
-        <Spinner />
+        <PageSkeleton
+          label="Dashboard yüklənir"
+          statCount={10}
+          statGridClassName="grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
+        />
       </div>
     );
   }
@@ -46,6 +73,15 @@ function DashboardPage() {
   return (
     <div className="space-y-5">
       <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+
+      {/* FE#142: arxa-fon refetch xətası — mövcud (köhnə/keçərli) dashboard
+          görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
+      {isError && (
+        <StaleDataBanner
+          message="Dashboard yenilənmədi — göstərilən məlumat köhnəlmiş ola bilər."
+          onRetry={() => void refetch()}
+        />
+      )}
 
       <SignatureBand
         expectedCash={d.expectedCash}

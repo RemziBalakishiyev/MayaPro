@@ -38,6 +38,56 @@ export function SkeletonText({ lines = 3, className }: SkeletonTextProps) {
   );
 }
 
+export interface PageSkeletonProps {
+  /** Ekran oxuyucusu üçün elan (məs. "Dashboard yüklənir"). */
+  label: string;
+  /** Üst KPI kart sayı (defolt 6). */
+  statCount?: number;
+  /** KPI kartları üçün grid sütun sinifləri. */
+  statGridClassName?: string;
+  /** Alt böyük kart sayı (defolt 2). */
+  cardCount?: number;
+  /** Alt kartlar üçün grid sütun sinifləri. */
+  cardGridClassName?: string;
+  /** Alt kartların hündürlüyü. */
+  cardHeightClassName?: string;
+}
+
+/**
+ * FE#142 — tam səhifə (Dashboard/Hesabatlar tipli) yüklənmə skeleti: KPI
+ * kart cərgəsi + altında böyük kartlar. `TableSkeleton`-la eyni naxış —
+ * sonsuz spinner əvəzinə məzmunun formasını təqlid edir, düzülüş sıçramır.
+ */
+export function PageSkeleton({
+  label,
+  statCount = 6,
+  statGridClassName = "grid-cols-2 md:grid-cols-3 xl:grid-cols-6",
+  cardCount = 2,
+  cardGridClassName = "lg:grid-cols-2",
+  cardHeightClassName = "h-64",
+}: PageSkeletonProps) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+      className="space-y-5"
+    >
+      <div className={cn("grid gap-3", statGridClassName)}>
+        {Array.from({ length: statCount }).map((_, i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
+      </div>
+      <div className={cn("grid gap-4", cardGridClassName)}>
+        {Array.from({ length: cardCount }).map((_, i) => (
+          <Skeleton key={i} className={cardHeightClassName} />
+        ))}
+      </div>
+      <span className="sr-only">{label}...</span>
+    </div>
+  );
+}
+
 export interface TableSkeletonProps {
   /** Sətir sayı (defolt 5). */
   rows?: number;

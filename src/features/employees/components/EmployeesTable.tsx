@@ -7,9 +7,27 @@ import type { Employee } from "@/types";
 interface Props {
   employees: Employee[];
   isLoading?: boolean;
+  /**
+   * FE#142: işçi sorğusu şəbəkə/server xətası ilə uğursuz olduqda boş-siyahı
+   * mesajı ("İşçi tapılmadı") ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
+  /**
+   * FE#142: sorğu ən azı bir dəfə uğurla yükləndimi (məs. `dataUpdatedAt >
+   * 0`) — arxa-fon refetch xətası ilə "heç vaxt yüklənməyib" halını ayırd
+   * etmək üçün `DataTable`-a ötürülür (bax `DataTable`-dakı izah).
+   */
+  hasLoadedOnce?: boolean;
 }
 
-export function EmployeesTable({ employees, isLoading }: Props) {
+export function EmployeesTable({
+  employees,
+  isLoading,
+  isError,
+  onRetry,
+  hasLoadedOnce,
+}: Props) {
   const columns = useMemo<ColumnDef<Employee, unknown>[]>(
     () => [
       {
@@ -55,6 +73,10 @@ export function EmployeesTable({ employees, isLoading }: Props) {
       columns={columns}
       data={employees}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      hasLoadedOnce={hasLoadedOnce}
+      errorMessage="İşçilər yüklənmədi"
       emptyState={{ title: "İşçi tapılmadı" }}
     />
   );
