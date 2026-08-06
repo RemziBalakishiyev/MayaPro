@@ -161,6 +161,24 @@ describe("DebtsKpiCards", () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
+  // FE#113 — design-system.md §1.6 (AC-8/TC-6): bütün interaktiv
+  // kontrollar min 40px toxunma hədəfinə malik olmalıdır. `ErrorBlock`
+  // "Yenidən" düyməsi FE#111-də `KpiCard.tsx`-də düzəldilən eyni pattern-i
+  // izləməlidir (`min-h-10`).
+  it("FE#113 — xəta halında 'Yenidən' düymələri min-h-10 (40px) sinifinə malikdir", () => {
+    mockUseDebtsKpi.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      refetch: vi.fn(),
+    } as never);
+    render(<DebtsKpiCards range={{}} />);
+    const retryButtons = screen.getAllByRole("button", { name: /yenidən/i });
+    expect(retryButtons.length).toBeGreaterThan(0);
+    retryButtons.forEach((btn) => expect(btn).toHaveClass("min-h-10"));
+  });
+
   // FE#65 — dövr çipi dəyişəndə (isFetching=true, isLoading=false, köhnə
   // `data` `placeholderData` ilə saxlanılıb) panel sabit qalmalıdır (bu
   // panel period-dən asılı deyil, "Bu dövrdə" sətri ayrıca komponentdədir).
