@@ -99,14 +99,25 @@ function AppLayout() {
   const sidebarFooter = (
     <>
       <div className="px-3">
-        <p className="text-xs leading-none text-emerald-300/60">
-          Kassada olmalı
+        {/*
+          FE#77 (R-01 / E-01): bu rəqəm son bağlanışın faktikindən bəri
+          YIĞILAN ÜMUMİ kassa gözləntisidir (`DashboardCalculator.ExpectedCash`
+          — bax backend `docs/flows/DAYEND-FLOW.md`), Gün Sonu səhifəsindəki
+          "Bu günün sonunda kassada olmalı" isə YALNIZ bugünkü hesabdır.
+          Əhatə fərqli olduğu üçün etiketlər fərqləndirilir — hesablama
+          düsturuna TOXUNULMUR (`useDashboardStats()` olduğu kimi qalır).
+        */}
+        <p className="text-xs leading-tight text-emerald-300/60">
+          Kassada olmalı (ümumi)
         </p>
         <p
           title={fmtMoney(stats?.expectedCash ?? 0)}
           className="money mt-0.5 text-xl font-bold leading-tight text-emerald-300"
         >
           {fmtMoney(stats?.expectedCash ?? 0)}
+        </p>
+        <p className="mt-0.5 text-[11px] leading-tight text-emerald-300/50">
+          Son bağlanışdan bəri
         </p>
       </div>
 

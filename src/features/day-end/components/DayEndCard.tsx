@@ -1,17 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { AlertTriangle, Check, Lock, TrendingDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { StatCard } from "@/components/ui/StatCard";
+import { StatCard, type StatTone } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/toast-store";
-import { fmtMoney, fmtDate, todayISO } from "@/lib/format";
+import { TONE_SURFACE, TONE_TEXT } from "@/lib/ui-tokens";
+import { ApiError } from "@/lib/api-client";
+import { fmtMoney, fmtMoneySigned, fmtDate, todayISO } from "@/lib/format";
 import { useSummary } from "@/features/reports/queries";
 import { useCan } from "@/features/auth/store";
 import { useClosings, useTodayClosing, useCloseDay } from "../queries";
 import { expectedCash as calcExpected, difference as calcDiff } from "../lib";
+import { cashDiffPresentation, type CashDiffTone } from "./cash-diff-presentation";
+
+/** `cash-diff-presentation.ts` tonunu `StatCard`-ın öz ton adlarına çevirir. */
+const STAT_TONE: Record<CashDiffTone, StatTone> = {
+  success: "green",
+  warning: "amber",
+  danger: "red",
+};
 
 function Row({
   label,
@@ -42,39 +54,84 @@ function Row({
   );
 }
 
+/**
+ * FE#77 — nömrələnmiş addım başlığı (bənd #2: "İş axını ÜÇ AYDIN MƏRHƏLƏ
+ * kimi təqdim olunur"). Yalnız təqdimatdır — `Card` primitivi dəyişmir,
+ * `title` slotuna ötürülür.
+ */
+function StepHeading({ n, children }: { n: number; children: ReactNode }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <span
+        aria-hidden
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white"
+      >
+        {n}
+      </span>
+      <span>{children}</span>
+    </span>
+  );
+}
+
+/** `<p>` daxilində keçərli qalması üçün (`ConfirmModal.message` bir `<p>`-dir)
+ *  bütün sətirlər `span`-dır, `div` YOXDUR. */
+function ConfirmRow({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <span className="flex items-center justify-between py-0.5">
+      <span className="text-stone-600">{label}</span>
+      <span className={`font-bold tabular-nums ${tone ?? "text-stone-900"}`}>
+        {value}
+      </span>
+    </span>
+  );
+}
+
 export function DayEndCard() {
   const toast = useToast();
   const t = todayISO();
   // Gün cəmləri serverdən (mock rejimdə mock summary) — GET /api/reports/summary?period=today
   //
-  // FE#57 qeydi: bugünkü işçi maaş ÖDƏNİŞLƏRİ (BE#28) kassadan çıxan pul olduğu
-  // üçün "Kassada olmalı" hesabına daxil edilməlidir, amma bunun üçün ayrıca
-  // sahə YOXDUR — nə bu `GetSummaryHandler` cavabında (`SummaryData.expenses`),
-  // nə də bağlanış cavabında (`ClosingDto`, backend orada məbləği mövcud
-  // `expenses` sahəsinə qatır, ADR-0006 görə wire format dondurulub). Ayrıca
-  // "İşçi ödənişləri: −X ₼" sətri əlavə etmək üçün bütün işçilərin bugünkü
-  // maaş sətirlərini client-də əlavə sorğu ilə çəkib cəmləmək lazım gələrdi —
-  // bu, tapşırıqda qadağan olunan workaround-dur, ona görə YAZILMAYIB.
-  // Nəticə: closing FAKTİKİ olaraq düzgündür (server-side CloseDayHandler
-  // ödənişi `expenses`-ə əlavə edir), lakin BAĞLAMADAN ƏVVƏLKİ bu önizləmə
-  // (useSummary) bugünkü maaş ödənişini HƏLƏ NƏZƏRƏ ALMIR, çünki
-  // GetSummaryHandler BE#28 ilə yenilənməyib (yalnız Dashboard/CloseDay
-  // yeniləndi) — QA report-a bu fərq qeyd edilməlidir.
+  // FE#77 yeniləməsi (əvvəlki FE#57 qeydini əvəz edir): BE#33 ilə
+  // `GetSummaryHandler` artıq bugünkü işçi maaş ÖDƏNİŞLƏRİNİ (BE#28) də
+  // `expenses` cəminə qatır (`expenses = generalExpenses + productExpenses +
+  // salaryExpenses`, bax backend `docs/flows/DAYEND-FLOW.md`). Deməli bu
+  // önizləmə (`expected` aşağıda) ilə faktiki `CloseDayHandler` bağlanışı
+  // artıq EYNİ rəqəmi verir — köhnə uyğunsuzluq HƏLL OLUNUB.
+  // `SummaryData.salaryExpenses` (əlavə, additiv sahə) yalnız bu cəmin bir
+  // hissəsini AYRICA sətir kimi göstərmək üçün oxunur, `expected` düsturuna
+  // heç nə ƏLAVƏ OLUNMUR (o, artıq `todayExpenses` daxilindədir).
   const { data: summary } = useSummary("today");
   const { data: closings = [] } = useClosings();
-  const { data: todayClosing } = useTodayClosing();
+  const {
+    data: todayClosing,
+    refetch: refetchTodayClosing,
+  } = useTodayClosing();
   const closeDay = useCloseDay();
   const canClose = useCan()("closings.write");
 
   const [openingCash, setOpeningCash] = useState("");
   const [touched, setTouched] = useState(false);
   const [actualCash, setActualCash] = useState("");
+  const [note, setNote] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
+  // 409 "artıq bağlanıb" cavabı gələndə düymə dərhal deaktiv olsun deyə —
+  // `todayClosing` sorğusu arxa fonda yenilənənə qədər keçən qısa pəncərə.
+  const [justClosedElsewhere, setJustClosedElsewhere] = useState(false);
 
   const cashSales = summary?.cashSales ?? 0;
   const cardSales = summary?.cardSales ?? 0;
   const creditSales = summary?.creditSales ?? 0;
   const todayExpenses = summary?.expenses ?? 0;
+  const salaryExpenses = summary?.salaryExpenses;
 
   // Açılış kassası defolt: ən son (dünənki) bağlanışın faktiki məbləği, yoxdursa 0
   const defaultOpening = useMemo(() => {
@@ -92,66 +149,84 @@ export function DayEndCard() {
   const expected = calcExpected(oc, cashSales, todayExpenses);
   const ac = actualCash === "" ? null : Number(actualCash) || 0;
   const diff = ac === null ? null : calcDiff(ac, expected);
+  const diffPresentation = diff === null ? null : cashDiffPresentation(diff);
+
+  const disabledReason =
+    ac === null
+      ? "Faktiki məbləği yazın"
+      : justClosedElsewhere
+        ? "Bu gün artıq bağlanıb"
+        : null;
 
   const doClose = async () => {
+    setCloseError(null);
     try {
       // Server yalnız openingCash/actualCash/note qəbul edir; cəmləri özü hesablayır.
       await closeDay.mutateAsync({
         openingCash: oc,
         actualCash: ac ?? expected,
+        note: note.trim() || undefined,
       });
       toast.success("Gün sonu bağlandı");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Bağlanış alınmadı");
+      const isConflict =
+        (e instanceof ApiError && e.status === 409) ||
+        (e instanceof Error && /artıq bağlanıb/i.test(e.message));
+      const msg = isConflict
+        ? "Bu gün artıq bağlanıb"
+        : e instanceof Error
+          ? e.message
+          : "Bağlanış alınmadı";
+      setCloseError(msg);
+      toast.error(msg);
+      if (isConflict) {
+        setJustClosedElsewhere(true);
+        // Fon rejimində "artıq bağlanıb" xülasə kartına keçid üçün yenilə.
+        void refetchTodayClosing();
+      }
+      // Yenidən atılır ki, `ConfirmModal` YALNIZ uğurda bağlansın (F-43) —
+      // gün bağlanışı geri alınmayan əməliyyatdır, xəta halında dialoq
+      // açıq qalıb səbəbi göstərməlidir.
+      throw e;
     }
   };
 
   // Bugün artıq bağlanıbsa → xülasə kartı
   if (todayClosing) {
+    // AC-12: bağlanmış gün xülasəsində də müsbət fərq kəhrəbadır — eyni
+    // `cashDiffPresentation` qaydası (rəng tək siqnal deyil, ikon + mətn).
+    const closedDiffPresentation = cashDiffPresentation(todayClosing.difference);
     return (
       <Card title={`${fmtDate(t)} — bu gün artıq bağlanıb`}>
         <div className="mb-4 grid grid-cols-3 gap-2">
           <StatCard
-            label="Gözlənilən"
+            label="Olmalı idi"
             value={fmtMoney(todayClosing.expectedCash)}
           />
-          <StatCard label="Faktiki" value={fmtMoney(todayClosing.actualCash)} />
-          {/* AC-12: bağlanmış gün xülasəsində də müsbət fərq kəhrəbadır. */}
+          <StatCard label="Sayıldı" value={fmtMoney(todayClosing.actualCash)} />
           <StatCard
             label="Fərq"
             value={fmtMoney(todayClosing.difference)}
-            tone={
-              todayClosing.difference < 0
-                ? "red"
-                : todayClosing.difference > 0
-                  ? "amber"
-                  : "green"
-            }
+            tone={STAT_TONE[closedDiffPresentation.tone]}
             valueIcon={
-              todayClosing.difference === 0 ? (
-                <Check size={18} aria-hidden className="shrink-0" />
-              ) : (
+              closedDiffPresentation.showWarningIcon ? (
                 <AlertTriangle size={18} aria-hidden className="shrink-0" />
+              ) : (
+                <Check size={18} aria-hidden className="shrink-0" />
               )
             }
-            sub={
-              todayClosing.difference > 0
-                ? "Yoxlanmalı uyğunsuzluq (artıq məbləğ)"
-                : todayClosing.difference < 0
-                  ? "Kassada çatışmazlıq"
-                  : "Kassa düz gəlir"
-            }
+            sub={closedDiffPresentation.title}
           />
         </div>
         <Row label="Başlanğıc kassa" value={fmtMoney(todayClosing.openingCash)} />
         <Row
           label="Nağd satış"
-          value={`+\u00A0${fmtMoney(todayClosing.cashSales)}`}
+          value={`+ ${fmtMoney(todayClosing.cashSales)}`}
           tone="text-emerald-700"
         />
         <Row
           label="Günlük xərclər"
-          value={`−\u00A0${fmtMoney(todayClosing.expenses)}`}
+          value={`− ${fmtMoney(todayClosing.expenses)}`}
           tone="text-red-600"
         />
         <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
@@ -161,126 +236,206 @@ export function DayEndCard() {
     );
   }
 
+  // ConfirmModal.message bir <p> daxilindədir — yalnız `span` (block deyil).
+  const confirmMessage = (
+    <span className="block space-y-1.5">
+      <ConfirmRow label="Olmalı idi" value={fmtMoney(expected)} />
+      <ConfirmRow label="Sayıldı" value={fmtMoney(ac ?? 0)} />
+      <ConfirmRow
+        label="Fərq"
+        value={fmtMoneySigned(diff ?? 0, "±")}
+        tone={diffPresentation ? TONE_TEXT[diffPresentation.tone] : undefined}
+      />
+      <ConfirmRow label="Tarix" value={fmtDate(t)} />
+      <span className="mt-3 flex items-start gap-2 rounded-chip bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-300">
+        <Lock size={14} aria-hidden className="mt-0.5 shrink-0" />
+        Bu qeyd dəyişdirilə bilməz — gün bağlandıqdan sonra heç bir rəqəm
+        redaktə oluna bilməz.
+      </span>
+    </span>
+  );
+
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      <Card title="Bugünkü hesab">
-        <Row
+      <Card title={<StepHeading n={1}>Bugünkü hesabı yoxla</StepHeading>}>
+        <Field
           label="Başlanğıc kassa"
-          value={
-            <input
-              type="number"
-              value={openingCash}
-              onChange={(e) => {
-                setTouched(true);
-                setOpeningCash(e.target.value);
-              }}
-              className="h-10 w-28 rounded-lg border border-stone-300 px-2 text-right text-sm font-semibold tabular-nums focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          hint="Dünənki bağlanışdan avtomatik gəlir — lazım olsa dəyişdirin."
+        >
+          <Input
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={openingCash}
+            onChange={(e) => {
+              setTouched(true);
+              setOpeningCash(e.target.value);
+            }}
+            className="text-right font-semibold tabular-nums"
+          />
+        </Field>
+
+        <div className="mt-3">
+          <Row
+            label="Nağd satış"
+            value={`+ ${fmtMoney(cashSales)}`}
+            tone="text-emerald-700"
+          />
+          <Row
+            label="Kart satış (kassaya düşmür)"
+            value={fmtMoney(cardSales)}
+            tone="text-indigo-600"
+          />
+          <Row
+            label="Nisyə satış (kassaya düşmür)"
+            value={fmtMoney(creditSales)}
+            tone="text-amber-600"
+          />
+          <Row
+            label="Günlük xərclər"
+            value={`− ${fmtMoney(todayExpenses)}`}
+            tone="text-red-600"
+          />
+          {typeof salaryExpenses === "number" && salaryExpenses > 0 && (
+            <Row
+              label="O cümlədən: işçi maaş ödənişləri"
+              value={`− ${fmtMoney(salaryExpenses)}`}
+              tone="text-red-500"
             />
-          }
-        />
-        <Row
-          label="Nağd satış"
-          value={`+\u00A0${fmtMoney(cashSales)}`}
-          tone="text-emerald-700"
-        />
-        <Row
-          label="Kart satış (kassaya düşmür)"
-          value={fmtMoney(cardSales)}
-          tone="text-indigo-600"
-        />
-        <Row
-          label="Nisyə satış (kassaya düşmür)"
-          value={fmtMoney(creditSales)}
-          tone="text-amber-600"
-        />
-        <Row
-          label="Günlük xərclər"
-          value={`−\u00A0${fmtMoney(todayExpenses)}`}
-          tone="text-red-600"
-        />
-        <Row
-          label="Kassada olmalı məbləğ"
-          value={fmtMoney(expected)}
-          bold
-          tone="text-emerald-800"
-        />
+          )}
+        </div>
+
+        {/* Bənd #4: hesablanan gözlənilən məbləğ QABARIQ (böyük rəqəm). */}
+        <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-4 ring-1 ring-emerald-200">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+            Bu günün sonunda kassada olmalı
+          </p>
+          <p
+            title={fmtMoney(expected)}
+            className="money mt-1 text-3xl font-bold leading-tight text-emerald-800"
+          >
+            {fmtMoney(expected)}
+          </p>
+        </div>
       </Card>
 
       {!canClose ? (
-        <Card title="Faktiki sayım">
+        <Card title={<StepHeading n={2}>Kassadakı faktiki pulu yaz</StepHeading>}>
           <div className="flex items-center gap-2 rounded-xl bg-stone-50 px-4 py-3 text-sm font-medium text-stone-600 ring-1 ring-stone-200">
             <Lock size={16} /> Günü yalnız sahibkar bağlaya bilər.
           </div>
         </Card>
       ) : (
-      <Card title="Faktiki sayım">
-        <Field
-          label="Faktiki sayılan pul"
-          required
-          hint="Kassadakı nağdı sayıb bura yazın."
-        >
-          <Input
-            type="number"
-            min="0"
-            value={actualCash}
-            onChange={(e) => setActualCash(e.target.value)}
-            placeholder="0.00"
-          />
-        </Field>
-
-        {/*
-          FE#69 (AC-12 / R-02): MÜSBƏT fərq uğur DEYİL — yoxlanmalı
-          uyğunsuzluqdur. Kəhrəba fon + xəbərdarlıq ikonu + izah mətni.
-          Yalnız `diff === 0` uğur rəngindədir; `diff < 0` qırmızı qalır.
-          `difference()` / `expectedCash()` düsturlarına TOXUNULMAYIB.
-        */}
-        {diff !== null && (
-          <div
-            role="status"
-            className={`mt-4 flex items-start gap-2.5 rounded-control px-4 py-3.5 text-sm font-bold ring-1 ${
-              diff < 0
-                ? "bg-red-50 text-red-700 ring-red-200"
-                : diff > 0
-                  ? "bg-amber-50 text-amber-900 ring-amber-300"
-                  : "bg-emerald-50 text-emerald-800 ring-emerald-200"
-            }`}
+        <div className="flex flex-col gap-5">
+          <Card
+            title={<StepHeading n={2}>Kassadakı faktiki pulu yaz</StepHeading>}
           >
-            {diff < 0 ? (
-              <TrendingDown size={18} aria-hidden className="mt-0.5 shrink-0" />
-            ) : diff > 0 ? (
-              <AlertTriangle size={18} aria-hidden className="mt-0.5 shrink-0" />
-            ) : (
-              <Check size={18} aria-hidden className="mt-0.5 shrink-0" />
-            )}
-            <span className="min-w-0">
-              {diff < 0 ? (
-                `Kassada çatışmayan məbləğ: ${fmtMoney(Math.abs(diff))}`
-              ) : diff > 0 ? (
-                <>
-                  {/* Etiket: E-03 (audit «Etiket və mətn dəyişiklikləri») */}
-                  Kassa uyğun gəlmir — {fmtMoney(diff)} artıq çıxdı, yoxlayın
-                  <span className="mt-0.5 block text-xs font-medium text-amber-800">
-                    Artıq məbləğ də uyğunsuzluqdur: sayımı və qeydə alınmamış
-                    əməliyyatları yoxlayın.
-                  </span>
-                </>
-              ) : (
-                `Kassa düz gəlir. Fərq: ${fmtMoney(0)}`
-              )}
-            </span>
-          </div>
-        )}
+            <Field
+              label="Faktiki sayılan pul"
+              required
+              hint="Kassadakı nağdı sayıb bura yazın."
+            >
+              <Input
+                type="number"
+                min="0"
+                inputMode="decimal"
+                value={actualCash}
+                onChange={(e) => setActualCash(e.target.value)}
+                placeholder="0.00"
+              />
+            </Field>
+          </Card>
 
-        <Button
-          size="lg"
-          className="mt-4 w-full justify-center"
-          disabled={ac === null || closeDay.isPending}
-          onClick={() => setConfirmOpen(true)}
-          icon={<Lock size={16} />}
-        >
-          Günü bağla
-        </Button>
-      </Card>
+          <Card
+            title={<StepHeading n={3}>Fərqi yoxla və günü bağla</StepHeading>}
+          >
+            {/*
+              FE#69 (AC-12 / R-02): MÜSBƏT fərq uğur DEYİL — yoxlanmalı
+              uyğunsuzluqdur. Kəhrəba fon + xəbərdarlıq ikonu + izah mətni.
+              Yalnız `diff === 0` uğur rəngindədir; `diff < 0` qırmızı qalır.
+              `difference()` / `expectedCash()` düsturlarına TOXUNULMAYIB.
+            */}
+            {diff !== null && diffPresentation ? (
+              <div
+                role="status"
+                className={`flex items-start gap-2.5 rounded-control px-4 py-3.5 text-sm font-bold ring-1 ${TONE_SURFACE[diffPresentation.tone]}`}
+              >
+                {diff < 0 ? (
+                  <TrendingDown
+                    size={18}
+                    aria-hidden
+                    className="mt-0.5 shrink-0"
+                  />
+                ) : diff > 0 ? (
+                  <AlertTriangle
+                    size={18}
+                    aria-hidden
+                    className="mt-0.5 shrink-0"
+                  />
+                ) : (
+                  <Check size={18} aria-hidden className="mt-0.5 shrink-0" />
+                )}
+                <span className="min-w-0">
+                  {diff < 0 ? (
+                    `Kassada çatışmayan məbləğ: ${fmtMoney(Math.abs(diff))}`
+                  ) : diff > 0 ? (
+                    <>
+                      {/* Etiket: E-03 (audit «Etiket və mətn dəyişiklikləri») */}
+                      Kassa uyğun gəlmir — {fmtMoney(diff)} artıq çıxdı,
+                      yoxlayın
+                      <span className="mt-0.5 block text-xs font-medium text-amber-800">
+                        Artıq məbləğ də uyğunsuzluqdur: sayımı və qeydə
+                        alınmamış əməliyyatları yoxlayın.
+                      </span>
+                    </>
+                  ) : (
+                    `Kassa düz gəlir. Fərq: ${fmtMoney(0)}`
+                  )}
+                </span>
+              </div>
+            ) : (
+              <p className="rounded-control bg-stone-50 px-4 py-3.5 text-sm text-stone-500 ring-1 ring-stone-200">
+                Faktiki məbləği yazdıqdan sonra fərq burada canlı görünəcək.
+              </p>
+            )}
+
+            {/* Bənd #9: qeyd — Closing.Note dəstəklənir, İSTƏYƏ BAĞLIDIR. */}
+            <div className="mt-4">
+              <Field
+                label="Qeyd (istəyə bağlı)"
+                hint={
+                  diff !== null && diff !== 0
+                    ? "Fərqin səbəbini qeyd et — məcburi deyil, amma faydalıdır."
+                    : "Gün haqqında əlavə qeyd (istəyə bağlı)."
+                }
+              >
+                <Textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  placeholder="Məs: 5 ₼ xırda pul çatışmazlığı — səbəbi araşdırıldı."
+                />
+              </Field>
+            </div>
+
+            <Button
+              size="lg"
+              className="mt-4 w-full justify-center"
+              disabled={!!disabledReason}
+              loading={closeDay.isPending}
+              onClick={() => setConfirmOpen(true)}
+              icon={<Lock size={16} />}
+            >
+              Günü bağla
+            </Button>
+            {/* Bənd #7: düymə deaktivdirsə səbəb yazılır. */}
+            {disabledReason && (
+              <p className="mt-2 text-center text-xs font-medium text-stone-500">
+                {disabledReason}
+              </p>
+            )}
+          </Card>
+        </div>
       )}
 
       <ConfirmModal
@@ -295,11 +450,10 @@ export function DayEndCard() {
          * verirdi — kritik/dağıdıcı əməliyyat üçün qəbuledilməzdir.
          */
         isPending={closeDay.isPending}
+        error={closeError}
         title="Gün sonu bağlanışı"
         confirmText="Bəli, günü bağla"
-        message={`Kassada olmalı: ${fmtMoney(expected)}. Sayılan: ${fmtMoney(
-          ac ?? 0,
-        )}. Fərq: ${fmtMoney(diff ?? 0)}. Gün bağlandıqdan sonra dəyişiklik olmayacaq.`}
+        message={confirmMessage}
       />
     </div>
   );

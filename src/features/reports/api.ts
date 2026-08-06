@@ -120,6 +120,16 @@ export interface SummaryData {
    */
   generalExpenses?: number;
   productExpenses?: number;
+  /**
+   * FE#77 — dövrün işçi maaş ÖDƏNİŞLƏRİ (BE#33, `SummaryDto.salaryExpenses`).
+   * `expenses` artıq bunu ehtiva edir (`expenses = generalExpenses +
+   * productExpenses + salaryExpenses`, backend invariantı) — bu sahə YALNIZ
+   * Gün Sonu səhifəsində ayrıca sətir kimi göstərmək üçündür, `expenses`
+   * cəminə TƏKRAR ƏLAVƏ EDİLMİR. OPTIONAL — mock rejim və köhnə backend bunu
+   * qaytarmaya bilər (`generalExpenses`/`productExpenses` ilə eyni fallback
+   * qaydası).
+   */
+  salaryExpenses?: number;
 }
 
 /** Hesabatlar səhifəsi üçün xam kolleksiyalar. */

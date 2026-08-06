@@ -59,15 +59,18 @@ export function ClosingHistory() {
         ),
       },
       {
+        // FE#77 (E-22): "Gözlənilən" → "Olmalı idi" — mühasibat termini
+        // əvəzinə sadə bazar dili (`docs/ui-terminology.md`).
         accessorKey: "expectedCash",
-        header: "Gözlənilən",
+        header: "Olmalı idi",
         cell: ({ getValue }) => (
           <span className="tabular-nums">{fmtMoney(getValue() as number)}</span>
         ),
       },
       {
+        // FE#77 (E-22): "Faktiki" → "Sayıldı".
         accessorKey: "actualCash",
-        header: "Faktiki",
+        header: "Sayıldı",
         cell: ({ getValue }) => (
           <span className="tabular-nums">{fmtMoney(getValue() as number)}</span>
         ),

@@ -78,6 +78,11 @@ Dil qaydası: bütün mətnlər **Azərbaycanca**dır; ingiliscə qalıq mətn y
 | 57 | `src/components/ui/Badge.tsx` — müştəri borc statusu | `Borclu` (qırmızı — HƏR borclu üçün) | `Borclu` (sakit sky tonu) / `Gecikmiş borc` (60+ gün, kəhrəba) / `Kritik borc` (120+ gün, qırmızı — YALNIZ bu halda) | Rəng tək göstərici olmasın, hər borclu "dağıdıcı xəta" kimi görünməsin (DS 9-cu qayda) | FE#73, bənd 9 |
 | 58 | `src/features/customers/components/CustomersTable.tsx` — Qalıq borc sütunu (sıfır dəyər) | `—` (borc ≤ 0 olduqda) | `0.00 ₼` | Sıfır real dəyərdir, "naməlum" DEYİL — mövcud olmayan dəyərdən (`EmptyValue`, `—`) fərqlənsin | FE#73, bənd 10 |
 | 59 | `src/features/customers/components/CustomersTable.tsx` — "Son alış"/"Son əməliyyat" xanaları (boş) | *(xam boş sətir)* | `—` + aria-label (`EmptyValue`) | Boş dəyər izah olunsun (`ProductsTable` Kateqoriya xanası ilə eyni naxış, FE#70 AC-10) | FE#73, bənd 10/11 |
+| 60 | `src/routes/_app.tsx` — sidebar footer "Kassada olmalı" | `Kassada olmalı` | `Kassada olmalı (ümumi)` + köməkçi sətir "Son bağlanışdan bəri" | `R-01`/`F-01` — bu rəqəm (`stats.expectedCash`) son bağlanışın faktikindən bəri YIĞILAN ÜMUMİ kassadır (bax `backend/src/Modules/.../DashboardCalculator.cs:87-110`), Gün Sonu səhifəsindəki rəqəmdən (yalnız bugünkü) fərqli əhatəlidir. **Bu, audit sənədinin (`docs/ui-ux-current-state-audit.md`) `E-01` təklifini (`Kassada olmalı (bu gün)`) ƏVƏZ EDİR** — kod yoxlaması göstərdi ki, sidebar əslində "bu gün" DEYİL, ÜMUMİDİR (audit təklifi tərsinə yazılmışdı, bax `docs/pages/day-closing-ui-refactor.md` §3) | FE#77, `R-01` |
+| 61 | `src/features/day-end/components/DayEndCard.tsx` — Gün Sonu kartındakı "Kassada olmalı məbləğ" | `Kassada olmalı məbləğ` | `Bu günün sonunda kassada olmalı` (qabarıq, böyük rəqəm) | `R-01`/`F-01` — bu rəqəm YALNIZ bugünkü hesabdır (`openingCash + todayCash − todayExpenses`, `useSummary("today")`). **Bu, audit sənədinin `E-02` təklifini (`Kassada olmalı (bağlanışa qədər)`) ƏVƏZ EDİR** — eyni səbəb, tərs yazılmış audit təklifi | FE#77, `R-01` |
+| 62 | `src/features/day-end/components/DayEndCard.tsx` (artıq-bağlanıb xülasə kartı, `StatCard`), `ClosingHistory.tsx` (sütun başlıqları), `ConfirmModal` təsdiq mesajı | `Gözlənilən` / `Faktiki` | `Olmalı idi` / `Sayıldı` | `E-22` (audit sənədində əvvəldən qeydə alınmış, "sonrakı mərhələ"yə saxlanılmış tövsiyə) — mühasibat terminləri əvəzinə sadə bazar dili (bənd #11, `docs/pages/day-closing-ui-refactor.md` §2.11) | FE#77, `E-22` |
+| 63 | `src/features/day-end/components/DayEndCard.tsx` — ③-cü mərhələ | *(yox idi)* | "Qeyd (istəyə bağlı)" `Textarea` — "Fərqin səbəbini qeyd et — məcburi deyil, amma faydalıdır." | Backend `Closing.Note`/`CloseDayInput.note` artıq mövcud idi, heç bir UI onu göndərmirdi (bənd #9) | FE#77, bənd #9 |
+| 64 | `src/features/day-end/components/DayEndCard.tsx` — "Günü bağla" deaktiv səbəbi | *(yox idi)* | "Faktiki məbləği yazın" / "Bu gün artıq bağlanıb" | Deaktiv düymənin səbəbi HƏMİŞƏ yazılı olmalıdır (bənd #7, DS §1.7) | FE#77, bənd #7 |
 
 ---
 
@@ -85,11 +90,9 @@ Dil qaydası: bütün mətnlər **Azərbaycanca**dır; ingiliscə qalıq mətn y
 
 | Mətn | Səbəb |
 |---|---|
-| `Kassada olmalı` (sidebar) və `Kassada olmalı məbləğ` (Gün Sonu) | `E-01`/`E-02` Mərhələ 1 işidir — FE#69 təməl taskının əhatəsində deyil |
 | `Filterlər` / `Filterləri təmizlə` | `E-08` (F-52) sonrakı mərhələdə |
 | `Tarix seç` | `E-19` sonrakı mərhələdə |
 | `Detal` | `E-20` sonrakı mərhələdə |
-| `Gözlənilən` / `Faktiki` / `Fərq` | `E-22` sonrakı mərhələdə (yalnız RƏNG semantikası FE#69-da düzəldildi) |
 | `Bu funksiya backend ilə əlavə olunacaq` | `E-21` sonrakı mərhələdə |
 | Bütün API sahə adları, tip adları, kod identifikatorları | Backend kontraktı dəyişmir |
 
