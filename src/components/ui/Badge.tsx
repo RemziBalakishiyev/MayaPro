@@ -14,7 +14,16 @@ export const STATUS_STYLE: Record<string, string> = {
   Kart: "bg-sky-50 text-sky-700 ring-sky-200/70",
   Nisyə: "bg-orange-50 text-orange-800 ring-orange-200/70",
   Sərbəst: "bg-stone-100 text-stone-600 ring-stone-200/80",
-  Borclu: "bg-red-50 text-red-700 ring-red-200/70",
+  /**
+   * FE#73 (DS 9-cu qayda): adi borclu artıq qırmızı DEYİL — HƏR borclu
+   * "dağıdıcı xəta" kimi görünməsin deyə neytral/sakit (sky) tona keçirilib.
+   * Faktiki "diqqət lazımdır" halları üçün aşağıdakı iki yeni ton var:
+   * "Gecikmiş borc" (60+ gün, kəhrəba) və "Kritik borc" (120+ gün, qırmızı —
+   * qırmızı İNDİ YALNIZ bu ən ağır tərzdə istifadə olunur).
+   */
+  Borclu: "bg-sky-50 text-sky-800 ring-sky-200/70",
+  "Gecikmiş borc": "bg-amber-50 text-amber-900 ring-amber-300/70",
+  "Kritik borc": "bg-red-50 text-red-700 ring-red-200/70",
   Ödənilib: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
   /** Xərc mənbəyi (Xərclər cədvəli): Ümumi — boz, Mala bağlı — yaşıl. */
   Ümumi: "bg-stone-100 text-stone-600 ring-stone-200/80",

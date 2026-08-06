@@ -5,9 +5,17 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { CopyablePhone } from "@/components/ui/CopyablePhone";
+import { EmptyValue } from "@/components/ui/EmptyValue";
+import { cn } from "@/lib/cn";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { useSettingsStore } from "@/features/settings/store";
 import { waLink } from "../lib";
+import {
+  DEBT_NUMBER_CLASS,
+  DEBT_TONE_LABEL,
+  debtAgeDays,
+  debtTone,
+} from "./debt-presentation";
 import type { Customer } from "@/types";
 
 interface Props {
@@ -43,6 +51,40 @@ function lastActivityDate(c: Customer): string {
   if (!a) return b;
   if (!b) return a;
   return a > b ? a : b;
+}
+
+/**
+ * Qalıq borc rəqəmi — DS 9-cu qayda: rəng tək göstərici deyil, ona görə
+ * `withBadge=true` olduqda (variant="all" — ayrıca Status sütunu yoxdur)
+ * rəqəmin altında mətnli badge də göstərilir (FE#73, bənd 9).
+ */
+function DebtAmount({
+  customer,
+  withBadge,
+}: {
+  customer: Customer;
+  withBadge?: boolean;
+}) {
+  const debt = customer.remainingDebt;
+  const tone = debtTone(debt, debtAgeDays(customer));
+  const numberCls = cn(
+    "tabular-nums font-bold",
+    tone === "none" && !withBadge ? "font-semibold" : undefined,
+    DEBT_NUMBER_CLASS[tone],
+  );
+  if (tone === "none") {
+    return <span className={numberCls}>{fmtMoney(debt)}</span>;
+  }
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <span className={numberCls}>{fmtMoney(debt)}</span>
+      {withBadge && (
+        <Badge tone={DEBT_TONE_LABEL[tone]} className="text-[10px]">
+          {DEBT_TONE_LABEL[tone]}
+        </Badge>
+      )}
+    </div>
+  );
 }
 
 function CustomerRowActions({
@@ -108,10 +150,12 @@ function CustomerRowActions({
       <button
         type="button"
         onClick={() => onPay(customer)}
+        title={`${customer.name} — borc ödənişi al`}
+        aria-label={`${customer.name} — borc ödənişi al`}
         className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
       >
         <HandCoins size={14} />
-        Ödəniş
+        Borc ödənişi al
       </button>
       <ActionMenu items={menuItems} aria-label={`${customer.name} əməliyyatları`} />
     </div>
@@ -140,11 +184,23 @@ export function CustomersTable({
       {
         accessorKey: "name",
         header: "Müştəri",
-        cell: ({ getValue }) => (
-          <span className="font-semibold text-stone-900">
-            {getValue() as string}
-          </span>
-        ),
+        // FE#73 (bənd 5) — adın BÜTÖVÜ kliklənəndir, ayrıca "Detal" düyməsinə
+        // ehtiyac qalmadan `CustomerDrawer` açır (`ActionMenu`-dəki "Detal"
+        // bəndi alternativ yol kimi qalır).
+        cell: ({ row }) => {
+          const c = row.original;
+          return (
+            <button
+              type="button"
+              onClick={() => onView(c)}
+              title={`${c.name} — müştəri detalına bax`}
+              aria-label={`${c.name} — müştəri detalına bax`}
+              className="focus-ring-inset rounded-chip text-left font-semibold text-stone-900 underline-offset-2 hover:text-emerald-700 hover:underline"
+            >
+              {c.name}
+            </button>
+          );
+        },
       },
       {
         accessorKey: "phone",
@@ -155,21 +211,17 @@ export function CustomersTable({
       },
     ];
 
+    // FE#73 (bənd 9/10) — borc rənginin qaydası `debt-presentation.ts`-dədir;
+    // "all" variantında (Müştərilər) ayrıca Status sütunu yoxdur, ona görə
+    // badge rəqəmin altında göstərilir. "debtors" variantında (Nisyə
+    // Borclar → Müştəri üzrə) badge aşağıdakı `statusCol`-dadır — təkrar
+    // olunmasın deyə burada göstərilmir.
     const debtCol: ColumnDef<Customer, unknown> = {
       accessorKey: "remainingDebt",
       header: "Qalıq borc",
-      cell: ({ getValue }) => {
-        const debt = getValue() as number;
-        if (debt <= 0)
-          return (
-            <span className="tabular-nums text-stone-400">—</span>
-          );
-        return (
-          <span className="font-bold tabular-nums text-red-600">
-            {fmtMoney(debt)}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <DebtAmount customer={row.original} withBadge={variant === "all"} />
+      ),
     };
 
     const purchasesCols: ColumnDef<Customer, unknown>[] = [
@@ -196,27 +248,35 @@ export function CustomersTable({
     const lastPurchaseCol: ColumnDef<Customer, unknown> = {
       accessorKey: "lastPurchaseDate",
       header: "Son alış",
-      cell: ({ getValue }) => fmtDate((getValue() as string) || ""),
+      cell: ({ getValue }) => {
+        const v = getValue() as string;
+        return v ? fmtDate(v) : <EmptyValue label="son alış tarixi yoxdur" />;
+      },
     };
 
     const lastActivityCol: ColumnDef<Customer, unknown> = {
       id: "lastActivity",
       accessorFn: (c) => lastActivityDate(c),
       header: "Son əməliyyat",
-      cell: ({ getValue }) => fmtDate((getValue() as string) || ""),
+      cell: ({ getValue }) => {
+        const v = getValue() as string;
+        return v ? fmtDate(v) : <EmptyValue label="son əməliyyat yoxdur" />;
+      },
     };
 
+    // FE#73 (bənd 9) — "debtors" variantında (Nisyə Borclar → Müştəri üzrə)
+    // status nişanı indi 4 dərəcəlidir: Ödənilib / Borclu / Gecikmiş borc /
+    // Kritik borc (`debt-presentation.ts`) — əvvəlki 2 dərəcəli (yalnız
+    // Borclu/Ödənilib) ƏVƏZİNƏ, HƏR borclunun eyni "qırmızı" görünməsinin
+    // qarşısını alır.
     const statusCol: ColumnDef<Customer, unknown> = {
       id: "status",
       header: "Status",
       enableSorting: false,
       cell: ({ row }) => {
-        const debt = row.original.remainingDebt;
-        return (
-          <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
-            {debt > 0 ? "Borclu" : "Ödənilib"}
-          </Badge>
-        );
+        const c = row.original;
+        const label = DEBT_TONE_LABEL[debtTone(c.remainingDebt, debtAgeDays(c))];
+        return <Badge tone={label}>{label}</Badge>;
       },
     };
 
@@ -261,30 +321,38 @@ export function CustomersTable({
       }
       mobileCard={(c) => {
         const debt = c.remainingDebt;
+        const tone = debtTone(debt, debtAgeDays(c));
+        const toneLabel = DEBT_TONE_LABEL[tone];
         return (
           <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-lg font-bold text-stone-900">
+                {/* FE#73 (bənd 5) — adın bütövü kliklənəndir → CustomerDrawer */}
+                <button
+                  type="button"
+                  onClick={() => onView(c)}
+                  title={`${c.name} — müştəri detalına bax`}
+                  aria-label={`${c.name} — müştəri detalına bax`}
+                  className="focus-ring-inset block truncate rounded-chip text-left text-lg font-bold text-stone-900 hover:text-emerald-700 hover:underline"
+                >
                   {c.name}
-                </p>
+                </button>
                 <CopyablePhone
                   phone={c.phone || ""}
                   className="mt-0.5 text-left text-sm tabular-nums text-stone-400 underline-offset-2 hover:text-emerald-700 hover:underline"
                 />
               </div>
-              <Badge tone={debt > 0 ? "Borclu" : "Ödənilib"}>
-                {debt > 0 ? "Borclu" : "Ödənilib"}
-              </Badge>
+              <Badge tone={toneLabel}>{toneLabel}</Badge>
             </div>
             <div className="mt-3 flex items-center justify-between">
               <span className="text-sm font-medium text-stone-500">
                 Qalıq borc
               </span>
               <span
-                className={`text-xl font-bold tabular-nums ${
-                  debt > 0 ? "text-red-600" : "text-emerald-700"
-                }`}
+                className={cn(
+                  "text-xl font-bold tabular-nums",
+                  DEBT_NUMBER_CLASS[tone],
+                )}
               >
                 {fmtMoney(debt)}
               </span>
@@ -292,12 +360,16 @@ export function CustomersTable({
             <div className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3">
               <button
                 onClick={() => onPay(c)}
+                title={`${c.name} — borc ödənişi al`}
+                aria-label={`${c.name} — borc ödənişi al`}
                 className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-base font-semibold text-emerald-700 active:bg-emerald-100"
               >
-                <HandCoins size={18} /> Ödəniş
+                <HandCoins size={18} /> Borc ödənişi al
               </button>
               <button
                 onClick={() => onView(c)}
+                title={`${c.name} — detala bax`}
+                aria-label={`${c.name} — detala bax`}
                 className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
               >
                 <Eye size={18} /> Detal
