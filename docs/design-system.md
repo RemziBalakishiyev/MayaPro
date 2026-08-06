@@ -94,8 +94,9 @@ sidebar «Kassada olmalı» rəqəmi, cədvəl pul sütunları.
 AC-8-in sadaladığı kontrol siniflərində (`sm`/`md`/`lg`) heç bir kontrol
 40px-dən kiçik deyil. (Qeyd: bu, bütün interaktiv elementlərə deyil, yalnız
 DS kontrol sinifindən istifadə edən elementlərə aiddir — məs.
-`CustomerDrawer.tsx`, `SalaryCard.tsx`-dəki ad-hoc mətn düymələri və ölü kod
-`FilterPanel.tsx` bu sinifdən kənardır və bu iddiaya aid deyil.)
+`SalaryCard.tsx:125-137`-dəki ad-hoc mətn düyməsi `::before` hit-slop
+naxışı ilə 40x40px toxunma hədəfini təmin edir və bu sinifdən kənardır,
+bu iddiaya aid deyil.)
 
 ### 1.7 Vəziyyətlər və fokus (R-15)
 
