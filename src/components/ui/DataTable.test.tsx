@@ -62,6 +62,28 @@ describe("DataTable — vəziyyət dili", () => {
     expect(screen.getByText("Sement")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /əvvəlki/i })).toBeDisabled();
   });
+
+  // FE#70 (AC-17) — `stickyHeader` opt-in prop-dur; defolt `false` mövcud
+  // səhifələrin görünüşünə (bu cümlədən aşağıdakı test) TƏSİR ETMİR.
+  it("stickyHeader=false (defolt) olduqda thead sticky sinifi almır", () => {
+    const { container } = render(
+      <DataTable columns={columns} data={[{ ad: "Sement", qiymet: "1 ₼" }]} />,
+    );
+    expect(container.querySelector("thead")).not.toHaveClass("sticky");
+  });
+
+  it("stickyHeader=true olduqda thead sticky top-0 sinifi alır (AC-17)", () => {
+    const { container } = render(
+      <DataTable
+        columns={columns}
+        data={[{ ad: "Sement", qiymet: "1 ₼" }]}
+        stickyHeader
+      />,
+    );
+    const thead = container.querySelector("thead");
+    expect(thead).toHaveClass("sticky");
+    expect(thead).toHaveClass("top-0");
+  });
 });
 
 /**

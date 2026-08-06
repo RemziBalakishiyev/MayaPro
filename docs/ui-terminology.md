@@ -51,6 +51,16 @@ Dil qaydası: bütün mətnlər **Azərbaycanca**dır; ingiliscə qalıq mətn y
 | 30 | `src/features/products/components/ProductFilters.tsx` — lokal axtarış placeholder-i | `Ad, kateqoriya, xüsusiyyət üzrə axtar...` | `Bu siyahıda axtar...` | Lokal cədvəl axtarışı qlobal axtarışla eyni terminologiyaya uyğunlaşdırılsın (`FilterBar` defolt mətni ilə üst-üstə düşsün) | T-15, AC-14 |
 | 31 | `src/features/expenses/components/ExpenseFilters.tsx` — lokal axtarış placeholder-i | `Xərc adı və ya qeyd üzrə axtar...` | `Bu siyahıda axtar...` | Eyni səbəb | T-15, AC-14 |
 | 32 | `src/features/sales/components/SalesJournal.tsx` — lokal axtarış placeholder-i | `Axtar...` | `Bu siyahıda axtar...` | Eyni səbəb | T-15, AC-14 |
+| 33 | `src/features/products/components/ProductFilters.tsx` — lokal axtarış placeholder-i | `Bu siyahıda axtar...` | `Bu siyahıda mal adı, kateqoriya və xüsusiyyət üzrə axtar` | Mallar səhifəsinə xas dəqiq axtarış əhatəsi (FE#70) | FE#70 AC-6 |
+| 34 | `src/features/products/components/ProductsKpiCards.tsx` — azalan stok çipi | `N mal azalır` | `N malın stoku azalır` | PM nümunə mətni ilə hərfi uyğunlaşdırma | FE#70 AC-3 |
+| 35 | `src/features/products/components/ProductsTable.tsx` — "Qazanc %" sütun başlığı | `Qazanc %` (izahsız) | `Maya üzərindən qazanc %` + kömək tooltip-i: `Satış qiyməti ilə real maya arasındakı fərqin mayaya nisbəti` | Düstur dəyişməz, yalnız izah aydınlaşdırılıb | FE#70 AC-8 |
+| 36 | `src/features/products/components/ProductsTable.tsx` — "Alış" sütun başlığı | *(tooltip yox idi)* | `+` tooltip: `Təchizatçıya ödənən alış qiyməti. Partiya xərci yoxdursa, real maya ilə eynidir (aşağıda «—»).` | Alış/Real maya fərqinin izahı | FE#70 AC-9 |
+| 37 | `src/features/products/components/ProductsTable.tsx` — "Real maya" sütun başlığı | *(tooltip yox idi)* | `+` tooltip: `1 ədədin faktiki dəyəri: alış qiyməti + bu partiyaya aid əlavə xərclər (nəqliyyat, gömrük və s.).` | Eyni səbəb | FE#70 AC-9 |
+| 38 | `src/features/products/components/ProductsTable.tsx` — Alış xanası boş dəyər izahı | `Xərc yoxdur — maya alış qiymətinə bərabərdir` | `Xərc yoxdur — maya alışa bərabərdir` | PM nümunə mətni ilə hərfi uyğunlaşdırma (şərt/davranış dəyişməyib) | FE#70 AC-9 |
+| 39 | `src/features/products/components/ProductsTable.tsx` — Kateqoriya xanası (boş) | *(xam boş sətir)* | `—` + `Kateqoriya təyin edilməyib` (aria-label/title) | Data gizlədilməsin, boş dəyər izah olunsun | FE#70 AC-10 |
+| 40 | `src/features/products/components/ProductsTable.tsx` — "Satış" sütun başlığı | `Satış` | `Satış qiyməti` | PM prioritet siyahısındaki adla uyğunlaşdırma (mal detalı səhifəsindəki adla da eynidir) | FE#70 AC-11 |
+| 41 | `src/features/products/components/ProductsTable.tsx` — sətir əməliyyatı düyməsi | `Stok` (yalnız Plus/Minus ikonu ilə fərqlənirdi) | `Stok artır` / `Stok azalt` (mətn özü də fərqlənir) | Yalnız-rəng/ikon fərqi ilə kifayətlənilməsin | FE#70 AC-13 |
+| 42 | `src/features/products/components/ProductsTable.tsx` — mal adı xanası | `<Link to="/mallar/$id">` (detal səhifəsinə keçid) | `<button onClick={onEdit}>` (redaktə formunu açır) | Mal üçün "detal" = redaktə forması (paralel drawer yaradılmayıb) | FE#70 AC-16 |
 
 ---
 

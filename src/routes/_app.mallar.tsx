@@ -243,6 +243,16 @@ function MallarPage() {
         onAdjust={(product, mode) => setStockModal({ product, mode })}
         onDelete={setDeleteFor}
         onPrintLabel={(product) => openLabelModal(product)}
+        // FE#70 (AC-19/TC-28): axtarış/filtr aktivdirsə boş nəticə mesajı
+        // ümumi "Mal tapılmadı"dan fərqləndirilib (musteriler.tsx naxışı).
+        emptyState={
+          search.q || search.cat || search.status || search.loc
+            ? {
+                title: "Filterə uyğun mal yoxdur",
+                description: "Axtarışı və ya filterləri dəyişin.",
+              }
+            : undefined
+        }
       />
 
       <ProductForm
