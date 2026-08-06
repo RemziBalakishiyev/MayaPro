@@ -169,6 +169,11 @@ export function OpenDebtsTable({
               <button
                 type="button"
                 disabled={!customer}
+                title={
+                  customer
+                    ? `${d.customerName} — Ödəniş al`
+                    : "Müştəri məlumatı tapılmadı"
+                }
                 onClick={() =>
                   customer &&
                   onPay(customer, {
@@ -264,7 +269,13 @@ export function OpenDebtsTable({
               onClick={(e) => e.stopPropagation()}
             >
               <button
+                type="button"
                 disabled={!customer}
+                title={
+                  customer
+                    ? `${d.customerName} — Ödəniş al`
+                    : "Müştəri məlumatı tapılmadı"
+                }
                 onClick={() =>
                   customer &&
                   onPay(customer, {
@@ -284,6 +295,7 @@ export function OpenDebtsTable({
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={`${d.customerName} — Xatırlat`}
                 className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
               >
                 <MessageCircle size={18} /> Xatırlat
