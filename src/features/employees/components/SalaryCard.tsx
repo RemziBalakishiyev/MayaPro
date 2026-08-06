@@ -128,7 +128,7 @@ export function SalaryCard({
               onClick={() => canSetSalary && setEditing(true)}
               title={canSetSalary ? "Maaşı dəyiş" : undefined}
               className={cn(
-                "group mt-0.5 flex items-center gap-1 text-lg font-bold tabular-nums text-stone-900",
+                "focus-ring group relative mt-0.5 flex items-center gap-1 text-lg font-bold tabular-nums text-stone-900 before:absolute before:inset-[-6px] before:content-['']",
                 canSetSalary && "cursor-pointer hover:text-emerald-700",
               )}
             >
