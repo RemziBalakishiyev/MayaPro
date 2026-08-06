@@ -10,8 +10,15 @@ export function ClosingHistory() {
     data: closings = [],
     isLoading,
     isError,
+    dataUpdatedAt,
     refetch,
   } = useClosings();
+
+  // FE#138: `dataUpdatedAt > 0` — sorğu ən azı bir dəfə uğurla yüklənib
+  // (TanStack Query bunu yalnız uğurlu nəticədə yeniləyir, xəta zamanı
+  // dəyişmir). `closings.length > 0` əlavə edilib ki, köhnə (legitim
+  // qeyri-boş) data mövcud olan hallarda da düzgün nəticə versin.
+  const hasLoadedOnce = dataUpdatedAt > 0 || closings.length > 0;
 
   const rows = useMemo(
     () => [...closings].sort((a, b) => (a.date < b.date ? 1 : -1)),
@@ -94,6 +101,7 @@ export function ClosingHistory() {
       data={rows}
       isLoading={isLoading}
       isError={isError}
+      hasLoadedOnce={hasLoadedOnce}
       onRetry={() => void refetch()}
       errorMessage="Bağlanış tarixçəsi yüklənmədi"
       emptyState={{ title: "Bağlanış yoxdur" }}

@@ -56,8 +56,15 @@ function XerclerPage() {
     isLoading,
     isError,
     error,
+    dataUpdatedAt,
     refetch,
   } = useExpenses(range);
+
+  // FE#138: `dataUpdatedAt > 0` — sorğu ən azı bir dəfə uğurla yüklənib
+  // (xəta zamanı TanStack Query bu dəyəri dəyişmir). `expenses.length > 0`
+  // əlavə edilib ki, mövcud (legitim qeyri-boş) data olan hallarda da
+  // düzgün nəticə versin. Bax aşağıdakı izah (FE#134/FE#138).
+  const hasLoadedOnce = dataUpdatedAt > 0 || expenses.length > 0;
   const { data: products = [] } = useProducts();
   const canWrite = useCan()("expenses.write");
   const deleteMut = useDeleteExpense();
@@ -165,18 +172,24 @@ function XerclerPage() {
       />
 
       {/*
-       * FE#134: tam xəta bloku YALNIZ göstəriləcək data heç olmadıqda
-       * (`expenses.length === 0`) görünür. Əvvəl uğurla yüklənmiş xərclər
-       * varkən arxa-fon refetch-i uğursuz olarsa, TanStack Query `data`-nı
-       * ƏVVƏLKİ nəticə ilə saxlayır — bu halda mövcud siyahı qalır, üstündə
-       * yalnız kiçik "yenilənmə uğursuz oldu" xəbərdarlıq zolağı göstərilir.
+       * FE#134: tam xəta bloku YALNIZ göstəriləcək data heç olmadıqda görünür.
+       * Əvvəl uğurla yüklənmiş xərclər varkən arxa-fon refetch-i uğursuz
+       * olarsa, TanStack Query `data`-nı ƏVVƏLKİ nəticə ilə saxlayır — bu
+       * halda mövcud siyahı qalır, üstündə yalnız kiçik "yenilənmə uğursuz
+       * oldu" xəbərdarlıq zolağı göstərilir.
+       *
+       * FE#138: "göstəriləcək data heç olmadıqda" halı `expenses.length ===
+       * 0` proxy-si ilə YOX, `hasLoadedOnce` (yuxarıda hesablanıb) ilə
+       * müəyyən edilir — çünki uğurla yüklənmiş legitim BOŞ siyahı + sonrakı
+       * arxa-fon xətası da `expenses=[]` verir, bu iki hal fərqli nəticə
+       * tələb edir (EmptyState+StaleDataBanner, InlineError YOX).
        *
        * Ötəri istifadə olunan xüsusi qırmızı `<div>` DS `InlineError`
        * komponenti ilə əvəzləndi: digər səthlərlə (Dashboard/Hesabatlar/
        * DataTable) eyni görünüş, `role="alert"` (a11y) və "Yenidən cəhd et"
        * düyməsi (əvvəlki versiyada bu düymə heç yox idi).
        */}
-      {isError && expenses.length === 0 ? (
+      {isError && !hasLoadedOnce ? (
         <InlineError
           message={error instanceof Error ? error.message : "Xərclər yüklənmədi"}
           hint="Şəbəkə və ya server cavab vermədi."

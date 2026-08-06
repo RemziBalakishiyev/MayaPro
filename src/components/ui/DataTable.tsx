@@ -41,6 +41,22 @@ export interface DataTableProps<TData> {
   /** Xəta mesajı (defolt: "Siyahı yüklənmədi"). */
   errorMessage?: string;
   emptyState?: { title: string; description?: string };
+  /**
+   * FE#138: `data` tipcə həmişə array olduğu üçün (undefined ola bilməz),
+   * "heç vaxt uğurla yüklənməyib" halı defolt olaraq `data.length === 0`
+   * proxy-si ilə yoxlanılır. Bu proxy, TanStack Query-nin arxa-fon refetch
+   * xətasında ƏVVƏLKİ uğurlu (legitim BOŞ) nəticəni saxlaması səbəbindən,
+   * "heç vaxt yüklənməyib" ilə "uğurla yüklənmiş, lakin BOŞ + indi arxa-fon
+   * xətası" hallarını ayırd edə bilmir — hər ikisində `data` `[]`-dir.
+   *
+   * Çağıran komponent dəqiq siqnalı bilirsə (məs. sorğunun
+   * `dataUpdatedAt > 0` dəyəri — "ən azı bir dəfə uğurla yükləndi"), bu
+   * prop-u ötürsün: `true` — uğurla yüklənib (boş nəticə olsa belə),
+   * `false` — heç vaxt uğurla yüklənməyib. Ötürülməzsə (`undefined`),
+   * köhnə `data.length > 0` fallback-i istifadə olunur — mövcud
+   * çağıranlara (bu prop-u ötürməyənlərə) HEÇ BİR təsir etmir.
+   */
+  hasLoadedOnce?: boolean;
   /** Səhifədəki sətir sayı (defolt 10) */
   pageSize?: number;
   /** Server pagination / xarici "Daha çox" üçün daxili səhifələməni gizlət. */
@@ -64,6 +80,7 @@ export function DataTable<TData>({
   onRetry,
   errorMessage = "Siyahı yüklənmədi",
   emptyState,
+  hasLoadedOnce,
   pageSize = 10,
   hidePagination = false,
   embedded = false,
@@ -97,8 +114,16 @@ export function DataTable<TData>({
   // `InlineError` ekranı ilə əvəz ETMİRİK: mövcud cədvəl qalır, üstündə
   // yalnız kiçik "yenilənmə uğursuz oldu" xəbərdarlıq zolağı göstərilir
   // (aşağıda). Tam `InlineError` YALNIZ göstəriləcək data heç olmadıqda
-  // (ilk yükləmə xətası, `data.length === 0`) görünür.
-  if (isError && data.length === 0) {
+  // görünür.
+  //
+  // FE#138: "heç olmadıqda" `data.length === 0` proxy-si ilə YOX, bacardıqda
+  // `hasLoadedOnce` prop-u ilə müəyyən edilir — çünki uğurla yüklənmiş
+  // legitim BOŞ siyahı + sonrakı arxa-fon xətası halında da `data` `[]`-dir
+  // (yuxarıdakı izahla eyni səbəb), bu iki hal fərqli nəticə tələb edir.
+  const neverLoadedSuccessfully =
+    hasLoadedOnce === undefined ? data.length === 0 : !hasLoadedOnce;
+
+  if (isError && neverLoadedSuccessfully) {
     return (
       <InlineError
         message={errorMessage}
@@ -117,11 +142,17 @@ export function DataTable<TData>({
   }
 
   if (data.length === 0) {
+    // FE#138: uğurla yüklənmiş (`hasLoadedOnce`) BOŞ siyahı + arxa-fon xətası
+    // → tam `InlineError` YOX, `EmptyState` + üstündə kiçik xəbərdarlıq
+    // zolağı (Dashboard/Hesabatlar-dakı `!d`/`!view` davranışı ilə uyğun).
     return (
-      <EmptyState
-        title={emptyState?.title ?? "Məlumat yoxdur"}
-        hint={emptyState?.description}
-      />
+      <div className="space-y-3">
+        {isError && <StaleDataBanner onRetry={onRetry} />}
+        <EmptyState
+          title={emptyState?.title ?? "Məlumat yoxdur"}
+          hint={emptyState?.description}
+        />
+      </div>
     );
   }
 

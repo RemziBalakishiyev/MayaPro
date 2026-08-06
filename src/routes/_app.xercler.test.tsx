@@ -166,4 +166,30 @@ describe("Xərclər — arxa-fon refetch xətası (FE#134 bonus)", () => {
       /yenilənmədi|köhnəlmiş/i,
     );
   });
+
+  /**
+   * FE#138 — uğurla yüklənmiş (`dataUpdatedAt > 0`) legitim BOŞ xərc siyahısı
+   * + sonrakı arxa-fon refetch xətası → tam xəta bloku (InlineError) YOX,
+   * boş-siyahı vəziyyəti + kiçik xəbərdarlıq zolağı göstərilməlidir.
+   */
+  it("uğurla yüklənmiş BOŞ siyahı + arxa-fon refetch xətası → tam xəta bloku YOX, xəbərdarlıq zolağı görünür (FE#138)", () => {
+    mockUseExpenses.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: true,
+      error: new Error("Şəbəkə xətası"),
+      dataUpdatedAt: Date.now(),
+      refetch: vi.fn(),
+    } as never);
+
+    render(<XerclerPage />);
+
+    // Tam xəta bloku (server mesajı) YOX
+    expect(screen.queryByText("Şəbəkə xətası")).not.toBeInTheDocument();
+
+    // Əvəzinə kiçik xəbərdarlıq zolağı görünür
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmədi|köhnəlmiş/i,
+    );
+  });
 });

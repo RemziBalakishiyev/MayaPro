@@ -98,4 +98,54 @@ describe("DataTable — arxa-fon refetch xətası (FE#134)", () => {
     expect(screen.getByText("Məlumat yoxdur")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  /**
+   * FE#138 — `data` tipcə həmişə array olduğu üçün, uğurla yüklənmiş legitim
+   * BOŞ siyahı + sonrakı arxa-fon (background) refetch xətası da `data=[]`
+   * verir — köhnə `data.length === 0` proxy-si bunu "heç vaxt yüklənməyib"
+   * halı ilə qarışdırıb tam `InlineError` göstərirdi. `hasLoadedOnce` prop-u
+   * çağıran tərəfdən `true` ötürüldükdə düzgün nəticə: `EmptyState` +
+   * kiçik `StaleDataBanner`, tam `InlineError` YOX.
+   */
+  it("isError=true, data=[] AMMA hasLoadedOnce=true (uğurla yüklənmiş boş nəticə) → EmptyState + StaleDataBanner, tam InlineError YOX", () => {
+    const onRetry = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={[]}
+        isError
+        hasLoadedOnce
+        onRetry={onRetry}
+        errorMessage="Siyahı yüklənmədi"
+        emptyState={{ title: "Məlumat yoxdur" }}
+      />,
+    );
+
+    // Tam InlineError mesajı YOX
+    expect(screen.queryByText("Siyahı yüklənmədi")).not.toBeInTheDocument();
+
+    // EmptyState görünür
+    expect(screen.getByText("Məlumat yoxdur")).toBeInTheDocument();
+
+    // Kiçik xəbərdarlıq zolağı görünür
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmə uğursuz oldu/i,
+    );
+  });
+
+  it("isError=true, data=[], hasLoadedOnce ötürülməyib (undefined) → köhnə fallback davranışı: tam InlineError (geriyə uyğunluq)", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[]}
+        isError
+        onRetry={vi.fn()}
+        errorMessage="Siyahı yüklənmədi"
+        emptyState={{ title: "Məlumat yoxdur" }}
+      />,
+    );
+
+    expect(screen.getByText("Siyahı yüklənmədi")).toBeInTheDocument();
+    expect(screen.queryByText("Məlumat yoxdur")).not.toBeInTheDocument();
+  });
 });

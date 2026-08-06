@@ -110,4 +110,37 @@ describe("ClosingHistory — şəbəkə xətası (FE#127)", () => {
       /yenilənmə uğursuz oldu/i,
     );
   });
+
+  /**
+   * FE#138 — yeni mağaza/hesab: hələ heç bir bağlanış edilməyib, sorğu
+   * uğurla yüklənib (`dataUpdatedAt > 0`), `closings = []` legitim boş
+   * nəticədir. Sonra arxa-fon refetch-i uğursuz olur (`isError=true`),
+   * `data` yenə `[]`-dir (TanStack Query əvvəlki uğurlu boş nəticəni
+   * saxlayır). Gözlənilən: `EmptyState` ("Bağlanış yoxdur") + üstündə kiçik
+   * `StaleDataBanner`, tam `InlineError` YOX.
+   */
+  it("uğurla yüklənmiş BOŞ data + arxa-fon refetch xətası → EmptyState + StaleDataBanner göstərilir, tam InlineError YOX (FE#138)", () => {
+    mockUseClosings.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: true,
+      dataUpdatedAt: Date.now(),
+      refetch: vi.fn(),
+    } as never);
+
+    render(<ClosingHistory />);
+
+    // Tam InlineError mesajı YOX
+    expect(
+      screen.queryByText("Bağlanış tarixçəsi yüklənmədi"),
+    ).not.toBeInTheDocument();
+
+    // EmptyState görünür
+    expect(screen.getByText("Bağlanış yoxdur")).toBeInTheDocument();
+
+    // Kiçik xəbərdarlıq zolağı görünür
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmə uğursuz oldu/i,
+    );
+  });
 });
