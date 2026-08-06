@@ -426,6 +426,54 @@ aşkarladı. Aşağıda hər PR retroaktiv, qısa formada qeyd olunur.
 
 ---
 
+## Addım 12 — sənəd sinxronizasiyası (FE#161, PR #154, PR #155)
+
+**Problem**
+
+`Addım 11`-dən sonra `main`-ə daha 2 PR merge olundu (PR #155, PR #154) —
+nə bu jurnal, nə də `design-system.md`-in AC-8 istisna qeydi onları əks
+etdirirdi. FE#161 tapşırığı bunu aşkarladı və aşağıda düzəldir.
+
+**Nə dəyişdi**
+
+- **PR #155 (FE#152)** — `5596da6`: bu jurnala `Addım 11` bəndini əlavə
+  etdi (`Addım 9`-dan sonra merge olunan 8 post-QA PR-ı retroaktiv qeyd
+  etdi) və `docs/design-system.md`-də 40px AC-8 iddiasını
+  `CustomerDrawer.tsx`/`SalaryCard.tsx`-dəki ad-hoc düymələrin və ölü kod
+  `FilterPanel.tsx`-in bu sinifdən kənar olduğunu dəqiqləşdirdi. Toxunulan
+  fayllar: `docs/design-system.md`, `docs/ui-ux-global-refactor-changelog.md`.
+
+- **PR #154 (FE#153)** — `c83e976`: PR #155-də sənədləşdirilən istisnanı
+  faktiki koda tətbiq etdi — `CustomerDrawer.tsx`-dəki telefon kopyalama
+  bloku ayrıca ad-hoc hit-slop patch əvəzinə paylaşılan `CopyablePhone`
+  primitivinə köçürüldü (AC-3, təkrarlanmama qaydası, `CustomerDrawer.tsx:19,195`);
+  `SalaryCard.tsx`-dəki maaş redaktə düyməsinə `::before` hit-slop
+  (inset -6px, ~28px → 40px) + `focus-ring` əlavə edildi
+  (`SalaryCard.tsx:125-137`); istifadəsiz `src/components/ui/FilterPanel.tsx`
+  silindi (AC-20 ölü kod, `FilterBar.tsx` tərəfindən əvəzlənib). Nəticədə
+  PR #155-də yazılmış istisna qeydindəki `CustomerDrawer.tsx` və
+  `FilterPanel.tsx` adları köhnəldi. Toxunulan fayllar:
+  `src/features/customers/components/CustomerDrawer.tsx`,
+  `src/features/employees/components/SalaryCard.tsx`,
+  `src/components/ui/FilterPanel.tsx` (silindi).
+
+**FE#161 düzəlişi (bu bənd)**
+
+- `docs/design-system.md` (§1.6, AC-8 qeydi) — istisna siyahısından
+  `CustomerDrawer.tsx` (artıq `CopyablePhone`-dan istifadə edir) və
+  `FilterPanel.tsx` (artıq mövcud deyil) çıxarıldı; yalnız real qalan
+  istisna (`SalaryCard.tsx:125-137` hit-slop) saxlanıldı.
+- `docs/ui-ux-global-refactor-changelog.md` — bu bənd (`Addım 12`)
+  əlavə olundu.
+
+**Toxunulan səhifələr:** Müştərilər (CustomerDrawer telefon bloku),
+İşçilər (SalaryCard maaş redaktəsi) — yalnız PR #154 daxilində; bu bəndin
+özü (FE#161) yalnız sənəd dəyişikliyidir.
+
+**Build:** ✅ · **Test:** ✅
+
+---
+
 ## Yekun
 
 **Normallaşdırılan primitivlər (16):** Button · Input · Textarea · Select ·
