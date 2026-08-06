@@ -91,7 +91,11 @@ sidebar «Kassada olmalı» rəqəmi, cədvəl pul sütunları.
 | `md` | ≥44px | Defolt — toxunma hədəfi |
 | `lg` | ≥52px | Səhifənin əsas əməliyyatı, login |
 
-Heç bir interaktiv kontrol 40px-dən kiçik deyil.
+AC-8-in sadaladığı kontrol siniflərində (`sm`/`md`/`lg`) heç bir kontrol
+40px-dən kiçik deyil. (Qeyd: bu, bütün interaktiv elementlərə deyil, yalnız
+DS kontrol sinifindən istifadə edən elementlərə aiddir — məs.
+`CustomerDrawer.tsx`, `SalaryCard.tsx`-dəki ad-hoc mətn düymələri və ölü kod
+`FilterPanel.tsx` bu sinifdən kənardır və bu iddiaya aid deyil.)
 
 ### 1.7 Vəziyyətlər və fokus (R-15)
 

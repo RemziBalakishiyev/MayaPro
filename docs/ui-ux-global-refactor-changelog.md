@@ -357,6 +357,75 @@ silinməsi) seçildi.
 
 ---
 
+## Addım 11 — post-QA düzəlişləri (FE#69 QA round 7-dən sonra)
+
+**Problem**
+
+`Addım 9` (`7323c69`) ilə bu sənədin əvvəlki yenilənməsi arasında `main`-ə
+daha 8 PR merge olunub (`Addım 10`/FE#143-dən əlavə) — heç biri jurnalda
+qeyd olunmamışdı. FE#69 QA 7-ci dövr hesabatı (`AC-24, TC-29`, BUG-4) bunu
+aşkarladı. Aşağıda hər PR retroaktiv, qısa formada qeyd olunur.
+
+**Nə dəyişdi**
+
+- **PR #146 (FE#144)** — `6d68d91`: `docs/design-system.md` sənədi ilə
+  koddakı JSDoc iddialarını sinxronlaşdırdı (sənəd + JSDoc düzəlişi, davranış
+  dəyişikliyi yoxdur). Toxunulan fayllar: `src/components/ui/Badge.tsx`,
+  `src/components/ui/FilterBar.tsx`, `src/components/ui/PeriodFilter.tsx`.
+
+- **PR #107 (FE-100)** — `cbfe052` (+ `dc640f9`, `919d624`): `PeriodFilter`-in
+  aralığı təmizləmə düyməsinin toxunma hədəfini 40×40px-ə böyütdü və
+  hündürlük trade-off-unu JSDoc-da izah etdi. Toxunulan fayl:
+  `src/components/ui/PeriodFilter.tsx`.
+
+- **PR #114 (FE113)** — `f295711` (+ `96ca0e0`): `DebtsKpiCards`-dəki
+  `ErrorBlock` retry düyməsinin toxunma hədəfini 40px minimuma çatdırdı, test
+  əlavə etdi. Toxunulan fayllar:
+  `src/features/customers/components/DebtsKpiCards.tsx` (+ `.test.tsx`).
+
+- **PR #118 (FE117)** — `20f628e` (+ `d780570`): `ProductForm`-dakı
+  "Xüsusiyyəti sil" düyməsinin toxunma hədəfini 40px-ə çatdırdı. Toxunulan
+  fayl: `src/features/products/components/ProductForm.tsx`.
+
+- **PR #108 (FE99)** — `75c428f` (+ `e40f8f1`, `fcd7925`): `FilterBar`-dakı
+  çip silmə/təmizləmə düymələrinin toxunma hədəfini 40px minimuma böyütdü və
+  çiplərin genişlənmiş toxunma sahələrinin üst-üstə düşməməsi üçün sətirlər
+  arası boşluğu artırdı, test əlavə etdi. Toxunulan fayllar:
+  `src/components/ui/FilterBar.tsx` (+ `.test.tsx`).
+
+- **PR #120 (FE119)** — `d8c1848` (+ `7537fd1`): login formunu DS
+  `Input`/`Button`/`Field` primitivlərinə keçirdi ki, 40px minimum kontrol
+  hündürlüyünə çatsın, test əlavə etdi. Toxunulan fayllar:
+  `src/routes/login.tsx` (+ `-login.test.tsx`).
+
+- **PR #149 (FE141)** — `20e20b7` (+ `cba3840`): FE#100/FE#113/FE#117-də
+  40px-ə böyüdülmüş toxunma-hədəf kontrollarına çatışmayan `focus-ring`
+  əlavə etdi (a11y review follow-up). Toxunulan fayllar:
+  `src/components/ui/PeriodFilter.tsx`,
+  `src/features/customers/components/DebtsKpiCards.tsx`,
+  `src/features/products/components/ProductForm.tsx`.
+
+- **PR #148 (FE#142)** — `485c3b5` (+ `c93d646`, `ae09c12`): şəbəkə
+  xətalarında sonsuz spinner/yanıldıcı boş vəziyyət əvəzinə `InlineError`
+  göstərilməsini təmin etdi; ortaq `PageSkeleton` çıxarılıb Dashboard/
+  Hesabatlar yüklənmə skeleton-ları dublikasiyadan təmizləndi. Toxunulan
+  fayllar: `src/components/ui/DataTable.tsx` (+ `.test.tsx`),
+  `src/components/ui/LoadingSkeleton.tsx` (mövcud fayla `PageSkeleton`
+  əlavə edildi — yeni deyil, FE#69-dan bəri var),
+  `src/components/ui/StaleDataBanner.tsx` (yeni),
+  `src/features/day-end/components/ClosingHistory.tsx` (+ `.test.tsx`),
+  `src/features/employees/components/EmployeesTable.tsx` (+ `.test.tsx`),
+  `src/routes/_app.hesabatlar.tsx` (+ `.test.tsx`),
+  `src/routes/_app.index.tsx` (+ `.test.tsx`), `src/routes/_app.iscilar.tsx`,
+  `vite.config.ts`.
+
+**Toxunulan səhifələr:** Mallar (ProductForm), Nisyə Borclar
+(DebtsKpiCards), Login, Dashboard, Hesabatlar, Gün Sonu (ClosingHistory),
+İşçilər (EmployeesTable) — filtr/tarix komponentləri (`FilterBar`,
+`PeriodFilter`) vasitəsilə əlavə olaraq bütün siyahı səhifələri.
+
+---
+
 ## Yekun
 
 **Normallaşdırılan primitivlər (16):** Button · Input · Textarea · Select ·
