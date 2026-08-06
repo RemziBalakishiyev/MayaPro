@@ -84,6 +84,13 @@ function MusterilerPage() {
     [customers],
   );
 
+  const filteredDebt = useMemo(
+    () => filtered.reduce((s, c) => s + c.remainingDebt, 0),
+    [filtered],
+  );
+
+  const hasActiveFilters = !!(search.q ?? "").trim() || !!search.onlyDebtors;
+
   const subtitle = `${customers.length} müştəri · Ümumi alış: ${fmtMoney(totalPurchases)}`;
 
   const liveSelected = selected
@@ -121,11 +128,12 @@ function MusterilerPage() {
         }
       />
 
-      {/* FE#69/FE#122 — lokal cədvəl axtarışı + "yalnız borclular" filtri
-          paylaşılan `TableToolbar` (search/actions slot-ları) daxilində
-          göstərilir: cədvəl üstü alət zolağı bütün siyahı səhifələrində
-          eyni yerdə/hündürlükdə olsun deyə (AC-14, AC-16). URL search
-          sxemi dəyişməyib. */}
+      {/* FE#69/FE#122/FE#73 — lokal cədvəl axtarışı + sürətli borc filtri
+          paylaşılan `TableToolbar` (search/actions slot-ları) daxilində,
+          BİR standart toolbar-da göstərilir (bənd 2). FE#73 ilə kiçik
+          checkbox seqment düymələrinə ([Hamısı] / [Borcu olanlar]) keçdi
+          (bənd 3) — URL search sxemi (`onlyDebtors`) dəyişməyib, seçim
+          əvvəlki kimi URL-də əks olunur. */}
       <TableToolbar
         search={
           <LocalTableSearch
@@ -139,29 +147,44 @@ function MusterilerPage() {
           />
         }
         actions={
-          <label
-            className={cn(
-              "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-control border bg-white px-3.5 text-sm font-medium",
-              search.onlyDebtors
-                ? "border-red-300 text-red-700"
-                : "border-stone-200 text-stone-600",
-            )}
+          <div
+            role="tablist"
+            aria-label="Borc statusuna görə sürətli görünüş"
+            className="flex shrink-0 gap-0.5 rounded-control border border-stone-200 bg-white p-1"
           >
-            <input
-              type="checkbox"
-              checked={!!search.onlyDebtors}
-              onChange={(e) =>
-                navigate({
-                  search: (prev) => ({
-                    ...prev,
-                    onlyDebtors: e.target.checked || undefined,
-                  }),
-                })
-              }
-              className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-            />
-            Yalnız borclular
-          </label>
+            {(
+              [
+                { key: false, label: "Hamısı" },
+                { key: true, label: "Borcu olanlar" },
+              ] as const
+            ).map(({ key, label }) => {
+              const active = !!search.onlyDebtors === key;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() =>
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        onlyDebtors: key || undefined,
+                      }),
+                    })
+                  }
+                  className={cn(
+                    "min-h-[40px] whitespace-nowrap rounded-chip px-3.5 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-emerald-700 text-white shadow-sm"
+                      : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         }
       />
 
@@ -181,11 +204,30 @@ function MusterilerPage() {
           (search.q ?? "").trim() || search.onlyDebtors
             ? {
                 title: "Filterə uyğun müştəri yoxdur",
-                description: "Axtarışı və ya «yalnız borclular» filtri dəyişin.",
+                description: "Axtarışı və ya «Borcu olanlar» görünüşünü dəyişin.",
               }
             : undefined
         }
       />
+      {/* FE#73 (bənd 12) — "Nisyə Borclar" səhifəsindəki eyni "Görünən: N"
+          xülasə sətri (`_app.borclar.tsx`) ilə üst-üstə: səhifələmə
+          (`TablePagination`, `CustomersTable` daxilində) ÜMUMİ sətir
+          sayını göstərir, bu sətir isə CARİ FİLTRƏ uyğun görünən sayı. */}
+      {!isLoading && filtered.length > 0 && (
+        <p className="mt-2 flex items-center justify-end gap-1.5 px-1 text-xs text-stone-500">
+          <span>Görünən:</span>
+          <span className="font-semibold tabular-nums text-stone-700">
+            {filtered.length} müştəri
+          </span>
+          <span aria-hidden="true">·</span>
+          <span className="font-semibold tabular-nums text-stone-700">
+            {fmtMoney(filteredDebt)}
+          </span>
+          {hasActiveFilters && (
+            <span className="text-stone-400">(filtrə uyğun)</span>
+          )}
+        </p>
+      )}
 
       <CustomerDrawer
         customer={liveSelected}

@@ -27,6 +27,13 @@ import { useInvoiceWhatsApp } from "@/features/sales/useInvoiceWhatsApp";
 import { useSettingsStore } from "@/features/settings/store";
 import { waLink } from "../lib";
 import { useCustomerHistory, useDeleteCustomerCredit } from "../queries";
+import {
+  DEBT_HEADLINE_CLASS,
+  DEBT_PANEL_CLASS,
+  DEBT_TONE_LABEL,
+  debtAgeDays,
+  debtTone,
+} from "./debt-presentation";
 import type { Customer, CustomerHistoryEntry } from "@/types";
 
 interface Props {
@@ -72,7 +79,13 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
   );
 
   const isDebtor = (customer?.remainingDebt ?? 0) > 0;
-  const status = isDebtor ? "Borclu" : "Ödənilib";
+  // FE#73 (bənd 9) — 2 dərəcəli (Borclu/Ödənilib) ƏVƏZİNƏ 4 dərəcəli ton:
+  // Ödənilib / Borclu / Gecikmiş borc / Kritik borc (`debt-presentation.ts`
+  // — cədvəllə (`CustomersTable`) EYNİ qayda, HƏR borclu qırmızı görünməsin).
+  const debtToneValue = customer
+    ? debtTone(customer.remainingDebt, debtAgeDays(customer))
+    : "none";
+  const status = DEBT_TONE_LABEL[debtToneValue];
 
   const handleDeleteCredit = async () => {
     if (!customer || !creditToDelete?.saleId) return;
@@ -150,20 +163,14 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
         {(isExpanded) =>
         customer && (
           <div className="space-y-6">
-            {/* Qalıq borc — əsas siqnal */}
-            <div
-              className={cn(
-                "rounded-2xl border p-4",
-                isDebtor
-                  ? "border-red-100 bg-gradient-to-br from-red-50 to-white"
-                  : "border-emerald-100 bg-gradient-to-br from-emerald-50 to-white",
-              )}
-            >
+            {/* Qalıq borc — əsas siqnal (FE#73: rəng 4 dərəcəli tondan gəlir,
+                HƏR borclu eyni "qırmızı təhlükə" kimi görünmür). */}
+            <div className={cn("rounded-card border p-4", DEBT_PANEL_CLASS[debtToneValue])}>
               <p className="text-sm font-medium text-stone-500">Qalıq borc</p>
               <p
                 className={cn(
                   "mt-1 text-3xl font-bold tabular-nums tracking-tight",
-                  isDebtor ? "text-red-600" : "text-emerald-700",
+                  DEBT_HEADLINE_CLASS[debtToneValue],
                 )}
               >
                 {fmtMoney(customer.remainingDebt)}
@@ -186,20 +193,26 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
               </div>
             </div>
 
-            {/* Əlaqə */}
-            <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-3">
-              {/* FE#156 — hit-slop patch əvəzinə paylaşılan `CopyablePhone`
-                  primitivindən istifadə edirik (AC-3: mövcud primitivi
-                  təkrarlama, istifadə et). */}
-              {toStoredPhone(customer.phone) ? (
-                <CopyablePhone
-                  phone={customer.phone}
-                  className="text-sm font-semibold text-stone-800 underline-offset-2 hover:text-emerald-700 hover:underline"
-                />
-              ) : (
-                <span className="text-sm text-stone-400">Telefon yoxdur</span>
-              )}
-            </div>
+            {/* Əlaqə — FE#73: standart kart üslubu (başlıq + `rounded-card`
+                panel), digər bölmələrlə (Aldığı mallar / Tarixçə) eyni dil. */}
+            <section>
+              <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wide text-stone-500">
+                Əlaqə
+              </h4>
+              <div className="flex items-center gap-3 rounded-card border border-stone-200 bg-stone-50 px-3.5 py-3">
+                {/* FE#156 — hit-slop patch əvəzinə paylaşılan `CopyablePhone`
+                    primitivindən istifadə edirik (AC-3: mövcud primitivi
+                    təkrarlama, istifadə et). */}
+                {toStoredPhone(customer.phone) ? (
+                  <CopyablePhone
+                    phone={customer.phone}
+                    className="text-sm font-semibold text-stone-800 underline-offset-2 hover:text-emerald-700 hover:underline"
+                  />
+                ) : (
+                  <span className="text-sm text-stone-400">Telefon yoxdur</span>
+                )}
+              </div>
+            </section>
 
             {/* Genişdə "Aldığı mallar" + "Tarixçə" yan-yana göstərilir. */}
             <div
@@ -223,7 +236,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
               {cusSales.length === 0 ? (
                 <EmptyState icon={ShoppingCart} title="Nisyə alış yoxdur" />
               ) : (
-                <ul className="divide-y divide-stone-100 overflow-hidden rounded-xl border border-stone-200 bg-white">
+                <ul className="divide-y divide-stone-100 overflow-hidden rounded-card border border-stone-200 bg-white">
                   {cusSales.map((s) => {
                     const hasPhone = !!customer.phone.replace(/\D/g, "");
                     const waBusy = waPendingId === s.id;
@@ -280,7 +293,20 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
               )}
             </section>
 
-            {/* Tarixçə */}
+            {/*
+              Borc / ödəniş tarixçəsi — FE#73 (bənd 6): PM-in tələb etdiyi
+              "borc tarixçəsi" və "ödəniş tarixçəsi" bölmələri BURADA QƏSDƏN
+              AYRI-AYRI SİYAHILARA PARÇALANMAYIB, mövcud vahid xronoloji
+              tarixçə saxlanılıb. Səbəb: bir borc qeydi (ilkin borc/nisyə
+              satış) və onu söndürən ödəniş(lər) vaxt oxunda bir-birinin
+              davamıdır — ayrı siyahılara bölünsə, istifadəçi "bu borc
+              ödənilibmi?" sualına cavab tapmaq üçün iki siyahı arasında əl
+              ilə tarix müqayisə etməli olardı. Hər qeyd artıq növünə görə
+              vizual fərqlənir (ikon + rəng + `paymentType` badge-i:
+              ödəniş=yaşıl enma oxu, ilkin borc=kəhrəba kitab ikonu, nisyə
+              satış=qırmızı qalxma oxu) — DS 9-cu qaydaya uyğun, rəng tək
+              göstərici deyil.
+            */}
             <section>
               <div className="mb-2.5 flex items-baseline justify-between gap-2">
                 <h4 className="text-xs font-bold uppercase tracking-wide text-stone-500">
@@ -295,7 +321,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
               {history.length === 0 ? (
                 <EmptyState icon={HandCoins} title="Tarixçə yoxdur" />
               ) : (
-                <ul className="relative space-y-0 overflow-hidden rounded-xl border border-stone-200 bg-white">
+                <ul className="relative space-y-0 overflow-hidden rounded-card border border-stone-200 bg-white">
                   {history.map((h, i) => {
                     const isPay = h.type === "payment";
                     const isInitial = h.type === "initialDebt";
