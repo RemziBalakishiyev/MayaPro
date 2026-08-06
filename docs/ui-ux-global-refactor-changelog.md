@@ -291,7 +291,11 @@ test`, `npx tsc --noEmit` yenidən yoxlanılacaq (AC-3).
 PR #83 `main`-ə squash-merge edildi — merge commit `4feddc4`
 (`origin/main`, `mergedAt: 2026-08-06T08:45:01Z`). 22 commit (o cümlədən
 sınıq `a6330ae`) `main`-in tarixçəsindən çıxarılıb, əvəzinə tək squash
-commit əlavə olunub — AC-22/TC-26 tam ödənilir.
+commit əlavə olunub — AC-22/TC-26 tam ödənilir. (Qeyd: yuxarıdakı
+"Qərar" bölməsində merge-dən əvvəl "21 ədəd" kimi qeyd olunan say
+təxmini idi; `gh pr view 83 --json commits` ilə təsdiqlənən yekun say
+22-dir — fərq sənədləşdirmə commit-inin özünün əlavə olunması ilə
+izah olunur.)
 
 Merge-dən sonra `main`-də (commit `4feddc4`) təkrar doğrulama (AC-3):
 
