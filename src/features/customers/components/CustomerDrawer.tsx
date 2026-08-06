@@ -6,7 +6,6 @@ import {
   HandCoins,
   Loader2,
   MessageCircle,
-  Phone,
   ShoppingCart,
   Trash2,
 } from "lucide-react";
@@ -17,8 +16,9 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/toast-store";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
+import { CopyablePhone } from "@/components/ui/CopyablePhone";
 import { fmtMoney, fmtDate } from "@/lib/format";
-import { formatPhoneDisplay } from "@/lib/phone";
+import { toStoredPhone } from "@/lib/phone";
 import { cn } from "@/lib/cn";
 import { ApiError } from "@/lib/api-client";
 import { useCan } from "@/features/auth/store";
@@ -72,7 +72,6 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
   );
 
   const isDebtor = (customer?.remainingDebt ?? 0) > 0;
-  const phoneDisplay = customer ? formatPhoneDisplay(customer.phone) : "";
   const status = isDebtor ? "Borclu" : "Ödənilib";
 
   const handleDeleteCredit = async () => {
@@ -189,36 +188,14 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
 
             {/* Əlaqə */}
             <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-3">
-              {phoneDisplay ? (
-                <a
-                  href={`tel:+${customer.phone.replace(/\D/g, "")}`}
-                  title="Zəng et"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700 ring-1 ring-stone-200 transition-colors hover:bg-emerald-50"
-                >
-                  <Phone size={16} />
-                </a>
-              ) : (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-stone-500 ring-1 ring-stone-200">
-                  <Phone size={16} />
-                </span>
-              )}
-              {phoneDisplay ? (
-                <button
-                  type="button"
-                  title="Kopyalamaq üçün klikləyin"
-                  onClick={async () => {
-                    const digits = customer.phone.replace(/\D/g, "");
-                    try {
-                      await navigator.clipboard.writeText(`+${digits}`);
-                      toast.success("Nömrə kopyalandı");
-                    } catch {
-                      toast.error("Nömrə kopyalanmadı");
-                    }
-                  }}
-                  className="min-w-0 text-left text-sm font-semibold tabular-nums text-stone-800 underline-offset-2 hover:text-emerald-700 hover:underline"
-                >
-                  {phoneDisplay}
-                </button>
+              {/* FE#156 — hit-slop patch əvəzinə paylaşılan `CopyablePhone`
+                  primitivindən istifadə edirik (AC-3: mövcud primitivi
+                  təkrarlama, istifadə et). */}
+              {toStoredPhone(customer.phone) ? (
+                <CopyablePhone
+                  phone={customer.phone}
+                  className="text-sm font-semibold text-stone-800 underline-offset-2 hover:text-emerald-700 hover:underline"
+                />
               ) : (
                 <span className="text-sm text-stone-400">Telefon yoxdur</span>
               )}
