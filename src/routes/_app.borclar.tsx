@@ -39,7 +39,10 @@ import {
   DebtViewToggle,
   type DebtViewMode,
 } from "@/features/customers/components/DebtViewToggle";
-import type { DebtPaymentContext } from "@/features/customers/lib";
+import {
+  findUniqueCustomerByName,
+  type DebtPaymentContext,
+} from "@/features/customers/lib";
 import type { Customer } from "@/types";
 
 const optNum = z.preprocess((v) => {
@@ -244,12 +247,13 @@ function BorclarPage() {
    * birbaşa açılır (axtarış zolağı doldurulmur). Tapılmazsa (silinib/adı
    * fərqlidir) və ya ad birdən çox müştəriyə uyğun gəlirsə (birqiymətli
    * deyil) FE#63-dəki əvvəlki fallback davranışı işə düşür: axtarış həmin
-   * adla doldurulur.
+   * adla doldurulur. Uyğunluq qaydası (`findUniqueCustomerByName`) unit
+   * testlə (`lib.test.ts`, TC10-TC12) yoxlanılır.
    */
   const selectDebtor = (name: string) => {
-    const matches = customers.filter((c) => c.name === name);
-    if (matches.length === 1) {
-      setSelected(matches[0]);
+    const match = findUniqueCustomerByName(customers, name);
+    if (match) {
+      setSelected(match);
     } else {
       setQ(name);
     }

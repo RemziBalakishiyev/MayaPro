@@ -1,4 +1,5 @@
 import { DEFAULT_WA_TEMPLATE } from "@/features/settings/store";
+import type { Customer } from "@/types";
 
 /**
  * WhatsApp borc xatırlatma linki.
@@ -52,4 +53,23 @@ export function debtAgeTone(daysOld: number): DebtAgeTone {
 export interface DebtPaymentContext {
   description: string;
   sourceDate: string;
+}
+
+/**
+ * FE#74 (AC5, TC10-TC12) — KPI panelindəki "Ən çox borclu" mini-kartına klik
+ * ediləndə `topDebtor.name`-ə (KPI endpoint-i `customerId` qaytarmır) görə
+ * onsuz da yüklənmiş `customers` siyahısında DƏQİQ və BİRQİYMƏTLİ uyğun
+ * müştəri axtarılır. Tam BİR uyğun müştəri varsa — o qaytarılır (çağıran
+ * `CustomerDrawer`-i açır). Heç biri uyğun gəlmirsə (silinib/ad fərqlidir)
+ * VƏ YA birdən çoxu uyğun gəlirsə (ad üst-üstə düşür, birqiymətli deyil) —
+ * `null` qaytarılır (çağıran FE#63-dəki fallback-a keçir: axtarışı ad ilə
+ * doldurur). Bu funksiya təcrid olunub ki, ad-uyğunluq qaydası (unit testlə)
+ * müstəqil yoxlanıla bilsin.
+ */
+export function findUniqueCustomerByName(
+  customers: Customer[],
+  name: string,
+): Customer | null {
+  const matches = customers.filter((c) => c.name === name);
+  return matches.length === 1 ? matches[0] : null;
 }

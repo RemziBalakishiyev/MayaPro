@@ -3,8 +3,27 @@ import {
   DEBT_AGE_CRITICAL,
   DEBT_AGE_WARN,
   debtAgeTone,
+  findUniqueCustomerByName,
   waLink,
 } from "./lib";
+import type { Customer } from "@/types";
+
+function makeCustomer(overrides: Partial<Customer> = {}): Customer {
+  return {
+    id: "c1",
+    name: "Əli Vəliyev",
+    phone: "994501234567",
+    totalDebt: 500,
+    paidAmount: 0,
+    remainingDebt: 500,
+    initialDebt: 0,
+    totalPurchases: 500,
+    purchaseCount: 1,
+    lastPurchaseDate: "",
+    lastPaymentDate: "",
+    ...overrides,
+  };
+}
 
 /**
  * FE#74 (AC8/AC9/TC5-TC8) — "Borclar" görünüşündəki (`OpenDebtsTable`) borc
@@ -35,6 +54,39 @@ describe("debtAgeTone", () => {
     expect(debtAgeTone(DEBT_AGE_CRITICAL)).toBe("critical");
     expect(debtAgeTone(65)).toBe("critical");
     expect(debtAgeTone(400)).toBe("critical");
+  });
+});
+
+/**
+ * FE#74 (AC5, TC10-TC12) — "Ən çox borclu" klik davranışının ad-uyğunluq
+ * qaydası: `_app.borclar.tsx`-dəki `selectDebtor` bu funksiyaya əsaslanır.
+ */
+describe("findUniqueCustomerByName", () => {
+  it("TC10 — tam BİR uyğun müştəri tapılırsa onu qaytarır", () => {
+    const customers = [
+      makeCustomer({ id: "c1", name: "Əli Vəliyev" }),
+      makeCustomer({ id: "c2", name: "Vəli Əliyev" }),
+    ];
+    expect(findUniqueCustomerByName(customers, "Əli Vəliyev")).toEqual(
+      customers[0],
+    );
+  });
+
+  it("TC11 — heç bir uyğun müştəri tapılmazsa null qaytarır (fallback)", () => {
+    const customers = [makeCustomer({ id: "c1", name: "Əli Vəliyev" })];
+    expect(findUniqueCustomerByName(customers, "Silinmiş Müştəri")).toBeNull();
+  });
+
+  it("TC11 — ad birdən çox müştəriyə uyğun gəlirsə (birqiymətli deyil) null qaytarır (fallback)", () => {
+    const customers = [
+      makeCustomer({ id: "c1", name: "Əli Vəliyev" }),
+      makeCustomer({ id: "c2", name: "Əli Vəliyev" }),
+    ];
+    expect(findUniqueCustomerByName(customers, "Əli Vəliyev")).toBeNull();
+  });
+
+  it("TC12 — boş siyahıda null qaytarır", () => {
+    expect(findUniqueCustomerByName([], "Əli Vəliyev")).toBeNull();
   });
 });
 
