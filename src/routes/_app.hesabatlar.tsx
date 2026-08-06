@@ -8,7 +8,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InlineError } from "@/components/ui/InlineError";
 import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
-import { Skeleton } from "@/components/ui/LoadingSkeleton";
+import { PageSkeleton } from "@/components/ui/LoadingSkeleton";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
 import { useReportsData, useSummary } from "@/features/reports/queries";
@@ -46,24 +46,6 @@ export const Route = createFileRoute("/_app/hesabatlar")({
   validateSearch: searchSchema,
   component: HesabatlarPage,
 });
-
-function HesabatlarSkeleton() {
-  return (
-    <div role="status" aria-live="polite" aria-label="Hesabatlar yüklənir" className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-20" />
-        ))}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-64" />
-        ))}
-      </div>
-      <span className="sr-only">Hesabatlar yüklənir...</span>
-    </div>
-  );
-}
 
 function HesabatlarPage() {
   const navigate = Route.useNavigate();
@@ -160,7 +142,7 @@ function HesabatlarPage() {
     return (
       <div>
         <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
-        <HesabatlarSkeleton />
+        <PageSkeleton label="Hesabatlar yüklənir" cardCount={4} />
       </div>
     );
   }

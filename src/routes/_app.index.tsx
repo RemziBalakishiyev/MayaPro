@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InlineError } from "@/components/ui/InlineError";
 import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
-import { Skeleton } from "@/components/ui/LoadingSkeleton";
+import { PageSkeleton } from "@/components/ui/LoadingSkeleton";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { useDashboardStats } from "@/features/reports/queries";
 import { SignatureBand } from "@/features/reports/components/SignatureBand";
@@ -32,23 +32,6 @@ import { TrendLineChart } from "@/features/reports/components/TrendLineChart";
 export const Route = createFileRoute("/_app/")({
   component: DashboardPage,
 });
-
-function DashboardSkeleton() {
-  return (
-    <div role="status" aria-live="polite" aria-label="Dashboard yüklənir" className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <Skeleton key={i} className="h-20" />
-        ))}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Skeleton className="h-64" />
-        <Skeleton className="h-64" />
-      </div>
-      <span className="sr-only">Dashboard yüklənir...</span>
-    </div>
-  );
-}
 
 function DashboardPage() {
   const { data: d, isLoading, isError, refetch } = useDashboardStats();
@@ -78,7 +61,11 @@ function DashboardPage() {
     return (
       <div>
         <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
-        <DashboardSkeleton />
+        <PageSkeleton
+          label="Dashboard yüklənir"
+          statCount={10}
+          statGridClassName="grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
+        />
       </div>
     );
   }
