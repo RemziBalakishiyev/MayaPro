@@ -311,6 +311,52 @@ AC-23 (bloklayıcı) tam ödənilir.
 
 ---
 
+## Addım 10 — FE#143: istifadəsiz `PageToolbar`/`StatusBadge` silinməsi
+
+**Problem**
+
+FE#69 ilə yaradılan `PageToolbar` (`src/components/layout/PageToolbar.tsx`)
+və `StatusBadge` (`src/components/ui/StatusBadge.tsx`) primitivləri 3 ardıcıl
+QA dövründə (FE#86 → FE#122 → FE#126) real səhifə istifadəsi qazanmadı:
+`origin/main`-də `PageToolbar`-a yeganə istinadlar `FilterBar.tsx` və
+`PeriodFilter.tsx`-dəki JSDoc mətnləri idi (0 real render), `StatusBadge`-in
+yeganə istinadı isə `DataTable.test.tsx` idi (0 real render). AC-16
+(«filtr və tarix kontrolları hər səhifədə eyni yerdədir») bunun nəticəsində
+pozulmuş qalırdı.
+
+**Qərar**
+
+Kod bazası araşdırılıb: hər siyahı səhifəsi (Mallar, Xərclər, Nisyə Borclar)
+artıq özünəməxsus, əvvəllər ayrıca task-larla (FE#63, FE#94) nəzərdən
+keçirilmiş düzülüşlə `PeriodFilter` + `FilterBar`/səhifəyə xas filtr
+komponentini birbaşa render edir; bu, `PageToolbar`-ın nəzərdə tutduğu rolu
+faktiki oynayır. Eynilə, status göstərmək üçün `Badge`/`ProductStatusBadge`
+artıq 11+ yerdə istifadədədir. Bu primitivləri geriyə güc ilə inteqrasiya
+etmək (3 fərqli, qəsdən fərqləndirilmiş səhifə düzülüşünü sındıraraq) əlavə
+risk yaradardı və dəyər qazandırmazdı — ona görə **B seçimi** (ölü kodun
+silinməsi) seçildi.
+
+**Nə dəyişdi**
+
+- Silindi: `src/components/layout/PageToolbar.tsx`,
+  `src/components/ui/StatusBadge.tsx`.
+- `src/components/ui/DataTable.test.tsx`: `StatusBadge` importu və ona aid
+  `describe("StatusBadge", …)` bloku silindi (7 → 6 test).
+- `FilterBar.tsx`, `PeriodFilter.tsx`, `Badge.tsx` JSDoc-larındakı silinmiş
+  komponentlərə istinadlar təmizləndi.
+- `docs/design-system.md`: primitiv statusu cədvəlindən `PageToolbar`/
+  `StatusBadge` sətirləri çıxarıldı (22 → 20 canlı primitiv), 3.3/3.6
+  nümunələri yeniləndi, 1.9 layout qaydası və geriyə uyğunluq bölməsi
+  faktiki koda uyğunlaşdırıldı.
+- `TableToolbar`-a TOXUNULMADI — real istifadədədir
+  (`src/routes/_app.musteriler.tsx`) və AC-16/keçid meyarlarını ödəyir.
+
+**Build:** ✅ · **Test:** ✅ (aşağıda ətraflı)
+
+**Toxunulan səhifələr:** yoxdur (yalnız istifadəsiz komponentlər və sənədlər).
+
+---
+
 ## Yekun
 
 **Normallaşdırılan primitivlər (16):** Button · Input · Textarea · Select ·
@@ -319,11 +365,15 @@ PeriodFilter (→ SegmentedDateFilter) · StatCard · KpiCard/StatCluster/AlertP
 Modal · Drawer (→ DetailDrawer) · ConfirmModal (→ ConfirmDialog) · Toast ·
 PageHead (→ PageHeader).
 
-**Yeni yaradılan primitivlər (13):** AppShell · Sidebar · TopHeader ·
-PageHeader · PageToolbar · GlobalProductSearch · LocalTableSearch ·
-IconButton · StatusBadge · TableToolbar · TablePagination · LoadingSkeleton ·
-InlineError (+ köməkçi modullar: `ui-tokens.ts`, `dialog-layer.ts`,
-`cash-diff-presentation.ts`).
+**Yeni yaradılan primitivlər (13, ilkin FE#69):** AppShell · Sidebar ·
+TopHeader · PageHeader · PageToolbar · GlobalProductSearch ·
+LocalTableSearch · IconButton · StatusBadge · TableToolbar ·
+TablePagination · LoadingSkeleton · InlineError (+ köməkçi modullar:
+`ui-tokens.ts`, `dialog-layer.ts`, `cash-diff-presentation.ts`).
+
+**Yeniləmə (FE#143):** yuxarıdakı 13-dən 2-si (`PageToolbar`, `StatusBadge`)
+0 real səhifə istifadəsi ilə 3 QA dövrü keçdikdən sonra silindi (bax "Addım
+10" yuxarıda) — canlı primitiv sayı **11**-dir.
 
 **Köçürülən səhifələr:** bütün route-lar (AppShell/TopHeader/Sidebar) ·
 Mallar · Müştərilər · Nisyə Borclar · Təchizatçılar · Xərclər · Satış jurnalı ·
@@ -335,5 +385,6 @@ silinməsi (F-46), Hesabatların dövr filtri (F-26), terminologiyanın qalan
 sətirləri (F-52), rol badge-ləri (F-29), Ayarlar sticky zolağı (F-32),
 Dashboard/Hesabatlar KPI kompozisiyası (F-05, F-28), kassa tempi (F-11, F-12).
 
-**Silinən komponent / prop:** 0 · **Yeni paket:** 0 · **API/route/icazə
-dəyişikliyi:** 0.
+**Silinən komponent / prop (FE#69 dövrü sonu):** 0 · **Silinən komponent
+(FE#143, ölü kod):** 2 (`PageToolbar`, `StatusBadge`) · **Yeni paket:** 0 ·
+**API/route/icazə dəyişikliyi:** 0.
