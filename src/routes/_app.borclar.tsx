@@ -10,6 +10,7 @@ import { inputCls } from "@/components/ui/Input";
 import { LocalTableSearch } from "@/components/ui/LocalTableSearch";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
+import { TableToolbar } from "@/components/ui/TableToolbar";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -38,6 +39,7 @@ import {
   DebtViewToggle,
   type DebtViewMode,
 } from "@/features/customers/components/DebtViewToggle";
+import type { DebtPaymentContext } from "@/features/customers/lib";
 import type { Customer } from "@/types";
 
 const optNum = z.preprocess((v) => {
@@ -119,6 +121,10 @@ function BorclarPage() {
 
   const [selected, setSelected] = useState<Customer | null>(null);
   const [payFor, setPayFor] = useState<Customer | null>(null);
+  /** FE#74 (AC13/AC14) — "Borclar" cədvəlindən gələn borc mənbəyi konteksti. */
+  const [payContext, setPayContext] = useState<DebtPaymentContext | null>(
+    null,
+  );
   const [newOpen, setNewOpen] = useState(false);
   const [editFor, setEditFor] = useState<Customer | null>(null);
   const [deleteFor, setDeleteFor] = useState<Customer | null>(null);
@@ -231,13 +237,34 @@ function BorclarPage() {
     });
 
   /**
-   * FE#63 — KPI panelindəki "Ən çox borclu" mini-kartına klik ediləndə
-   * cədvəli həmin müştəriyə filtrləyir (funksional keçid). KPI endpoint-i
-   * `customerId` qaytarmadığı üçün ad üzrə axtarış istifadə olunur — bu,
-   * hər iki görünüş rejimində (Borclar/Müştəri üzrə) artıq mövcud olan
-   * axtarış davranışı ilə eynidir.
+   * FE#74 (AC5) — KPI panelindəki "Ən çox borclu" mini-kartına klik ediləndə
+   * artıq bu səhifədə YÜKLƏNMİŞ `customers` siyahısında ad üzrə DƏQİQ (və
+   * BİRQİYMƏTLİ) uyğun müştəri axtarılır — backend dəyişikliyi tələb
+   * olunmur (KPI endpoint-i `customerId` qaytarmır). Tapılarsa `CustomerDrawer`
+   * birbaşa açılır (axtarış zolağı doldurulmur). Tapılmazsa (silinib/adı
+   * fərqlidir) və ya ad birdən çox müştəriyə uyğun gəlirsə (birqiymətli
+   * deyil) FE#63-dəki əvvəlki fallback davranışı işə düşür: axtarış həmin
+   * adla doldurulur.
    */
-  const selectDebtor = (name: string) => setQ(name);
+  const selectDebtor = (name: string) => {
+    const matches = customers.filter((c) => c.name === name);
+    if (matches.length === 1) {
+      setSelected(matches[0]);
+    } else {
+      setQ(name);
+    }
+  };
+
+  /**
+   * FE#74 (AC13/AC14) — "Ödəniş al" çağırışı; "Borclar" cədvəlindən borc
+   * mənbəyi konteksti (mal adı/tarix) ilə, digər yerlərdən (Müştəri üzrə /
+   * `CustomerDrawer`) kontekstsiz çağrılır. `useAddCustomerPayment` axını və
+   * modal validasiyası DƏYİŞMİR — yalnız kontekst göstərilir.
+   */
+  const openPayment = (customer: Customer, context?: DebtPaymentContext) => {
+    setPayFor(customer);
+    setPayContext(context ?? null);
+  };
 
   // Seçilmiş müştərini cədvəldəki güncəl datadan götür (ödənişdən sonra yenilənsin)
   const liveSelected = selected
@@ -336,30 +363,49 @@ function BorclarPage() {
           <DebtViewToggle value={mode} onChange={setMode} />
 
           {mode === "borclar" ? (
-            /* FE#69 — paylaşılan `LocalTableSearch` (AC-14): qlobal axtarışdan
-               fərqli placeholder və görünüş; davranış dəyişməyib. */
-            <LocalTableSearch
-              value={search.q ?? ""}
-              onChange={setQ}
-              placeholder="Bu siyahıda axtar... (ad, telefon və ya mal)"
-              ariaLabel="Borc siyahısında axtar"
+            /* FE#74 (AC6) — axtarış ayrıca sərbəst sətirdə yox, paylaşılan
+               `TableToolbar`-in `search` slotu daxilində, cədvəlin
+               bilavasitə üstündə. Davranış (ad/telefon/mal üzrə filtr)
+               dəyişməyib — yalnız yerləşmə. */
+            <TableToolbar
+              search={
+                <LocalTableSearch
+                  value={search.q ?? ""}
+                  onChange={setQ}
+                  placeholder="Bu siyahıda axtar... (ad, telefon və ya mal)"
+                  ariaLabel="Borc siyahısında axtar"
+                />
+              }
             />
           ) : (
-            /* FE#94 — "musteri" rejimi də lokal axtarışdır (qlobal mal
-               axtarışından fərqli); FE#69/FE#85-in təyin etdiyi standart
-               placeholder mətni ilə uyğunlaşdırılıb. */
-            <FilterBar
-              searchValue={search.q ?? ""}
-              onSearchChange={setQ}
-              searchAriaLabel="Müştəri axtar"
-              searchPlaceholder="Bu siyahıda axtar... (ad və ya telefon)"
-              activeCount={activeFilterCount}
-              activeFilters={activeFilters}
-              onRemoveFilter={handleRemoveFilter}
-              onClear={clearFilters}
-              clearLabel="Filterləri təmizlə"
-              label="Filterlər"
-            >
+            /* FE#74 (AC6) — "musteri" rejimində də axtarış `TableToolbar`-in
+               `search` slotu daxilindədir; filtr paneli (status/son
+               əməliyyat/min-max/telefon/ilkin borclu) və aktiv filtr çipləri
+               paylaşılan `FilterBar`-da qalır (`hideSearch` — FE#69-dan bəri
+               mövcud olan, məhz bu naxış üçün nəzərdə tutulmuş prop),
+               mövcud primitiv təkrar yazılmayıb. */
+            <>
+              <TableToolbar
+                search={
+                  <LocalTableSearch
+                    value={search.q ?? ""}
+                    onChange={setQ}
+                    placeholder="Bu siyahıda axtar... (ad və ya telefon)"
+                    ariaLabel="Müştəri axtar"
+                  />
+                }
+              />
+              <FilterBar
+                hideSearch
+                searchValue={search.q ?? ""}
+                onSearchChange={setQ}
+                activeCount={activeFilterCount}
+                activeFilters={activeFilters}
+                onRemoveFilter={handleRemoveFilter}
+                onClear={clearFilters}
+                clearLabel="Filterləri təmizlə"
+                label="Filterlər"
+              >
               <div className="space-y-3">
                 <div>
                   <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
@@ -536,7 +582,8 @@ function BorclarPage() {
                   </div>
                 </div>
               </div>
-            </FilterBar>
+              </FilterBar>
+            </>
           )}
         </div>
 
@@ -545,7 +592,7 @@ function BorclarPage() {
             <OpenDebtsView
               q={search.q ?? ""}
               customers={customers}
-              onPay={setPayFor}
+              onPay={openPayment}
               onView={setSelected}
               embedded
             />
@@ -562,7 +609,7 @@ function BorclarPage() {
                 canDelete={canDelete}
                 embedded
                 onView={setSelected}
-                onPay={setPayFor}
+                onPay={openPayment}
                 onEdit={setEditFor}
                 onDelete={setDeleteFor}
                 emptyState={
@@ -604,12 +651,16 @@ function BorclarPage() {
             });
           }
         }}
-        onPay={setPayFor}
+        onPay={openPayment}
       />
       <PaymentModal
         open={!!payFor}
-        onClose={() => setPayFor(null)}
+        onClose={() => {
+          setPayFor(null);
+          setPayContext(null);
+        }}
         customer={livePayFor}
+        context={payContext}
       />
       <NewCustomerModal open={newOpen} onClose={() => setNewOpen(false)} />
       <EditCustomerModal

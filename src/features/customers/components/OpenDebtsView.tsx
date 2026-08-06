@@ -3,13 +3,18 @@ import { fmtMoney } from "@/lib/format";
 import { phoneDigits } from "@/lib/phone";
 import { useOpenDebts } from "../queries";
 import { OpenDebtsTable } from "./OpenDebtsTable";
+import type { DebtPaymentContext } from "../lib";
 import type { Customer } from "@/types";
 
 interface Props {
   /** Axtarış — idarəsi `BorclarPage`-in paylaşılan axtarış zolağındadır (FE#63). */
   q: string;
   customers: Customer[];
-  onPay: (customer: Customer) => void;
+  /**
+   * FE#74 (AC13) — borc mənbəyi konteksti (mal adı/tarix) `PaymentModal`-a
+   * ötürülsün deyə `OpenDebtsTable`-dan bit-bədit ötürülür.
+   */
+  onPay: (customer: Customer, context: DebtPaymentContext) => void;
   onView: (customer: Customer) => void;
   /** Xarici kart içində göstərilir — öz border/shadow-u yoxdur (FE#63). */
   embedded?: boolean;
