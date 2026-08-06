@@ -1,25 +1,29 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
+  ChevronDown,
   Eye,
   FileText,
   Loader2,
   Pencil,
   Receipt,
+  SlidersHorizontal,
   Trash2,
+  User,
+  X,
 } from "lucide-react";
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/ActionMenu";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { DataTable } from "@/components/ui/DataTable";
-import { EmptyValue } from "@/components/ui/EmptyValue";
-import { FilterBar } from "@/components/ui/FilterBar";
 import { inputCls } from "@/components/ui/Input";
+import { LocalTableSearch } from "@/components/ui/LocalTableSearch";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { Select } from "@/components/ui/Select";
+import { TableToolbar } from "@/components/ui/TableToolbar";
 import { useToast } from "@/components/ui/toast-store";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { useCan } from "@/features/auth/store";
@@ -29,7 +33,7 @@ import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/download";
 import { fmtDate, fmtMoney, fmtMoneySigned } from "@/lib/format";
 import { useEmployees } from "@/features/employees/queries";
-import { saleBatchExpense, saleDateTime } from "../lib";
+import { saleDateTime } from "../lib";
 import { JOURNAL_PAGE_SIZE, useDeleteSale, useSalesJournal } from "../queries";
 import { SalesKpiCards } from "./SalesKpiCards";
 import { useInvoiceDownload } from "../useInvoiceDownload";
@@ -106,6 +110,10 @@ export function SalesJournal() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
+  // FE#71 (AC-10) — axtarış + filtr toqql + PDF hesabat TƏK `TableToolbar`-da;
+  // filtr paneli `ProductFilters` (FE#70) naxışı ilə eynidir.
+  const filterPanelId = useId();
+  const [filtersOpen, setFiltersOpen] = useState(() => activeFilterCount > 0);
 
   const sellerName = useMemo(() => {
     const map = new Map(employees.map((e) => [e.id, e.name]));
@@ -167,6 +175,14 @@ export function SalesJournal() {
     maxQty ?? "",
   ].join("|");
 
+  // FE#71 (AC-11) — sütun sırası dəqiq: Mal · Say · Satış qiyməti · Yekun ·
+  // Ödəniş · Satıcı · Tarix · Əməliyyat. "Maya qiyməti" və "Xərc" sütunları
+  // TAMAMILƏ çıxarılıb (AC-12) — bu iki dəyər YALNIZ mövcud
+  // `SaleDetailDrawer`-in "Hesab" kartında ("Maya qiyməti (vahid)" / "Bu
+  // satışa düşən xərc" sətirləri) qalır, yeni paralel drawer yaradılmayıb.
+  // "Qazanc" da ayrıca sütun DEYİL — PM-in prioritet sırasında yer almadığı
+  // üçün "Yekun" xanasının altında yığcam ikinci sətir kimi qalır (qərar
+  // sənədləşdirilib: docs/pages/sales-ui-refactor.md, bənd 12).
   const columns = useMemo<ColumnDef<Sale, unknown>[]>(
     () => [
       {
@@ -187,9 +203,12 @@ export function SalesJournal() {
                     .join(" · ")}
                 </p>
               )}
+              {/* FE#71 (AC-16) — müştəri adı öz ikonu (User) + fərqli rəngi
+                  ilə kateqoriya/"Sərbəst" mətnindən aydın ayrılır. */}
               {cus && (
-                <p className="mt-0.5 truncate text-xs font-medium text-emerald-700">
-                  {cus}
+                <p className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-emerald-700">
+                  <User size={11} className="shrink-0" aria-hidden />
+                  <span className="truncate">{cus}</span>
                 </p>
               )}
             </div>
@@ -204,57 +223,11 @@ export function SalesJournal() {
         ),
       },
       {
-        id: "purchasePricePerUnit",
-        header: () => (
-          <span title="Malın alış qiyməti (1 ədəd)">Maya qiyməti</span>
-        ),
-        meta: { className: "hidden lg:table-cell" },
-        cell: ({ row }) => {
-          const p = row.original.purchasePricePerUnit;
-          if (p == null) return <EmptyValue />;
-          return <span className={moneyCls}>{fmtMoney(p)}</span>;
-        },
-      },
-      {
-        id: "xerc",
-        header: () => <span title="Bu satışa düşən partiya xərci">Xərc</span>,
-        meta: { className: "hidden lg:table-cell" },
-        cell: ({ row }) => {
-          const cost = saleBatchExpense(row.original);
-          if (cost == null) return <EmptyValue />;
-          return <span className={moneyCls}>{fmtMoney(cost)}</span>;
-        },
-      },
-      {
         accessorKey: "salePrice",
         header: () => <span title="1 ədədin satış qiyməti">Satış qiyməti</span>,
         cell: ({ getValue }) => (
           <span className={moneyCls}>{fmtMoney(getValue() as number)}</span>
         ),
-      },
-      {
-        accessorKey: "profit",
-        header: () => (
-          <span title="Yekun məbləğdən maya çıxıldıqdan sonra qalan">
-            Qazanc
-          </span>
-        ),
-        cell: ({ getValue }) => {
-          const p = getValue() as number | null;
-          if (p == null) {
-            return <span className="text-sm text-stone-400">naməlum</span>;
-          }
-          return (
-            <span
-              className={cn(
-                "text-sm font-medium tabular-nums",
-                p < 0 ? "text-red-600" : "text-emerald-700",
-              )}
-            >
-              {fmtMoneySigned(p)}
-            </span>
-          );
-        },
       },
       {
         accessorKey: "totalAmount",
@@ -266,12 +239,31 @@ export function SalesJournal() {
               <span className="text-base font-bold tabular-nums text-stone-900">
                 {fmtMoney(s.totalAmount)}
               </span>
-              {/* FE#25 (AC8) — qismən ödənişdə Yekun yanında kiçik boz sətir */}
-              {s.remainingAmount > 0 && s.paidAmount > 0 && (
-                <p className="text-xs tabular-nums text-stone-400">
-                  {fmtMoney(s.paidAmount)} ödənilib
-                </p>
-              )}
+              {/* FE#71 (AC-12) — "Qazanc" yığcam ikinci sətir kimi Yekun
+                  altında (ayrıca sütun yoxdur). */}
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5">
+                {s.profit == null ? (
+                  <span className="text-xs text-stone-400">
+                    <span className="sr-only">Qazanc: </span>naməlum
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "text-xs font-medium tabular-nums",
+                      s.profit < 0 ? "text-red-600" : "text-emerald-700",
+                    )}
+                  >
+                    <span className="sr-only">Qazanc: </span>
+                    {fmtMoneySigned(s.profit)}
+                  </span>
+                )}
+                {/* FE#25 (AC8) — qismən ödənişdə Yekun altında kiçik boz sətir */}
+                {s.remainingAmount > 0 && s.paidAmount > 0 && (
+                  <span className="text-xs tabular-nums text-stone-400">
+                    · {fmtMoney(s.paidAmount)} ödənilib
+                  </span>
+                )}
+              </div>
             </div>
           );
         },
@@ -317,31 +309,34 @@ export function SalesJournal() {
               className="flex items-center justify-end gap-1.5"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* FE#71 (AC-14) — mətnli etiketlər: "Detala bax" / "Qaimə" / "Digər". */}
               <button
                 type="button"
                 onClick={() => setDetailId(s.id)}
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
+                className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-200"
               >
                 <Eye size={14} />
-                Detal
+                Detala bax
               </button>
               <button
                 type="button"
                 title="Qaimə (PDF)"
-                aria-label={`${s.productName} qaiməsi`}
+                aria-label={`${s.productName} — Qaimə (PDF)`}
                 onClick={() => void downloadInvoice(s.id)}
                 disabled={invoicePending}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-stone-100 text-stone-600 transition-colors hover:bg-stone-200 disabled:opacity-50"
+                className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg bg-stone-100 px-2.5 text-xs font-semibold text-stone-600 transition-colors hover:bg-stone-200 disabled:opacity-50"
               >
                 {invoicePending ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
                   <Receipt size={14} />
                 )}
+                Qaimə
               </button>
               <ActionMenu
                 items={buildMenuItems(s)}
                 aria-label={`${s.productName} əməliyyatları`}
+                triggerLabel="Digər"
               />
             </div>
           );
@@ -445,25 +440,97 @@ export function SalesJournal() {
         <PeriodFilter value={range} onChange={updateRange} defaultKey="all" />
         <SalesKpiCards range={range} />
 
-        <div className="flex flex-wrap items-stretch gap-2">
-          <FilterBar
-            searchValue={q ?? ""}
-            onSearchChange={(val) =>
-              navigate({
-                search: (prev) => ({
-                  ...prev,
-                  q: val || undefined,
-                }),
-              })
+        {/* FE#71 (AC-10) — lokal axtarış, filtr toqql düyməsi və "PDF
+            hesabat" TƏK `TableToolbar` daxilində (musteriler.tsx naxışı ilə
+            eyni struktur); açılan filtr paneli və aktiv filtr çipləri
+            `ProductFilters` (FE#70) naxışı ilə eynidir. */}
+        <div>
+          <TableToolbar
+            search={
+              <LocalTableSearch
+                value={q ?? ""}
+                onChange={(val) =>
+                  navigate({
+                    search: (prev) => ({ ...prev, q: val || undefined }),
+                  })
+                }
+                placeholder="Bu siyahıda axtar..."
+                ariaLabel="Satış siyahısında axtar"
+              />
             }
-            searchAriaLabel="Satış axtar"
-            searchPlaceholder="Bu siyahıda axtar..."
-            activeCount={activeFilterCount}
-            activeFilters={activeFilters}
-            onRemoveFilter={handleRemoveFilter}
-            onClear={clearFilters}
-            clearLabel="Filterləri təmizlə"
-            label="Filterlər"
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen((o) => !o)}
+                  aria-expanded={filtersOpen}
+                  aria-controls={filterPanelId}
+                  className="focus-ring shrink-0 flex h-12 items-center justify-center gap-2 px-4 rounded-control border border-stone-300 bg-white text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50"
+                >
+                  <SlidersHorizontal size={16} className="text-stone-500" />
+                  Filterlər
+                  {activeFilterCount > 0 && (
+                    <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                  <ChevronDown
+                    size={18}
+                    className={cn(
+                      "shrink-0 text-stone-400 transition-transform",
+                      filtersOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  icon={
+                    exportingPdf ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <FileText size={14} />
+                    )
+                  }
+                  onClick={() => void exportPdf()}
+                  disabled={exportingPdf}
+                >
+                  PDF hesabat
+                </Button>
+              </>
+            }
+          />
+
+          {/* Aktiv filtrlər çiplər sırasında (panel bağlı olsa da görünsün) */}
+          {activeFilters.length > 0 && (
+            <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-4 rounded-control border border-stone-200 bg-stone-50/60 px-3 py-2">
+              {activeFilters.map((filter) => (
+                <div
+                  key={filter.id}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                >
+                  <span>{filter.label}</span>
+                  <span className="relative ml-0.5 inline-flex h-4 w-4 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFilter(filter.id)}
+                      aria-label={`${filter.label} sil`}
+                      className="focus-ring absolute inset-[-12px] inline-flex items-center justify-center rounded hover:bg-emerald-100"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Açılan filtr paneli */}
+          <div
+            id={filterPanelId}
+            hidden={!filtersOpen}
+            className="mb-2 rounded-control border border-stone-200 bg-stone-50/60 px-3 py-3"
           >
             {/* 5 filter sütun grid (lg:5, md:3, sm:2, mobil:1) */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -589,24 +656,19 @@ export function SalesJournal() {
                 />
               </div>
             </div>
-          </FilterBar>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            className="shrink-0 self-start"
-            icon={
-              exportingPdf ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <FileText size={14} />
-              )
-            }
-            onClick={() => void exportPdf()}
-            disabled={exportingPdf}
-          >
-            PDF hesabat
-          </Button>
+            {activeFilterCount > 0 && (
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="focus-ring inline-flex min-h-[40px] items-center justify-center rounded-chip px-2 text-sm font-semibold text-stone-600 hover:text-emerald-700"
+                >
+                  Filterləri təmizlə
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -653,9 +715,11 @@ export function SalesJournal() {
                     .join(" · ")}
                 </p>
               )}
+              {/* FE#71 (AC-16) — müştəri adı ikon + fərqli rənglə ayrılır. */}
               {customerName(s) && (
-                <p className="mt-1 truncate text-xs font-medium text-emerald-700">
-                  {customerName(s)}
+                <p className="mt-1 flex items-center gap-1 truncate text-xs font-medium text-emerald-700">
+                  <User size={11} className="shrink-0" aria-hidden />
+                  <span className="truncate">{customerName(s)}</span>
                 </p>
               )}
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -690,30 +754,33 @@ export function SalesJournal() {
                 className="mt-3 flex flex-wrap gap-2 border-t border-stone-100 pt-3"
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* FE#71 (AC-14) — mətnli etiketlər (masaüstü ilə eyni). */}
                 <button
                   type="button"
                   onClick={() => setDetailId(s.id)}
-                  className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
+                  className="flex h-11 flex-1 basis-[45%] items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-700 active:bg-stone-200"
                 >
-                  <Eye size={18} /> Detal
+                  <Eye size={18} /> Detala bax
                 </button>
                 <button
                   type="button"
                   title="Qaimə (PDF)"
-                  aria-label={`${s.productName} qaiməsi`}
+                  aria-label={`${s.productName} — Qaimə (PDF)`}
                   onClick={() => void downloadInvoice(s.id)}
                   disabled={invoicePendingId === s.id}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-600 active:bg-stone-200 disabled:opacity-50"
+                  className="flex h-11 flex-1 basis-[45%] items-center justify-center gap-1.5 rounded-xl bg-stone-100 text-base font-semibold text-stone-600 active:bg-stone-200 disabled:opacity-50"
                 >
                   {invoicePendingId === s.id ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
                     <Receipt size={18} />
                   )}
+                  Qaimə
                 </button>
                 <ActionMenu
                   items={buildMenuItems(s)}
                   aria-label={`${s.productName} əməliyyatları`}
+                  triggerLabel="Digər"
                 />
               </div>
             </div>

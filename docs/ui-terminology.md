@@ -61,6 +61,11 @@ Dil qaydası: bütün mətnlər **Azərbaycanca**dır; ingiliscə qalıq mətn y
 | 40 | `src/features/products/components/ProductsTable.tsx` — "Satış" sütun başlığı | `Satış` | `Satış qiyməti` | PM prioritet siyahısındaki adla uyğunlaşdırma (mal detalı səhifəsindəki adla da eynidir) | FE#70 AC-11 |
 | 41 | `src/features/products/components/ProductsTable.tsx` — sətir əməliyyatı düyməsi | `Stok` (yalnız Plus/Minus ikonu ilə fərqlənirdi) | `Stok artır` / `Stok azalt` (mətn özü də fərqlənir) | Yalnız-rəng/ikon fərqi ilə kifayətlənilməsin | FE#70 AC-13 |
 | 42 | `src/features/products/components/ProductsTable.tsx` — mal adı xanası | `<Link to="/mallar/$id">` (detal səhifəsinə keçid) | `<button onClick={onEdit}>` (redaktə formunu açır) | Mal üçün "detal" = redaktə forması (paralel drawer yaradılmayıb) | FE#70 AC-16 |
+| 43 | `src/features/sales/components/QuickSaleScreen.tsx` — satış axtarışı placeholder-i | `Mal adı və ya barkod...` | `Mal adı və ya barkod — satış üçün` | Qlobal `GlobalProductSearch`-dən (header) mətn səviyyəsində də aydın fərqlənsin | FE#71 AC-5 |
+| 44 | `src/features/sales/components/SalesKpiCards.tsx` — ödəniş bölgüsü panel etiketi | *(etiketsiz idi)* | `Ödəniş növü üzrə qazanc` | İkinci dərəcəli panelin nə göstərdiyi aydın olsun | FE#71 AC-7 |
+| 45 | `src/features/sales/components/SalesJournal.tsx` — sətir əməliyyat düymələri | `Detal` (mətnli) / `Qaimə` (yalnız `title`, ikon-yalnız) / `⋯` (ikon-yalnız menyu) | `Detala bax` / `Qaimə` (ikon + mətn) / `Digər` (mətnli menyu, `ActionMenu`-nun mövcud `triggerLabel` prop-u) | Bütün sətir əməliyyatları mətnli etiketlə (yalnız-ikon/yalnız-rəng qalmasın) | FE#71 AC-14 |
+| 46 | `src/features/sales/components/SalesJournal.tsx` — "Maya qiyməti" / "Xərc" sütun başlıqları | Cədvəldə iki ayrıca sütun (`lg+`) | *(sütunlar silinib — məlumat `SaleDetailDrawer`-in "Hesab" kartında qalır)* | Görünən sütun sayı PM-in prioritet siyahısına (8 sütun) uyğunlaşdırıldı, data itmir — yalnız yeri dəyişib | FE#71 AC-11, AC-12 |
+| 47 | `src/features/sales/components/SalesJournal.tsx` — "Qazanc" sütunu | Ayrıca sütun (cədvəldə 6-cı yer) | "Yekun" xanasının altında yığcam ikinci sətir (sr-only "Qazanc:" prefiksi ilə) | PM-in sütun prioritet siyahısında ayrıca yer almır, lakin gündəlik nəzarət üçün önəmli — tam gizlədilmədən "Yekun"ə köçürüldü | FE#71 AC-11, AC-12 |
 
 ---
 

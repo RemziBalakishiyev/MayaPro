@@ -100,10 +100,18 @@ export function QuickSaleScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
-  // Seçim ekranına qayıdanda axtarışa fokus
+  // FE#71 (AC-2) — seçim ekranına qayıdanda axtarışa avtofokus, YALNIZ
+  // təhlükəsiz olduqda: heç bir modal/drawer açıq olmamalı (klaviatura başqa
+  // sahəni "oğurlamamalıdır") VƏ mobil ekranda (< 640px, `sm` breakpoint-i)
+  // klaviatura özbaşına sıçramamalıdır. Barkod skaner davranışı bu şərtdən
+  // TƏSİRLƏNMİR — skaner istifadəçi əl ilə (və ya sistem) fokusladıqdan sonra
+  // işə düşür, bu effekt yalnız İLK avtomatik fokusu idarə edir.
   useEffect(() => {
-    if (!showDetails && !success) searchRef.current?.focus();
-  }, [showDetails, success]);
+    if (showDetails || success) return;
+    if (newCusOpen || confirmOpen || paymentModalOpen) return;
+    if (typeof window !== "undefined" && window.innerWidth < 640) return;
+    searchRef.current?.focus();
+  }, [showDetails, success, newCusOpen, confirmOpen, paymentModalOpen]);
 
   // Uğur ekranı 5 saniyə (qaimə düyməsinə çatmaq üçün) → təmiz seçimə qayıt
   useEffect(() => {
@@ -414,29 +422,35 @@ export function QuickSaleScreen() {
         {!showDetails ? (
           /* ——— MAL SEÇİMİ ——— */
           <div>
-            <div className="mb-5 flex gap-2.5 rounded-2xl bg-stone-50/80 p-1.5 ring-1 ring-stone-200 focus-within:ring-2 focus-within:ring-emerald-500/40">
-              <div className="relative min-w-0 flex-1">
+            {/* FE#71 (AC-1) — mal/barkod axtarışı səhifənin ən dominant
+                elementidir: ən böyük, ən yuxarıda, ən çox boşluqla vurğulanan.
+                "Sərbəst satış" (AC-4) bilərəkdən kiçik/ikinci dərəcəli ghost
+                düymədir, axtarışın altında. */}
+            <div className="mb-5 rounded-3xl border-2 border-stone-100 bg-white p-3 shadow-card sm:p-4">
+              <div className="relative">
                 <Search
-                  size={20}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"
+                  size={22}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 sm:left-5"
                 />
                 <input
                   ref={searchRef}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  autoFocus
-                  placeholder="Mal adı və ya barkod..."
-                  className="h-11 w-full rounded-xl border-0 bg-transparent pl-11 pr-3 text-base text-stone-900 outline-none placeholder:text-stone-400"
+                  placeholder="Mal adı və ya barkod — satış üçün"
+                  aria-label="Mal adı və ya barkod — satış üçün"
+                  className="h-16 w-full rounded-2xl border-2 border-stone-200 bg-stone-50 pl-12 pr-4 text-lg font-semibold text-stone-900 outline-none transition-colors placeholder:font-normal placeholder:text-stone-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/20 sm:h-20 sm:pl-14 sm:text-xl"
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => startManual("")}
-                className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-emerald-700 px-3.5 text-sm font-bold text-white transition active:scale-[0.98] active:bg-emerald-800 sm:px-4"
-              >
-                <PackagePlus size={20} />
-                <span className="hidden sm:inline">Sərbəst satış</span>
-              </button>
+              <div className="mt-2.5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => startManual("")}
+                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-stone-600 transition-colors hover:bg-stone-100 active:scale-[0.98]"
+                >
+                  <PackagePlus size={16} />
+                  Sərbəst satış
+                </button>
+              </div>
             </div>
 
             {search.trim() ? (
