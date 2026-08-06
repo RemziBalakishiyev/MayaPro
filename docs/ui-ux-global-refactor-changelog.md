@@ -366,6 +366,14 @@ daha 8 PR merge olunub (`Addım 10`/FE#143-dən əlavə) — heç biri jurnalda
 qeyd olunmamışdı. FE#69 QA 7-ci dövr hesabatı (`AC-24, TC-29`, BUG-4) bunu
 aşkarladı. Aşağıda hər PR retroaktiv, qısa formada qeyd olunur.
 
+FE#152 (bu bölmənin ilkin versiyası) çıxışında `Addım 10`/FE#143 (PR #147)
+qəsdən bu siyahıdan kənarda saxlanılmışdı, çünki onun öz ətraflı bölməsi
+(yuxarıda `Addım 10`) artıq var idi. Lakin FE#157 QA yoxlaması aşkarladı ki,
+PR #147 xronoloji olaraq bu aralıqdakı **ən son** merge-dir (`main`-in hazırkı
+HEAD-i, `847bf1f`) və "Addım 9-dan sonra main-ə merge olunan hər PR burada
+qeyd olunur" tamlıq qaydasına görə aşağıdakı siyahının sonunda da (qısa,
+cross-reference şəklində) görünməlidir — AC-24/TC-29-un tam ödənilməsi üçün.
+
 **Nə dəyişdi**
 
 - **PR #146 (FE#144)** — `6d68d91`: `docs/design-system.md` sənədi ilə
@@ -419,10 +427,28 @@ aşkarladı. Aşağıda hər PR retroaktiv, qısa formada qeyd olunur.
   `src/routes/_app.index.tsx` (+ `.test.tsx`), `src/routes/_app.iscilar.tsx`,
   `vite.config.ts`.
 
+- **PR #147 (FE#143)** — `961d0cb` (merge `847bf1f`, `main`-in hazırkı HEAD-i):
+  istifadəsiz `PageToolbar` (`src/components/layout/PageToolbar.tsx`) və
+  `StatusBadge` (`src/components/ui/StatusBadge.tsx`) primitivlərinin
+  silinməsi — hər ikisi 3 ardıcıl QA dövründə (FE#86 → FE#122 → FE#126) 0
+  real səhifə istifadəsi ilə qaldı (yalnız JSDoc/test istinadları), halbuki
+  hər siyahı səhifəsi artıq `PeriodFilter`+`FilterBar` və
+  `Badge`/`ProductStatusBadge` ilə eyni rolu faktiki oynayırdı — buna görə
+  ölü kod silindi (B seçimi), `TableToolbar`-a TOXUNULMADI. Ətraflı
+  problem/qərar izahı yuxarıda **Addım 10**-dadır; bu bənd yalnız
+  xronologiya/tamlıq üçün təkrar qeyd olunur (bax bu bölmənin əvvəlindəki
+  qeyd). Toxunulan fayllar: `src/components/layout/PageToolbar.tsx`
+  (silindi), `src/components/ui/StatusBadge.tsx` (silindi),
+  `src/components/ui/DataTable.test.tsx`, `src/components/ui/FilterBar.tsx`,
+  `src/components/ui/PeriodFilter.tsx`, `src/components/ui/Badge.tsx`,
+  `docs/design-system.md` (eyni commitdə uyğunlaşdırıldı).
+
 **Toxunulan səhifələr:** Mallar (ProductForm), Nisyə Borclar
 (DebtsKpiCards), Login, Dashboard, Hesabatlar, Gün Sonu (ClosingHistory),
 İşçilər (EmployeesTable) — filtr/tarix komponentləri (`FilterBar`,
-`PeriodFilter`) vasitəsilə əlavə olaraq bütün siyahı səhifələri.
+`PeriodFilter`) vasitəsilə əlavə olaraq bütün siyahı səhifələri. PR #147
+üçün: heç bir səhifə görünüşü dəyişmədi (yalnız istifadəsiz komponentlər və
+sənədlər).
 
 ---
 
