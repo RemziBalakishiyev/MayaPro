@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, Search } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { Plus } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { inputCls } from "@/components/ui/Input";
+import { LocalTableSearch } from "@/components/ui/LocalTableSearch";
+import { TableToolbar } from "@/components/ui/TableToolbar";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -39,7 +40,12 @@ function MusterilerPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const toast = useToast();
-  const { data: customers = [], isLoading } = useCustomers();
+  const {
+    data: customers = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useCustomers();
   const canEdit = useCan()("customers.write");
   const canDelete = useCan()("customers.delete");
   const deleteMut = useDeleteCustomer();
@@ -101,10 +107,10 @@ function MusterilerPage() {
 
   return (
     <div>
-      <PageHead
+      <PageHeader
         title="Müştərilər"
         subtitle={subtitle}
-        actions={
+        primaryAction={
           <Button
             size="md"
             icon={<Plus size={18} />}
@@ -115,53 +121,56 @@ function MusterilerPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1 max-w-sm">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-          />
-          <input
+      {/* FE#69/FE#122 — lokal cədvəl axtarışı + "yalnız borclular" filtri
+          paylaşılan `TableToolbar` (search/actions slot-ları) daxilində
+          göstərilir: cədvəl üstü alət zolağı bütün siyahı səhifələrində
+          eyni yerdə/hündürlükdə olsun deyə (AC-14, AC-16). URL search
+          sxemi dəyişməyib. */}
+      <TableToolbar
+        search={
+          <LocalTableSearch
             value={search.q ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: (prev) => ({ ...prev, q: e.target.value || undefined }),
-              })
+            onChange={(v) =>
+              navigate({ search: (prev) => ({ ...prev, q: v || undefined }) })
             }
-            placeholder="Ad və ya telefon üzrə axtar..."
-            className={`${inputCls} pl-8`}
+            placeholder="Bu siyahıda axtar... (ad və ya telefon)"
+            ariaLabel="Müştəri siyahısında axtar"
+            className="min-w-[220px] max-w-sm flex-1"
           />
-        </div>
-
-        <label
-          className={cn(
-            "flex h-10 cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 text-sm",
-            search.onlyDebtors
-              ? "border-red-300 text-red-700"
-              : "border-stone-200 text-stone-600",
-          )}
-        >
-          <input
-            type="checkbox"
-            checked={!!search.onlyDebtors}
-            onChange={(e) =>
-              navigate({
-                search: (prev) => ({
-                  ...prev,
-                  onlyDebtors: e.target.checked || undefined,
-                }),
-              })
-            }
-            className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-          />
-          Yalnız borclular
-        </label>
-      </div>
+        }
+        actions={
+          <label
+            className={cn(
+              "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-control border bg-white px-3.5 text-sm font-medium",
+              search.onlyDebtors
+                ? "border-red-300 text-red-700"
+                : "border-stone-200 text-stone-600",
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={!!search.onlyDebtors}
+              onChange={(e) =>
+                navigate({
+                  search: (prev) => ({
+                    ...prev,
+                    onlyDebtors: e.target.checked || undefined,
+                  }),
+                })
+              }
+              className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            Yalnız borclular
+          </label>
+        }
+      />
 
       <CustomersTable
         variant="all"
         customers={filtered}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         canEdit={canEdit}
         canDelete={canDelete}
         onView={setSelected}

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
-import { Store, Loader2 } from "lucide-react";
+import { Store } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/features/auth/store";
 import { authApi } from "@/features/auth/api";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
@@ -109,14 +110,16 @@ function LoginPage() {
             </div>
           )}
 
-          <button
+          {/* FE#69 — paylaşılan `Button` + `loading` propu (F-42): əl ilə
+              yazılmış Loader2 naxışı əvəz olundu, hündürlük 52px-ə çatdı. */}
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60"
+            size="lg"
+            loading={isSubmitting}
+            className="w-full justify-center"
           >
-            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
             Daxil ol
-          </button>
+          </Button>
         </form>
 
         {import.meta.env.DEV && !USE_MOCK && (

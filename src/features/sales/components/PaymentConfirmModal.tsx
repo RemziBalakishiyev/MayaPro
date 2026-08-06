@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   CreditCard,
   HandCoins,
-  Loader2,
   Wallet,
   XCircle,
 } from "lucide-react";
@@ -299,10 +298,8 @@ export function PaymentConfirmModal({
           size="lg"
           className="flex-1 justify-center"
           onClick={confirm}
-          disabled={!canConfirm || pending}
-          icon={
-            pending ? <Loader2 size={18} className="animate-spin" /> : undefined
-          }
+          disabled={!canConfirm}
+          loading={pending}
         >
           {pending ? "Göndərilir..." : "Təsdiqlə"}
         </Button>

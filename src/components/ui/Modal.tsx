@@ -2,6 +2,8 @@ import { useEffect, useId, useRef } from "react";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { IconButton } from "./IconButton";
+import { lockBodyScroll } from "./dialog-layer";
 
 export interface ModalProps {
   open: boolean;
@@ -31,13 +33,12 @@ export function Modal({ open, onClose, title, children, wide }: ModalProps) {
     if (!open) return;
     const token = Symbol("modal");
     openStack.push(token);
-    document.body.style.overflow = "hidden";
+    // FE#69 — arxa fon kilidi `Drawer` ilə ORTAQ sayğacdan idarə olunur.
+    const unlock = lockBodyScroll();
     return () => {
       const i = openStack.indexOf(token);
       if (i >= 0) openStack.splice(i, 1);
-      // Sonuncu modal bağlananda inline stil tamamilə götürülür (hansı sıra ilə
-      // bağlanmasından asılı olmayaraq body kilidli qalmasın).
-      if (openStack.length === 0) document.body.style.overflow = "";
+      unlock();
     };
   }, [open]);
 
@@ -102,7 +103,7 @@ export function Modal({ open, onClose, title, children, wide }: ModalProps) {
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          "relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white shadow-2xl outline-none sm:rounded-2xl",
+          "relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white shadow-panel outline-none sm:rounded-card",
           wide ? "sm:max-w-3xl" : "sm:max-w-lg",
         )}
       >
@@ -110,14 +111,11 @@ export function Modal({ open, onClose, title, children, wide }: ModalProps) {
           <h3 id={titleId} className="text-lg font-bold text-stone-900">
             {title}
           </h3>
-          <button
-            type="button"
+          <IconButton
+            label="Bağla"
+            icon={<X size={20} />}
             onClick={onClose}
-            aria-label="Bağla"
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-          >
-            <X size={20} />
-          </button>
+          />
         </div>
         <div className="p-5">{children}</div>
       </div>

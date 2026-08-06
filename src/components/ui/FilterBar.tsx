@@ -1,8 +1,8 @@
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
-import { Search, ChevronDown, X, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, X, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { inputCls } from "@/components/ui/Input";
+import { LocalTableSearch } from "@/components/ui/LocalTableSearch";
 
 export interface FilterBarProps {
   /** Axtarış dəyəri */
@@ -29,6 +29,11 @@ export interface FilterBarProps {
   label?: string;
   /** Xarici yerləşdirmə class-ları */
   className?: string;
+  /**
+   * FE#69 — axtarışsız rejim (köhnə `FilterPanel`-in yeganə fərqi bu idi).
+   * `true` olduqda yalnız «Filterlər» toqqlu panel göstərilir.
+   */
+  hideSearch?: boolean;
 }
 
 /**
@@ -47,8 +52,8 @@ export interface FilterBarProps {
 export function FilterBar({
   searchValue,
   onSearchChange,
-  searchPlaceholder = "Axtar...",
-  searchAriaLabel = "Axtar",
+  searchPlaceholder = "Bu siyahıda axtar...",
+  searchAriaLabel = "Bu siyahıda axtar",
   activeCount,
   activeFilters = [],
   onRemoveFilter,
@@ -57,6 +62,7 @@ export function FilterBar({
   clearLabel = "Filterləri təmizlə",
   label = "Filterlər",
   className,
+  hideSearch = false,
 }: FilterBarProps) {
   const panelId = useId();
   const [open, setOpen] = useState(() => activeCount > 0);
@@ -64,27 +70,21 @@ export function FilterBar({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-stone-200 bg-stone-50/60",
+        "overflow-hidden rounded-control border border-stone-200 bg-stone-50/60",
         className,
       )}
     >
       {/* Üst sətir: axtarış + toqql düyməsi */}
       <div className="flex items-center gap-3 px-3 py-2.5">
-        {/* Axtarış inputu */}
-        <div className="relative flex-1">
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-          />
-          <input
-            type="text"
+        {/* Axtarış — paylaşılan `LocalTableSearch` (AC-14) */}
+        {!hideSearch && (
+          <LocalTableSearch
             value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            aria-label={searchAriaLabel}
+            onChange={onSearchChange}
             placeholder={searchPlaceholder}
-            className={cn(inputCls, "h-12 pl-8 text-sm")}
+            ariaLabel={searchAriaLabel}
           />
-        </div>
+        )}
 
         {/* Filterlər toqql düyməsi */}
         <button
@@ -92,7 +92,7 @@ export function FilterBar({
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-controls={panelId}
-          className="shrink-0 flex h-12 items-center justify-center gap-2 px-4 rounded-xl border border-stone-300 bg-white text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500"
+          className="focus-ring shrink-0 flex h-12 items-center justify-center gap-2 px-4 rounded-control border border-stone-300 bg-white text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50"
         >
           <SlidersHorizontal size={16} className="text-stone-500" />
           {label}
@@ -124,7 +124,7 @@ export function FilterBar({
                 type="button"
                 onClick={() => onRemoveFilter?.(filter.id)}
                 aria-label={`${filter.label} sil`}
-                className="ml-0.5 inline-flex items-center justify-center rounded hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-600"
+                className="focus-ring ml-0.5 inline-flex h-6 w-6 items-center justify-center rounded-tag hover:bg-emerald-100"
               >
                 <X size={14} />
               </button>
@@ -148,7 +148,7 @@ export function FilterBar({
             <button
               type="button"
               onClick={onClear}
-              className="text-sm font-semibold text-stone-500 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-600 rounded px-2 py-1"
+              className="focus-ring min-h-[40px] rounded-chip px-2 text-sm font-semibold text-stone-600 hover:text-emerald-700"
             >
               {clearLabel}
             </button>
@@ -158,3 +158,13 @@ export function FilterBar({
     </div>
   );
 }
+
+/**
+ * FE#69 — dizayn sistemindəki standart adlar. Hər ikisi EYNİ komponentdir:
+ * - `FilterPopover` — masaüstündə açılıb-bağlanan filtr paneli (mövcud naxış)
+ * - `FilterDrawer`  — eyni filtr dəsti; gələcəkdə dar ekranda yandan açılan
+ *   variant üçün ad ayrılıb (davranış hazırda eynidir).
+ */
+export const FilterPopover = FilterBar;
+export const FilterDrawer = FilterBar;
+export type FilterPopoverProps = FilterBarProps;

@@ -9,6 +9,12 @@ import type { Supplier } from "@/types";
 interface Props {
   suppliers: Supplier[];
   isLoading?: boolean;
+  /**
+   * FE#87 (TC-32.5/32.6): təchizatçı sorğusu şəbəkə xətası ilə uğursuz
+   * olduqda boş-siyahı mesajı ƏVƏZİNƏ `InlineError` + "Yenidən" göstərilir.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
   canWrite?: boolean;
   onView: (supplier: Supplier) => void;
   onAddDebt: (supplier: Supplier) => void;
@@ -87,6 +93,8 @@ function SupplierRowActions({
 export function SuppliersTable({
   suppliers,
   isLoading,
+  isError,
+  onRetry,
   canWrite = false,
   onView,
   onAddDebt,
@@ -167,6 +175,9 @@ export function SuppliersTable({
       columns={columns}
       data={suppliers}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      errorMessage="Təchizatçılar yüklənmədi"
       emptyState={{
         title: "Hələ təchizatçı yoxdur",
         description: "Yuxarıdakı «Yeni təchizatçı» düyməsi ilə əlavə edin.",

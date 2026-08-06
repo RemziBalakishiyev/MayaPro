@@ -4,6 +4,27 @@
 
 :root {
   color-scheme: light;
+
+  /* FE#69 — layout standartı: sidebar eni və header hündürlüyü TƏK mənbədən
+     idarə olunur. Tailwind tərəfində eyni dəyərlər `w-sidebar` / `h-header`
+     tokenləri kimi mövcuddur (tailwind.config.ts). */
+  --app-sidebar-w: 16rem;
+  --app-header-h: 4rem;
+
+  /* Vahid spacing şkalası (4/8/12/16/20/24/32) — sənəd: docs/design-system.md */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  /* Vahid radius şkalası */
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+  --radius-chip: 0.5rem;
+  --radius-tag: 0.375rem;
 }
 
 html,
@@ -36,6 +57,54 @@ body {
 /* Pul məbləğləri sütunda düz dursun */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  /*
+   * FE#69 — VAHİD FOKUS TOKENİ (AC-9 / R-15).
+   * Bütün interaktiv primitivlər (Button, IconButton, Input, Select, Textarea,
+   * çiplər, cədvəl səhifələməsi, menyu bəndləri) eyni halqanı işlədir.
+   * `focus-ring` — açıq fonda; `focus-ring-inset` — kart/sətir daxilində
+   * (halqa kənara çıxmasın); `focus-ring-dark` — tünd sidebar fonunda.
+   */
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+  .focus-ring-inset {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600;
+  }
+  .focus-ring-dark {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-950;
+  }
+
+  /*
+   * FE#69 — MALİYYƏ RƏQƏMİ (AC-7 / R-04).
+   * Pul və faiz dəyərləri: sütunda düz duran rəqəmlər + konteynerdən daşmaq
+   * əvəzinə kəsilmə. Tam dəyər çağıran tərəfdən `title` ilə verilir.
+   */
+  .money {
+    @apply min-w-0 overflow-hidden truncate tabular-nums;
+  }
+
+  /* Səhifə daxilində vahid kart səthi */
+  .surface-card {
+    @apply rounded-card border border-stone-200 bg-white shadow-card;
+  }
+}
+
+/*
+ * Hərəkətə həssas istifadəçilər üçün: bütün keçid və animasiyalar söndürülür.
+ * (Yeni animasiya əlavə edilmir — mövcudların davranışı normallaşdırılır.)
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Toxunma hədəflərində vurğu təmiz görünsün */

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, Search } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { Plus } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { inputCls } from "@/components/ui/Input";
+import { LocalTableSearch } from "@/components/ui/LocalTableSearch";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import type { PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
@@ -106,7 +107,12 @@ function BorclarPage() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const toast = useToast();
-  const { data: customers = [], isLoading } = useCustomers();
+  const {
+    data: customers = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useCustomers();
   const canEdit = useCan()("customers.write");
   const canDelete = useCan()("customers.delete");
   const deleteMut = useDeleteCustomer();
@@ -291,10 +297,10 @@ function BorclarPage() {
 
   return (
     <div>
-      <PageHead
+      <PageHeader
         title="Nisyə Borclar"
         subtitle="Borcu olan müştərilər və ödənişlər"
-        actions={
+        primaryAction={
           <Button size="md" icon={<Plus size={18} />} onClick={() => setNewOpen(true)}>
             Yeni müştəri
           </Button>
@@ -330,25 +336,23 @@ function BorclarPage() {
           <DebtViewToggle value={mode} onChange={setMode} />
 
           {mode === "borclar" ? (
-            <div className="relative">
-              <Search
-                size={14}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-              />
-              <input
-                value={search.q ?? ""}
-                onChange={(e) => setQ(e.target.value)}
-                aria-label="Borc axtar"
-                placeholder="Ad, telefon və ya mal adı üzrə axtar..."
-                className={cn(inputCls, "h-12 pl-8 text-sm")}
-              />
-            </div>
+            /* FE#69 — paylaşılan `LocalTableSearch` (AC-14): qlobal axtarışdan
+               fərqli placeholder və görünüş; davranış dəyişməyib. */
+            <LocalTableSearch
+              value={search.q ?? ""}
+              onChange={setQ}
+              placeholder="Bu siyahıda axtar... (ad, telefon və ya mal)"
+              ariaLabel="Borc siyahısında axtar"
+            />
           ) : (
+            /* FE#94 — "musteri" rejimi də lokal axtarışdır (qlobal mal
+               axtarışından fərqli); FE#69/FE#85-in təyin etdiyi standart
+               placeholder mətni ilə uyğunlaşdırılıb. */
             <FilterBar
               searchValue={search.q ?? ""}
               onSearchChange={setQ}
               searchAriaLabel="Müştəri axtar"
-              searchPlaceholder="Ad və ya telefon üzrə axtar..."
+              searchPlaceholder="Bu siyahıda axtar... (ad və ya telefon)"
               activeCount={activeFilterCount}
               activeFilters={activeFilters}
               onRemoveFilter={handleRemoveFilter}
@@ -552,6 +556,8 @@ function BorclarPage() {
               <CustomersTable
                 customers={filtered}
                 isLoading={isLoading}
+                isError={isError}
+                onRetry={() => void refetch()}
                 canEdit={canEdit}
                 canDelete={canDelete}
                 embedded

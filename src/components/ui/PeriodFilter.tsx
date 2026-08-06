@@ -38,12 +38,17 @@ export interface PeriodFilterProps {
   className?: string;
 }
 
+/**
+ * FE#69 — çip ölçüsü 40px-ə qaldırıldı (AC-8) və vahid fokus halqası tətbiq
+ * olundu (R-15). Aktiv çip yalnız rənglə deyil, `aria-selected` ilə də
+ * bildirilir (rəng yeganə siqnal deyil).
+ */
 const chipCls = (active: boolean) =>
   cn(
-    "inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+    "focus-ring-inset inline-flex min-h-[40px] shrink-0 items-center whitespace-nowrap rounded-chip px-3 text-sm font-medium transition-colors",
     active
       ? "bg-emerald-700 text-white shadow-sm"
-      : "text-stone-500 hover:bg-stone-50 hover:text-stone-800",
+      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900",
   );
 
 /**
@@ -183,7 +188,7 @@ export function PeriodFilter({
               width: 300,
               zIndex: 70,
             }}
-            className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg"
+            className="overflow-hidden rounded-control border border-stone-200 bg-white shadow-overlay"
           >
             <div className="max-h-52 overflow-y-auto border-b border-stone-100 p-1.5">
               {monthOptions.map((mo) => {
@@ -198,7 +203,7 @@ export function PeriodFilter({
                       setOpen(false);
                     }}
                     className={cn(
-                      "block w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+                      "focus-ring-inset block min-h-[40px] w-full rounded-chip px-3 py-2 text-left text-sm font-medium transition-colors",
                       active
                         ? "bg-emerald-50 text-emerald-800"
                         : "text-stone-700 hover:bg-stone-50",
@@ -254,7 +259,7 @@ export function PeriodFilter({
               <button
                 type="button"
                 onClick={applyCustom}
-                className="mt-1 w-full rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+                className="focus-ring mt-1 min-h-[40px] w-full rounded-chip bg-emerald-700 px-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
               >
                 Tətbiq et
               </button>
@@ -269,7 +274,7 @@ export function PeriodFilter({
       role="tablist"
       aria-label="Dövr"
       className={cn(
-        "flex w-full min-w-0 flex-nowrap items-center gap-0.5 overflow-x-auto rounded-xl border border-stone-200 bg-white p-1",
+        "flex w-full min-w-0 flex-nowrap items-center gap-0.5 overflow-x-auto rounded-control border border-stone-200 bg-white p-1",
         className,
       )}
     >
@@ -334,3 +339,11 @@ export function PeriodFilter({
 
 /** Sətri from/to aralığında olub-olmadığını yoxlayır — cədvəl/list client-side filtri üçün. */
 export { isoInRange };
+
+/**
+ * FE#69 — `SegmentedDateFilter`, `PeriodFilter`-in STANDARTLAŞDIRILMIŞ adıdır
+ * (eyni komponent, eyni props). Dizayn sistemində dövr filtri bu adla
+ * sənədləşib; mövcud `PageToolbar.period` slotuna bu ad verilir.
+ * Köhnə `PeriodFilter` adı silinmir — bütün mövcud çağırışlar işləyir.
+ */
+export const SegmentedDateFilter = PeriodFilter;

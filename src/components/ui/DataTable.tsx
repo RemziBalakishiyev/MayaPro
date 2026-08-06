@@ -12,8 +12,10 @@ import {
 } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { Spinner } from "./Spinner";
 import { EmptyState } from "./EmptyState";
+import { InlineError } from "./InlineError";
+import { TableSkeleton } from "./LoadingSkeleton";
+import { TablePagination } from "./TablePagination";
 
 // Sütunlara responsiv gizlətmə üçün className vermək imkanı.
 declare module "@tanstack/react-table" {
@@ -27,7 +29,16 @@ export interface DataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
   isLoading?: boolean;
+  /**
+   * FE#69 (F-44): sorğu xətası «boş siyahı» kimi göstərilmir — `InlineError`
+   * + «Yenidən» düyməsi render olunur.
+   */
+  isError?: boolean;
+  onRetry?: () => void;
+  errorMessage?: string;
   emptyState?: { title: string; description?: string };
+  /** Cədvəlin üstündəki alət zolağı (adətən `LocalTableSearch` + düymələr). */
+  toolbar?: ReactNode;
   /** Səhifədəki sətir sayı (defolt 10) */
   pageSize?: number;
   /** Server pagination / xarici "Daha çox" üçün daxili səhifələməni gizlət. */
@@ -47,7 +58,11 @@ export function DataTable<TData>({
   columns,
   data,
   isLoading,
+  isError,
+  onRetry,
+  errorMessage = "Siyahı yüklənmədi",
   emptyState,
+  toolbar,
   pageSize = 10,
   hidePagination = false,
   embedded = false,
@@ -71,20 +86,45 @@ export function DataTable<TData>({
         }),
   });
 
+  const shellCls = embedded
+    ? "rounded-none border-0 shadow-none bg-white"
+    : "rounded-card border border-stone-200 bg-white shadow-card";
+
+  // Xəta vəziyyəti «boş nəticə»dən ƏVVƏL yoxlanılır (F-44).
+  if (isError) {
+    return (
+      <div className={cn(toolbar && "space-y-3")}>
+        {toolbar}
+        <InlineError
+          message={errorMessage}
+          hint="Şəbəkə və ya server cavab vermədi."
+          onRetry={onRetry}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-stone-200 bg-white shadow-sm">
-        <Spinner />
+      <div className="space-y-3">
+        {toolbar}
+        <div className={cn("overflow-hidden", shellCls)}>
+          <TableSkeleton rows={5} columns={Math.min(columns.length || 4, 6)} />
+        </div>
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <EmptyState
-        title={emptyState?.title ?? "Məlumat yoxdur"}
-        hint={emptyState?.description}
-      />
+      <div className={cn(toolbar && "space-y-3")}>
+        {toolbar}
+        <EmptyState
+          title={emptyState?.title ?? "Məlumat yoxdur"}
+          hint={emptyState?.description}
+          embedded={embedded}
+        />
+      </div>
     );
   }
 
@@ -96,6 +136,8 @@ export function DataTable<TData>({
 
   return (
     <div className="space-y-3">
+      {toolbar}
+
       {/* Mobil: kart görünüşü (md-dən aşağı) */}
       {mobileCard && (
         <div className="space-y-3 md:hidden">
@@ -120,9 +162,9 @@ export function DataTable<TData>({
               }
               className={cn(
                 onRowClick &&
-                  // rounded-xl — mobil kartın küncləri ilə eyni: fokus halqası
-                  // kartın kənarını təkrarlasın, kvadrat çərçivə çıxmasın.
-                  "cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500",
+                  // rounded-control — mobil kartın küncləri ilə eyni: fokus
+                  // halqası kartın kənarını təkrarlasın, kvadrat çıxmasın.
+                  "focus-ring-inset cursor-pointer rounded-control",
               )}
             >
               {mobileCard(row.original)}
@@ -134,10 +176,8 @@ export function DataTable<TData>({
       {/* Desktop/planşet: cədvəl. mobileCard varsa yalnız md-dən yuxarı görünür. */}
       <div
         className={cn(
-          "overflow-x-auto bg-white",
-          embedded
-            ? "rounded-none border-0 shadow-none"
-            : "rounded-2xl border border-stone-200 shadow-card",
+          "overflow-x-auto",
+          shellCls,
           mobileCard && "hidden md:block",
         )}
       >
@@ -171,7 +211,7 @@ export function DataTable<TData>({
                         <button
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
-                          className="inline-flex min-h-[40px] cursor-pointer select-none items-center gap-1 hover:text-stone-700"
+                          className="focus-ring-inset inline-flex min-h-[40px] cursor-pointer select-none items-center gap-1 rounded-chip hover:text-stone-700"
                         >
                           {flexRender(
                             header.column.columnDef.header,
@@ -227,8 +267,7 @@ export function DataTable<TData>({
                 }
                 className={cn(
                   "transition-colors hover:bg-stone-50",
-                  onRowClick &&
-                    "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500",
+                  onRowClick && "focus-ring-inset cursor-pointer",
                 )}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -251,27 +290,15 @@ export function DataTable<TData>({
       </div>
 
       {!hidePagination && (
-        <div className="flex items-center justify-between px-1 text-sm text-stone-500">
-          <span className="tabular-nums">
-            {from}-dən {to}-yə, cəmi {total}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Əvvəlki
-            </button>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="min-h-[44px] rounded-xl bg-white px-5 text-base font-semibold text-stone-700 ring-1 ring-stone-300 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Növbəti
-            </button>
-          </div>
-        </div>
+        <TablePagination
+          from={from}
+          to={to}
+          total={total}
+          canPrevious={table.getCanPreviousPage()}
+          canNext={table.getCanNextPage()}
+          onPrevious={() => table.previousPage()}
+          onNext={() => table.nextPage()}
+        />
       )}
     </div>
   );

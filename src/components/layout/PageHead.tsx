@@ -1,22 +1,17 @@
-interface PageHeadProps {
-  title: string;
-  subtitle?: string;
-  actions?: React.ReactNode;
-}
+import { PageHeader, type PageHeaderProps } from "./PageHeader";
 
-/** Səhifə başlığı — hər route-un yuxarısında istifadə olunur. */
+export type PageHeadProps = Pick<
+  PageHeaderProps,
+  "title" | "subtitle" | "actions"
+>;
+
+/**
+ * @deprecated FE#69 — `PageHeader` istifadə edin.
+ *
+ * Bu ad geriyə uyğunluq üçün saxlanılır: mövcud səhifələr `PageHead` çağırışı
+ * ilə işləməyə davam edir və eyni standart görünüşü alır (komponent silinmir,
+ * yenidən yazılmır — sadəcə `PageHeader`-ə yönləndirilir).
+ */
 export function PageHead({ title, subtitle, actions }: PageHeadProps) {
-  return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-      <div>
-        <h1 className="text-2xl font-bold text-stone-900 lg:text-3xl">{title}</h1>
-        {subtitle && (
-          <p className="mt-1 text-base text-stone-500">{subtitle}</p>
-        )}
-      </div>
-      {actions && (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
-      )}
-    </div>
-  );
+  return <PageHeader title={title} subtitle={subtitle} actions={actions} />;
 }

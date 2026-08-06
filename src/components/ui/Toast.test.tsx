@@ -17,9 +17,11 @@ describe("Toasts", () => {
 
     render(<Toasts />);
 
-    const closeBtn = screen.getByRole("button", { name: "Bağla" });
+    const closeBtn = screen.getByRole("button", { name: "Bildirişi bağla" });
     expect(closeBtn).toHaveClass("h-10");
     expect(closeBtn).toHaveClass("w-10");
+    // AC-15: yalnız-ikon düymə tooltip-siz qalmamalıdır (aria-label + title).
+    expect(closeBtn).toHaveAttribute("title", "Bildirişi bağla");
 
     useToastStore.setState({ toasts: [] });
   });
@@ -31,7 +33,7 @@ describe("Toasts", () => {
     });
 
     render(<Toasts />);
-    await user.click(screen.getByRole("button", { name: "Bağla" }));
+    await user.click(screen.getByRole("button", { name: "Bildirişi bağla" }));
 
     expect(screen.queryByText("Məlumat mesajı")).not.toBeInTheDocument();
 

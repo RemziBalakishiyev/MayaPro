@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Plus, Upload, Download, Printer, Loader2 } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { Plus, Upload, Download, Printer } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
@@ -50,7 +50,12 @@ function MallarPage() {
   const toast = useToast();
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const { data: products = [], isLoading } = useProducts();
+  const {
+    data: products = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useProducts();
   const { data: categoryList = [] } = useCategories();
   const canWrite = useCan()("products.write");
   const deleteMut = useDeleteProduct();
@@ -171,49 +176,42 @@ function MallarPage() {
 
   return (
     <div>
-      <PageHead
+      {/*
+        FE#69 (AC-13): səhifədə BİR əsas əməliyyat («Yeni mal»), qalan üç
+        əməliyyat «Digər əməliyyatlar» menyusundadır. Davranış və icazə
+        şərtləri dəyişməyib — yalnız təqdimat yeri dəyişib.
+      */}
+      <PageHeader
         title="Mallar / Anbar"
-        actions={
-          <>
-            {canWrite && (
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Upload size={14} />}
-                onClick={openImportModal}
-              >
-                Excel import
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={
-                exporting ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Download size={14} />
-                )
-              }
-              onClick={() => void exportExcel()}
-              disabled={exporting}
-            >
-              Excel export
+        moreActions={[
+          ...(canWrite
+            ? [
+                {
+                  label: "Excel import",
+                  icon: <Upload size={16} />,
+                  onClick: openImportModal,
+                },
+              ]
+            : []),
+          {
+            label: exporting ? "Excel export (gözləyin...)" : "Excel export",
+            icon: <Download size={16} />,
+            onClick: () => void exportExcel(),
+            disabled: exporting,
+            title: exporting ? "Fayl hazırlanır" : undefined,
+          },
+          {
+            label: "Barkod/QR çap",
+            icon: <Printer size={16} />,
+            onClick: () => openLabelModal(),
+          },
+        ]}
+        primaryAction={
+          canWrite ? (
+            <Button size="md" icon={<Plus size={18} />} onClick={openNew}>
+              Yeni mal
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Printer size={14} />}
-              onClick={() => openLabelModal()}
-            >
-              Barkod/QR çap
-            </Button>
-            {canWrite && (
-              <Button size="md" icon={<Plus size={18} />} onClick={openNew}>
-                Yeni mal
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
 
@@ -235,6 +233,8 @@ function MallarPage() {
       <ProductsTable
         products={filtered}
         isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
         canEdit={canWrite}
         onEdit={(p) => {
           setEditing(p);
