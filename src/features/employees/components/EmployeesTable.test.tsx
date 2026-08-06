@@ -42,4 +42,28 @@ describe("EmployeesTable — şəbəkə xətası (FE#127)", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByText("İşçi tapılmadı")).not.toBeInTheDocument();
   });
+
+  /**
+   * FE#134 — işçi siyahısı artıq uğurla yüklənib (employees mövcuddur),
+   * sonra arxa-fon (background) refetch-i uğursuz olur (`isError=true`,
+   * amma köhnə/keçərli `employees` massivi ötürülür). Mövcud cədvəl
+   * İTMƏMƏLİDİR və tam InlineError ekranı ilə ƏVƏZ OLUNMAMALIDIR.
+   */
+  it("uğurla yüklənmiş data varkən arxa-fon refetch xətası → cədvəl itmir, tam InlineError göstərilmir (FE#134)", () => {
+    render(
+      <EmployeesTable
+        employees={[
+          { id: "1", name: "Aysel", role: "Satıcı", phone: "0501234567", status: "Aktiv" } as never,
+        ]}
+        isError
+        onRetry={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("İşçilər yüklənmədi")).not.toBeInTheDocument();
+    expect(screen.getByText("Aysel")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmə uğursuz oldu/i,
+    );
+  });
 });

@@ -21,6 +21,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { InlineError } from "@/components/ui/InlineError";
+import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { useDashboardStats } from "@/features/reports/queries";
@@ -38,7 +39,14 @@ function DashboardPage() {
   // FE#127 (TC-32): xəta vəziyyəti yüklənmə/boş vəziyyətdən ƏVVƏL yoxlanılır —
   // şəbəkə/server xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən
   // cəhd et" göstərilir.
-  if (isError) {
+  //
+  // FE#134: AMMA yalnız `d` (dashboard datası) HEÇ VAXT uğurla yüklənməyibsə
+  // (`data === undefined`). Əvvəl uğurla yüklənmiş data varkən arxa-fon
+  // refetch-i uğursuz olarsa, TanStack Query `data`-nı ƏVVƏLKİ nəticə ilə
+  // saxlayır — bu halda artıq göstəriləcək DOĞRU dashboard var, ona görə
+  // onu tam InlineError ekranı ilə əvəz ETMİRİK (aşağıda kiçik xəbərdarlıq
+  // zolağı ilə göstərilir).
+  if (isError && !d) {
     return (
       <div>
         <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
@@ -63,6 +71,15 @@ function DashboardPage() {
   return (
     <div className="space-y-5">
       <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+
+      {/* FE#134: arxa-fon refetch xətası — mövcud (köhnə/keçərli) dashboard
+          görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
+      {isError && (
+        <StaleDataBanner
+          message="Dashboard yenilənmədi — göstərilən məlumat köhnəlmiş ola bilər."
+          onRetry={() => void refetch()}
+        />
+      )}
 
       <SignatureBand
         expectedCash={d.expectedCash}

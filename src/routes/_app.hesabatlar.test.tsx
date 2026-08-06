@@ -91,4 +91,43 @@ describe("Hesabatlar — şəbəkə xətası (FE#127)", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  /**
+   * FE#134 — istifadəçi Hesabatlar-ı artıq uğurla görüb (data mövcuddur),
+   * sonra arxa-fon (background) refetch-i uğursuz olur. TanStack Query
+   * `data`-nı ƏVVƏLKİ nəticə ilə saxlayır (`isError=true`, `data` mövcud) —
+   * bu halda göstərilən hesabat İTMƏMƏLİDİR və tam InlineError ekranı ilə
+   * ƏVƏZ OLUNMAMALIDIR (FE#127 TC-32.8 edge-case-inin həlli).
+   */
+  it("uğurla yüklənmiş data varkən arxa-fon refetch xətası → hesabat itmir, tam InlineError göstərilmir (FE#134)", () => {
+    const refetch = vi.fn();
+    mockUseReportsData.mockReturnValue({
+      data: {
+        products: [],
+        sales: [],
+        customers: [],
+        suppliers: [],
+        expenses: [],
+        employees: [],
+        closings: [],
+        payments: [],
+      },
+      isLoading: false,
+      isError: true,
+      refetch,
+    } as never);
+
+    render(<HesabatlarPage />);
+
+    // Tam InlineError mesajı YOX — mövcud hesabat itməyib
+    expect(
+      screen.queryByText("Hesabatlar yüklənmədi"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Satış")).toBeInTheDocument();
+
+    // Kiçik xəbərdarlıq zolağı görünür
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmədi|köhnəlmiş/i,
+    );
+  });
 });

@@ -95,4 +95,56 @@ describe("Dashboard — şəbəkə xətası (FE#127)", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  /**
+   * FE#134 — istifadəçi Dashboard-u artıq uğurla görüb (data mövcuddur),
+   * sonra arxa-fon (background) refetch-i uğursuz olur. TanStack Query
+   * `data`-nı ƏVVƏLKİ nəticə ilə saxlayır (`isError=true`, `data` mövcud) —
+   * bu halda göstərilən Dashboard İTMƏMƏLİDİR və tam InlineError ekranı ilə
+   * ƏVƏZ OLUNMAMALIDIR (FE#127 TC-32.8 edge-case-inin həlli).
+   */
+  it("uğurla yüklənmiş data varkən arxa-fon refetch xətası → Dashboard itmir, tam InlineError göstərilmir (FE#134)", () => {
+    const refetch = vi.fn();
+    mockUseDashboardStats.mockReturnValue({
+      data: {
+        expectedCash: 100,
+        openingCash: 50,
+        todayCash: 30,
+        todayExpenses: 10,
+        paperProfit: 20,
+        todayCredit: 5,
+        todayTotal: 100,
+        todayProfit: 20,
+        unknownProfitSalesCount: 0,
+        unknownProfitAmount: 0,
+        todayCard: 10,
+        stockValue: 1000,
+        receivables: 200,
+        payables: 100,
+        daily: [],
+        monthly: [],
+        topProducts: [],
+        lowStock: [],
+        frozen: [],
+        recentSales: [],
+        recentSaleCustomer: () => undefined,
+        recentPayments: [],
+        cusName: () => "",
+      },
+      isLoading: false,
+      isError: true,
+      refetch,
+    } as never);
+
+    render(<DashboardPage />);
+
+    // Tam InlineError mesajı YOX — mövcud dashboard itməyib
+    expect(screen.queryByText("Dashboard yüklənmədi")).not.toBeInTheDocument();
+    expect(screen.getByText("Bugünkü satış")).toBeInTheDocument();
+
+    // Kiçik xəbərdarlıq zolağı görünür
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmədi|köhnəlmiş/i,
+    );
+  });
 });

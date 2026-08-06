@@ -15,6 +15,7 @@ import { cn } from "@/lib/cn";
 import { Spinner } from "./Spinner";
 import { EmptyState } from "./EmptyState";
 import { InlineError } from "./InlineError";
+import { StaleDataBanner } from "./StaleDataBanner";
 
 // Sütunlara responsiv gizlətmə üçün className vermək imkanı.
 declare module "@tanstack/react-table" {
@@ -88,7 +89,16 @@ export function DataTable<TData>({
 
   // FE#127 (TC-32): xəta vəziyyəti «boş nəticə»dən ƏVVƏL yoxlanılır — şəbəkə
   // xətası heç vaxt yanıldıcı "boş siyahı" kimi göstərilmir.
-  if (isError) {
+  //
+  // FE#134: AMMA arxa-fon (background) refetch-i uğursuz olduqda `data`
+  // TanStack Query-nin sənədləşdirilmiş davranışına görə ƏVVƏLKİ uğurlu
+  // nəticəni saxlayır (undefined-ə sıfırlanmır) — yalnız `isError=true`
+  // olur. Bu halda artıq göstəriləcək DOĞRU data mövcuddur, ona görə tam
+  // `InlineError` ekranı ilə əvəz ETMİRİK: mövcud cədvəl qalır, üstündə
+  // yalnız kiçik "yenilənmə uğursuz oldu" xəbərdarlıq zolağı göstərilir
+  // (aşağıda). Tam `InlineError` YALNIZ göstəriləcək data heç olmadıqda
+  // (ilk yükləmə xətası, `data.length === 0`) görünür.
+  if (isError && data.length === 0) {
     return (
       <InlineError
         message={errorMessage}
@@ -123,6 +133,10 @@ export function DataTable<TData>({
 
   return (
     <div className="space-y-3">
+      {/* FE#134: arxa-fon refetch xətası — mövcud (köhnə/keçərli) data
+          görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
+      {isError && <StaleDataBanner onRetry={onRetry} />}
+
       {/* Mobil: kart görünüşü (md-dən aşağı) */}
       {mobileCard && (
         <div className="space-y-3 md:hidden">

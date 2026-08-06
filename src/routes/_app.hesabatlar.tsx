@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { InlineError } from "@/components/ui/InlineError";
+import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 import { fmtMoney } from "@/lib/format";
@@ -119,7 +120,14 @@ function HesabatlarPage() {
   // FE#127 (TC-32): xəta vəziyyəti yüklənmə/boş vəziyyətdən ƏVVƏL yoxlanılır —
   // şəbəkə/server xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən
   // cəhd et" göstərilir.
-  if (isError) {
+  //
+  // FE#134: AMMA yalnız `view` (hesablanmış hesabat datası) HEÇ VAXT uğurla
+  // yüklənməyibsə (`data === undefined`). Əvvəl uğurla yüklənmiş data
+  // varkən arxa-fon refetch-i uğursuz olarsa, TanStack Query `data`-nı
+  // ƏVVƏLKİ nəticə ilə saxlayır — bu halda artıq göstəriləcək DOĞRU
+  // hesabat var, ona görə onu tam InlineError ekranı ilə əvəz ETMİRİK
+  // (aşağıda kiçik xəbərdarlıq zolağı ilə göstərilir).
+  if (isError && !view) {
     return (
       <div>
         <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
@@ -165,6 +173,15 @@ function HesabatlarPage() {
           </div>
         }
       />
+
+      {/* FE#134: arxa-fon refetch xətası — mövcud (köhnə/keçərli) hesabat
+          görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
+      {isError && (
+        <StaleDataBanner
+          message="Hesabatlar yenilənmədi — göstərilən məlumat köhnəlmiş ola bilər."
+          onRetry={() => void refetch()}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Satış" value={fmtMoney(view.sales)} />

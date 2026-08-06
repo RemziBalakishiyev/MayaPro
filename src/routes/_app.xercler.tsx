@@ -8,6 +8,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PeriodFilter } from "@/components/ui/PeriodFilter";
 import { isoInRange, type PeriodRange } from "@/components/ui/period-filter-lib";
 import { useToast } from "@/components/ui/toast-store";
+import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
 import { fmtMoney } from "@/lib/format";
 import { useExpenses, useDeleteExpense } from "@/features/expenses/queries";
 import { ExpensesTable } from "@/features/expenses/components/ExpensesTable";
@@ -54,6 +55,7 @@ function XerclerPage() {
     isLoading,
     isError,
     error,
+    refetch,
   } = useExpenses(range);
   const { data: products = [] } = useProducts();
   const canWrite = useCan()("expenses.write");
@@ -161,12 +163,26 @@ function XerclerPage() {
         onChange={updateFilter}
       />
 
-      {isError ? (
+      {/*
+       * FE#134: tam xəta bloku YALNIZ göstəriləcək data heç olmadıqda
+       * (`expenses.length === 0`) görünür. Əvvəl uğurla yüklənmiş xərclər
+       * varkən arxa-fon refetch-i uğursuz olarsa, TanStack Query `data`-nı
+       * ƏVVƏLKİ nəticə ilə saxlayır — bu halda mövcud siyahı qalır, üstündə
+       * yalnız kiçik "yenilənmə uğursuz oldu" xəbərdarlıq zolağı göstərilir.
+       */}
+      {isError && expenses.length === 0 ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm font-medium text-red-700">
           {error instanceof Error ? error.message : "Xərclər yüklənmədi"}
         </div>
       ) : (
         <>
+          {isError && (
+            <StaleDataBanner
+              message="Xərclər yenilənmədi — göstərilən siyahı köhnəlmiş ola bilər."
+              onRetry={() => void refetch()}
+              className="mb-3"
+            />
+          )}
           <ExpensesTable
             expenses={visibleExpenses}
             isLoading={isLoading}

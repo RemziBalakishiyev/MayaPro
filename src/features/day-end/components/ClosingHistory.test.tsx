@@ -70,4 +70,44 @@ describe("ClosingHistory — şəbəkə xətası (FE#127)", () => {
     expect(screen.getByText("Bağlanış yoxdur")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  /**
+   * FE#134 (maliyyə-həssas) — kassir artıq bağlanış tarixçəsinə baxıb (data
+   * uğurla yüklənib), sonra arxa-fon (background) refetch-i qısa şəbəkə
+   * fasiləsi ilə uğursuz olur. TanStack Query `data`-nı ƏVVƏLKİ uğurlu
+   * nəticə ilə saxlayır (`isError=true`, `data` mövcud) — bu halda mövcud
+   * cədvəl İTMƏMƏLİDİR və tam InlineError ekranı ilə ƏVƏZ OLUNMAMALIDIR.
+   */
+  it("uğurla yüklənmiş data varkən arxa-fon refetch xətası → köhnə cədvəl itmir, tam InlineError göstərilmir (FE#134)", () => {
+    mockUseClosings.mockReturnValue({
+      data: [
+        {
+          id: "c1",
+          date: "2026-08-05",
+          openingCash: 100,
+          cashSales: 500,
+          expenses: 50,
+          expectedCash: 550,
+          actualCash: 550,
+          difference: 0,
+        },
+      ],
+      isLoading: false,
+      isError: true,
+      refetch: vi.fn(),
+    } as never);
+
+    render(<ClosingHistory />);
+
+    // Tam InlineError mesajı YOX — mövcud data itməyib
+    expect(
+      screen.queryByText("Bağlanış tarixçəsi yüklənmədi"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Bağlanış yoxdur")).not.toBeInTheDocument();
+
+    // Kiçik xəbərdarlıq zolağı görünür
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /yenilənmə uğursuz oldu/i,
+    );
+  });
 });
