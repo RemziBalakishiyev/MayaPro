@@ -308,6 +308,14 @@ export function PeriodFilter({
         {isCustom && value.from && value.to
           ? formatRangeChip(value.from, value.to)
           : "Tarix seç"}
+        {/* FE#100 — minimum 40x40px toxunma hədəfi (design-system.md §1.6,
+            AC-8/TC-6). `h-10 w-10 shrink-0` çipin özünün toxunma sahəsindən
+            bilərəkdən böyükdür (ikon `size={12}` saxlanılıb) — yalnız xüsusi
+            (custom) aralıq aktiv olanda göründüyü üçün "Tarix seç" çipi bu
+            zaman digər çiplərdən bir qədər hündür görünür; bu, klaviatura və
+            toxunma ilə əlçatanlığı qorumaq üçün qəsdən edilmiş, qəbul edilə
+            bilən vizual ödəniş sayılır — `h-4 w-4`-ə geri qaytarma yenidən
+            AC-8 pozuntusuna səbəb olar. */}
         {isCustom && (
           <span
             role="button"
@@ -324,7 +332,7 @@ export function PeriodFilter({
                 clearCustom();
               }
             }}
-            className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded hover:bg-black/10"
+            className="ml-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded hover:bg-black/10"
           >
             <X size={12} />
           </span>
