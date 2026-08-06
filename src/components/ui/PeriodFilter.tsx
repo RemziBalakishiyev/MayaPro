@@ -19,10 +19,10 @@ import {
 export type { PeriodRange, QuickPeriodKey };
 
 /**
- * `PageToolbar` (`src/components/layout/PageToolbar.tsx`) ayrıca komponent
- * kimi mövcuddur. Bu `PeriodFilter` (tarix aralığı) və `FilterBar` (axtarış +
- * filtr paneli) FE#69-dan bəri Mallar/Xərclər/Borclar/Satış səhifələrində
- * istifadə olunan, oxşar funksionallıq təmin edən ayrıca primitivlərdir.
+ * Bu `PeriodFilter` (tarix aralığı) və `FilterBar` (axtarış + filtr paneli)
+ * FE#69-dan bəri Mallar/Xərclər/Borclar/Satış səhifələrində istifadə olunan
+ * primitivlərdir. İstifadəsiz `PageToolbar` sarğı komponenti FE#143 ilə
+ * silinib — bu iki primitiv həmin rolu faktiki oynayır.
  */
 export interface PeriodFilterProps {
   /** URL search params-dan gələn cari aralıq (from/to). Mənbə həqiqətdir. */
@@ -342,7 +342,7 @@ export { isoInRange };
 /**
  * FE#69 — `SegmentedDateFilter`, `PeriodFilter`-in STANDARTLAŞDIRILMIŞ adıdır
  * (eyni komponent, eyni props). Dizayn sistemində dövr filtri bu adla
- * sənədləşib; mövcud `PageToolbar.period` slotuna bu ad verilir.
+ * sənədləşib.
  * Köhnə `PeriodFilter` adı silinmir — bütün mövcud çağırışlar işləyir.
  */
 export const SegmentedDateFilter = PeriodFilter;

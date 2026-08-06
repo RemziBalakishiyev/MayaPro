@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "./DataTable";
 import { LocalTableSearch } from "./LocalTableSearch";
-import { StatusBadge } from "./StatusBadge";
 
 interface Row {
   ad: string;
@@ -78,15 +77,5 @@ describe("LocalTableSearch", () => {
     render(<LocalTableSearch value="sement" onChange={onChange} />);
     await user.click(screen.getByRole("button", { name: "Axtarışı təmizlə" }));
     expect(onChange).toHaveBeenCalledWith("");
-  });
-});
-
-describe("StatusBadge", () => {
-  it("rəngdən əlavə ikon + mətn verir (AC-10)", () => {
-    const { container } = render(
-      <StatusBadge tone="warning">Yoxlanmalıdır</StatusBadge>,
-    );
-    expect(screen.getByText("Yoxlanmalıdır")).toBeInTheDocument();
-    expect(container.querySelector("svg")).toBeTruthy();
   });
 });

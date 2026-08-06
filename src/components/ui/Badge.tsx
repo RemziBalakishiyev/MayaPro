@@ -32,10 +32,10 @@ export const STATUS_STYLE: Record<string, string> = {
 const FALLBACK = "bg-stone-50 text-stone-600 ring-stone-200/80";
 
 /**
- * Status göstərmək üçün ayrıca `StatusBadge` komponenti də mövcuddur (bax
- * `src/components/ui/StatusBadge.tsx`). Bu `Badge` daha ümumi məqsədli
- * primitivdir və 11+ fayldan istifadə olunur, o cümlədən `ProductStatusBadge`
- * vasitəsilə `ProductsTable` və Mal detalı səhifəsində.
+ * Ümumi məqsədli status/mətn nişanı — 11+ fayldan istifadə olunur, o
+ * cümlədən `ProductStatusBadge` vasitəsilə `ProductsTable` və Mal detalı
+ * səhifəsində. İstifadəsiz `StatusBadge` primitivi FE#143 ilə silinib —
+ * `Badge` bu rolu faktiki oynayır.
  */
 export interface BadgeProps {
   children: ReactNode;

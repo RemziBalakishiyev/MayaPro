@@ -43,7 +43,7 @@ CSS dəyişənləri: `--space-1 … --space-8` (`src/index.css`).
 | card | `rounded-card` | 16px | Kart, panel, drawer, modal |
 | control | `rounded-control` | 12px | Düymə (md/lg), input, select, textarea |
 | chip | `rounded-chip` | 8px | Çip, kiçik düymə (sm), menyu bəndi |
-| tag | `rounded-tag` | 6px | Badge / StatusBadge |
+| tag | `rounded-tag` | 6px | Badge |
 | — | `rounded-full` | ∞ | Qlobal axtarış, AlertPill, sayğac nişanı |
 
 ### 1.3 Kölgə (3 pillə)
@@ -119,9 +119,9 @@ Fokus tokeni (`src/index.css` `@layer components`):
 | `info` | sky | Neytral məlumat (kart satışı, məlumat toast-ı) |
 | `neutral` | stone | Statussuz / arxiv |
 
-**Rəng heç vaxt yeganə status siqnalı deyil** — `StatusBadge`, `InlineError`,
-`Toast` və kassa fərqi göstəriciləri həmişə ikon və/və ya izahedici mətnlə
-müşayiət olunur.
+**Rəng heç vaxt yeganə status siqnalı deyil** — `Badge`/`ProductStatusBadge`,
+`InlineError`, `Toast` və kassa fərqi göstəriciləri həmişə ikon və/və ya
+izahedici mətnlə müşayiət olunur.
 
 **KRİTİK QAYDA (R-02):** müsbət kassa fərqi yaşıl «uğur» DEYİL — kəhrəba
 «yoxlanmalı uyğunsuzluq»dur. Qayda tək yerdə yaşayır:
@@ -137,7 +137,10 @@ müşayiət olunur.
 | Kontent eni | `w-full` (sidebar-dan sonra) | ekranı tam istifadə edir |
 
 Başlıq/alt-yazı solda, əsas əməliyyat başlıqla **eyni xətdə** sağda;
-filtr və tarix kontrolları `PageToolbar` daxilində, başlığın altında.
+filtr və tarix kontrolları (`PeriodFilter` + `FilterBar`/səhifəyə xas filtr
+komponenti) başlığın altında, kontentdən əvvəl render olunur (FE#143 —
+istifadəsiz `PageToolbar` sarğı komponenti silinib, bu iki primitiv həmin
+yerləşməni faktiki təmin edir).
 
 ### 1.10 Hərəkət
 
@@ -157,25 +160,23 @@ Status: **N** = normallaşdırıldı (mövcud komponent, prop/variant səviyyəs
 | 2 | **Sidebar** | Y | `src/components/layout/Sidebar.tsx` | yox — `_app.tsx:134-185` `sidebarInner` |
 | 3 | **TopHeader** | Y | `src/components/layout/TopHeader.tsx` | yox — `_app.tsx:224-260` inline `header` |
 | 4 | **PageHeader** | N | `src/components/layout/PageHeader.tsx` | `PageHead` (inventar #32) — deprecated alias kimi qalır: `src/components/layout/PageHead.tsx` |
-| 5 | **PageToolbar** | Y | `src/components/layout/PageToolbar.tsx` | yox |
-| 6 | **GlobalProductSearch** | Y | `src/components/layout/GlobalProductSearch.tsx` | yox — `_app.tsx:238-250` xam input (F-50 nüsxə 1) |
-| 7 | **LocalTableSearch** | Y | `src/components/ui/LocalTableSearch.tsx` | yox — `FilterBar` daxilindəki input + 2 xam nüsxə (F-50) |
-| 8 | **Button** (variantlar) | N | `src/components/ui/Button.tsx` | inventar #4 |
-| 9 | **IconButton** | Y | `src/components/ui/IconButton.tsx` | yox |
-| 10 | **SegmentedDateFilter** | N | `src/components/ui/PeriodFilter.tsx` (alias `SegmentedDateFilter`) | `PeriodFilter` (inventar #21) |
-| 11 | **StatCard** | N | `src/components/ui/StatCard.tsx` | inventar #25 |
-| 11a | **KpiCard / StatCluster / AlertPill** (birləşik KPI paneli) | N | `src/components/ui/KpiCard.tsx` | inventar #19, #19a, #19b |
-| 12 | **StatusBadge** | Y | `src/components/ui/StatusBadge.tsx` | `Badge` (inventar #3) qalır və dəyişmir |
-| 13 | **DataTable** | N | `src/components/ui/DataTable.tsx` | inventar #9 |
-| 14 | **TableToolbar** | Y | `src/components/ui/TableToolbar.tsx` | yox — real istifadə: `src/routes/_app.musteriler.tsx` (search + "yalnız borclular" filtri, FE#122) |
-| 15 | **TablePagination** | Y | `src/components/ui/TablePagination.tsx` | `DataTable` daxilində inline idi |
-| 16 | **FilterDrawer / FilterPopover** | N | `src/components/ui/FilterBar.tsx` (alias) | `FilterBar` (inventar #15) |
-| 17 | **DetailDrawer** | N | `src/components/ui/Drawer.tsx` (alias `DetailDrawer`) | `Drawer` (inventar #10) |
-| 18 | **ConfirmDialog** | N | `src/components/ui/ConfirmModal.tsx` (alias `ConfirmDialog`) | `ConfirmModal` (inventar #6) |
-| 19 | **EmptyState** | N | `src/components/ui/EmptyState.tsx` | inventar #11 |
-| 20 | **LoadingSkeleton** | Y | `src/components/ui/LoadingSkeleton.tsx` (`Skeleton`, `SkeletonText`, `TableSkeleton`) | yox — `Spinner` (inventar #24) qalır |
-| 21 | **InlineError** | Y | `src/components/ui/InlineError.tsx` | yox (F-44) |
-| 22 | **Toast** | N | `src/components/ui/Toast.tsx` | inventar #27 |
+| 5 | **GlobalProductSearch** | Y | `src/components/layout/GlobalProductSearch.tsx` | yox — `_app.tsx:238-250` xam input (F-50 nüsxə 1) |
+| 6 | **LocalTableSearch** | Y | `src/components/ui/LocalTableSearch.tsx` | yox — `FilterBar` daxilindəki input + 2 xam nüsxə (F-50) |
+| 7 | **Button** (variantlar) | N | `src/components/ui/Button.tsx` | inventar #4 |
+| 8 | **IconButton** | Y | `src/components/ui/IconButton.tsx` | yox |
+| 9 | **SegmentedDateFilter** | N | `src/components/ui/PeriodFilter.tsx` (alias `SegmentedDateFilter`) | `PeriodFilter` (inventar #21) |
+| 10 | **StatCard** | N | `src/components/ui/StatCard.tsx` | inventar #25 |
+| 10a | **KpiCard / StatCluster / AlertPill** (birləşik KPI paneli) | N | `src/components/ui/KpiCard.tsx` | inventar #19, #19a, #19b |
+| 11 | **DataTable** | N | `src/components/ui/DataTable.tsx` | inventar #9 |
+| 12 | **TableToolbar** | Y | `src/components/ui/TableToolbar.tsx` | yox — real istifadə: `src/routes/_app.musteriler.tsx` (search + "yalnız borclular" filtri, FE#122) |
+| 13 | **TablePagination** | Y | `src/components/ui/TablePagination.tsx` | `DataTable` daxilində inline idi |
+| 14 | **FilterDrawer / FilterPopover** | N | `src/components/ui/FilterBar.tsx` (alias) | `FilterBar` (inventar #15) |
+| 15 | **DetailDrawer** | N | `src/components/ui/Drawer.tsx` (alias `DetailDrawer`) | `Drawer` (inventar #10) |
+| 16 | **ConfirmDialog** | N | `src/components/ui/ConfirmModal.tsx` (alias `ConfirmDialog`) | `ConfirmModal` (inventar #6) |
+| 17 | **EmptyState** | N | `src/components/ui/EmptyState.tsx` | inventar #11 |
+| 18 | **LoadingSkeleton** | Y | `src/components/ui/LoadingSkeleton.tsx` (`Skeleton`, `SkeletonText`, `TableSkeleton`) | yox — `Spinner` (inventar #24) qalır |
+| 19 | **InlineError** | Y | `src/components/ui/InlineError.tsx` | yox (F-44) |
+| 20 | **Toast** | N | `src/components/ui/Toast.tsx` | inventar #27 |
 
 **Əlavə normallaşdırılanlar:** `Modal` (#20), `Input` (#18), `Textarea` (#26),
 `Select` (#23), `ActionMenu` (#2) — fokus/hündürlük/radius token-larına
@@ -186,15 +187,20 @@ salındı; `ActionMenu`-ya `triggerLabel` propu əlavə edildi.
 kilidi), `src/features/day-end/components/cash-diff-presentation.ts`
 (kassa fərqi təqdimat qaydası).
 
-**Əhatə yoxlaması:** FE#69 siyahısındakı 22 primitivin hamısı yuxarıdakı
-cədvəldədir — statusu olmayan primitiv: **0**.
+**Əhatə yoxlaması:** FE#69 siyahısındakı 22 primitivdən 20-si yuxarıdakı
+cədvəldədir — statusu olmayan primitiv: **0**. Qalan 2-si (`PageToolbar`,
+`StatusBadge`) FE#143 ilə silinib, bax aşağı.
 
-**Real səhifə istifadəsi (FE#122):** `PageToolbar`, `TableToolbar` və
-`StatusBadge` FE#69 ilə yaradılıb və kod bazasında MÖVCUDDUR (bu, əvvəlki
-FE#86/PR#97-nin yanlış «heç vaxt mövcud olmayıb» iddiasının əksinədir — həmin
-iddia silinib). `TableToolbar` artıq bir real səhifədə (`src/routes/_app.musteriler.tsx`)
-istifadə olunur; `PageToolbar` və `StatusBadge`-in qalan səhifələrə köçürülməsi
-gələcək bir tapşırığın (dərin səhifə refaktoru) əhatəsindədir.
+**Real səhifə istifadəsi / FE#143 nəticəsi:** `PageToolbar` və `StatusBadge`
+FE#69 ilə yaradıldıqdan sonra 3 ardıcıl QA dövründə (FE#86 → FE#122 → FE#126)
+də real səhifə istifadəsi qazanmadılar (0 çağırış — `PageToolbar` yalnız
+JSDoc-larda adı çəkilirdi, `StatusBadge`-ə yeganə istinad test faylı idi).
+`FE#143` ilə hər iki fayl silindi: `src/components/layout/PageToolbar.tsx`
+və `src/components/ui/StatusBadge.tsx`. Onların oynamalı olduğu rolu artıq
+`PeriodFilter` (dövr) + `FilterBar`/səhifəyə xas filtr komponenti (filtr) və
+`Badge`/`ProductStatusBadge` (status nişanı) faktiki oynayır — bu iki primitiv
+hər siyahı səhifəsində istifadədədir. `TableToolbar`-a TOXUNULMAYIB, çünki
+real istifadədədir (`src/routes/_app.musteriler.tsx`) və keçir.
 
 ---
 
@@ -233,7 +239,7 @@ gələcək bir tapşırığın (dərin səhifə refaktoru) əhatəsindədir.
 əməliyyatlar yalnız-ikon düymə ilə TƏQDİM OLUNMUR — mətn etiketli `Button`
 işlədilir.
 
-### 3.3 PageHeader + PageToolbar
+### 3.3 PageHeader + dövr/filtr kontrolları
 
 ```tsx
 <PageHeader
@@ -243,11 +249,12 @@ işlədilir.
   primaryAction={<Button icon={<Plus size={18} />}>Yeni mal</Button>}
 />
 
-<PageToolbar
-  period={<SegmentedDateFilter value={range} onChange={updateRange} />}
-  filters={<ProductFilters … />}
-/>
+<PeriodFilter value={range} onChange={updateRange} defaultKey="all" />
+<ProductFilters value={search} onChange={updateFilter} … />
 ```
+
+(FE#143 — istifadəsiz `PageToolbar` sarğı komponenti silinib; `PeriodFilter`
+və səhifəyə xas filtr komponenti birbaşa, ardıcıl render olunur.)
 
 ### 3.4 Qlobal vs lokal axtarış (AC-14)
 
@@ -274,16 +281,18 @@ işlədilir.
 
 Vəziyyət prioriteti: **xəta → yüklənmə → boş → məlumat**.
 
-### 3.6 StatusBadge
+### 3.6 Status nişanları (Badge / ProductStatusBadge)
 
 ```tsx
-<StatusBadge tone="warning">Azalır</StatusBadge>       // ikon + mətn + kəhrəba
-<StatusBadge tone="danger">Bitib</StatusBadge>
-<StatusBadge tone="success">Ödənilib</StatusBadge>
+<Badge tone="Azalır">Azalır</Badge>
+<Badge tone="Bitib">Bitib</Badge>
+<Badge tone="Ödənilib">Ödənilib</Badge>
+<ProductStatusBadge product={product} />
 ```
 
-Mövcud `Badge` (mətn açarlı) silinmir — köhnə çağırışlar işləyir; yeni
-statuslar üçün `StatusBadge` tövsiyə olunur.
+`Badge` mətn açarlı status nişanıdır və 11+ fayldan istifadə olunur (o
+cümlədən `ProductStatusBadge` vasitəsilə). İstifadəsiz `StatusBadge`
+primitivi FE#143 ilə silinib.
 
 ### 3.7 Overlay-lər
 
@@ -310,9 +319,14 @@ bağlananda açılır.
 | `Drawer` | `DetailDrawer` | Hər ikisi eyni komponent |
 | `ConfirmModal` | `ConfirmDialog` | Hər ikisi eyni komponent |
 | `shadow-soft` | `shadow-card` | Eyni dəyər |
-| `Badge` | `StatusBadge` | `Badge` qalır, silinmir |
 
-Silinən prop: **0**. Silinən komponent: **0**.
+Silinən prop: **0**. Silinən komponent (FE#143 — istifadəsiz, real səhifə
+istifadəsi 0 olan primitivlər): **2** — `PageToolbar`
+(`src/components/layout/PageToolbar.tsx`), `StatusBadge`
+(`src/components/ui/StatusBadge.tsx`). Hər ikisi FE#69 ilə yaradılıb, 3
+ardıcıl QA dövründə (FE#86 → FE#122 → FE#126) real səhifəyə köçürülmədiyi
+üçün silinib; rolunu `PeriodFilter`/`FilterBar` və `Badge`/`ProductStatusBadge`
+faktiki oynayır. `Badge` özü SİLİNMİR/dəyişmir.
 
 ---
 

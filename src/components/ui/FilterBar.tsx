@@ -44,11 +44,12 @@ export interface FilterBarProps {
  * Aktif filtrlər: panel bağlı olsa da kiçik çiplər göstər (× ilə silinir).
  * Panel altında: "Filterləri təmizlə" ghost düyməsi (yalnız aktif filter varsa).
  *
- * `PageToolbar` (`src/components/layout/PageToolbar.tsx`) və `TableToolbar`
- * (`src/components/ui/TableToolbar.tsx`) ayrıca komponentlər kimi mövcuddur
- * (`TableToolbar`-ın real istifadəsi: `src/routes/_app.musteriler.tsx`).
+ * `TableToolbar` (`src/components/ui/TableToolbar.tsx`) ayrıca komponent kimi
+ * mövcuddur (real istifadəsi: `src/routes/_app.musteriler.tsx`).
  * Bu `FilterBar` isə axtarış + filtr paneli funksionallığını `PeriodFilter`
- * (tarix aralığı) ilə birlikdə tutan ayrıca, geniş istifadə olunan primitivdir.
+ * (tarix aralığı) ilə birlikdə tutan, siyahı səhifələrində geniş istifadə
+ * olunan primitivdir (FE#143 — istifadəsiz `PageToolbar` silinib, bu ikisi
+ * həmin rolu faktiki oynayır).
  */
 export function FilterBar({
   searchValue,
