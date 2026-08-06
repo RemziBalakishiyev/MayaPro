@@ -114,21 +114,35 @@ export function FilterBar({
 
       {/* Aktif filtrlər çiplər sırasında (panel bağlı olsa da görünsün) */}
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-stone-200">
+        // gap-y-4: X sil düyməsinin 40x40px hit-slop-u (inset-[-12px]) çipin
+        // öz hündürlüyündən (24px) 8px böyükdür hər tərəfdən — sətirlər
+        // arasında yalnız gap-2 (8px) olsaydı, iki üst-üstə sətirdəki
+        // toxunma sahələri bir-birinə keçirdi (yanlış çipin silinməsi
+        // riski). gap-y-4 (16px) bu üst-üstə düşməni aradan qaldırır.
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-4 px-3 py-2 border-t border-stone-200">
           {activeFilters.map((filter) => (
             <div
               key={filter.id}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
             >
               <span>{filter.label}</span>
-              <button
-                type="button"
-                onClick={() => onRemoveFilter?.(filter.id)}
-                aria-label={`${filter.label} sil`}
-                className="focus-ring ml-0.5 inline-flex h-6 w-6 items-center justify-center rounded-tag hover:bg-emerald-100"
-              >
-                <X size={14} />
-              </button>
+              {/* FE#99 — minimum 40x40px toxunma hədəfi (design-system.md §1.6,
+                  AC-8/TC-6). Görünən "X" ikonu kompakt saxlanılır — `span`
+                  yalnız orijinal ~16px izini (flow-dakı yerini) qoruyan
+                  mövqeləndirmə lövbəridir, faktiki `<button>` isə
+                  `absolute inset-[-12px]` ilə bu lövbərin ətrafında 40x40px-ə
+                  qədər genişlənir (görünüş dəyişmir, yalnız toxunma/hover
+                  sahəsi böyüyür). */}
+              <span className="relative ml-0.5 inline-flex h-4 w-4 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onRemoveFilter?.(filter.id)}
+                  aria-label={`${filter.label} sil`}
+                  className="focus-ring absolute inset-[-12px] inline-flex items-center justify-center rounded hover:bg-emerald-100"
+                >
+                  <X size={14} />
+                </button>
+              </span>
             </div>
           ))}
         </div>
@@ -149,7 +163,7 @@ export function FilterBar({
             <button
               type="button"
               onClick={onClear}
-              className="focus-ring min-h-[40px] rounded-chip px-2 text-sm font-semibold text-stone-600 hover:text-emerald-700"
+              className="focus-ring inline-flex min-h-[40px] items-center justify-center rounded-chip px-2 text-sm font-semibold text-stone-600 hover:text-emerald-700"
             >
               {clearLabel}
             </button>
