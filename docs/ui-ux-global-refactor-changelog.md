@@ -362,7 +362,7 @@ silinməsi) seçildi.
 **Problem**
 
 `Addım 9` (`7323c69`) ilə bu sənədin əvvəlki yenilənməsi arasında `main`-ə
-daha 7 PR merge olunub (`Addım 10`/FE#143-dən əlavə) — heç biri jurnalda
+daha 8 PR merge olunub (`Addım 10`/FE#143-dən əlavə) — heç biri jurnalda
 qeyd olunmamışdı. FE#69 QA 7-ci dövr hesabatı (`AC-24, TC-29`, BUG-4) bunu
 aşkarladı. Aşağıda hər PR retroaktiv, qısa formada qeyd olunur.
 
@@ -410,7 +410,8 @@ aşkarladı. Aşağıda hər PR retroaktiv, qısa formada qeyd olunur.
   göstərilməsini təmin etdi; ortaq `PageSkeleton` çıxarılıb Dashboard/
   Hesabatlar yüklənmə skeleton-ları dublikasiyadan təmizləndi. Toxunulan
   fayllar: `src/components/ui/DataTable.tsx` (+ `.test.tsx`),
-  `src/components/ui/LoadingSkeleton.tsx` (yeni),
+  `src/components/ui/LoadingSkeleton.tsx` (mövcud fayla `PageSkeleton`
+  əlavə edildi — yeni deyil, FE#69-dan bəri var),
   `src/components/ui/StaleDataBanner.tsx` (yeni),
   `src/features/day-end/components/ClosingHistory.tsx` (+ `.test.tsx`),
   `src/features/employees/components/EmployeesTable.tsx` (+ `.test.tsx`),
