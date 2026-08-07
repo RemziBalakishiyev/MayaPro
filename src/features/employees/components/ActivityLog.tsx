@@ -11,6 +11,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { InlineError } from "@/components/ui/InlineError";
+import { TableSkeleton } from "@/components/ui/LoadingSkeleton";
 import { Button } from "@/components/ui/Button";
 import { fmtDate } from "@/lib/format";
 import { useAuthStore } from "@/features/auth/store";
@@ -31,7 +33,12 @@ function iconFor(action: string): { Icon: LucideIcon; color: string } {
 }
 
 export function ActivityLog() {
-  const { data: activity = [] } = useActivity();
+  const {
+    data: activity = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useActivity();
   const { data: employees = [] } = useEmployees();
   const user = useAuthStore((s) => s.user);
   const [limit, setLimit] = useState(PAGE);
@@ -41,6 +48,26 @@ export function ActivityLog() {
     return (id: string) =>
       map.get(id) ?? (user && user.id === id ? user.name : "Naməlum");
   }, [employees, user]);
+
+  /*
+   * FE#81 (AC-10 / F-44) — vəziyyət prioriteti: xəta → yüklənmə → boş → data.
+   * Əvvəl bu panel YALNIZ boş vəziyyəti bilirdi: şəbəkə xətası da, ilk
+   * yüklənmə də "Fəaliyyət yoxdur" kimi görünürdü (yanıltıcı boş nəticə).
+   */
+  if (isError && activity.length === 0) {
+    return (
+      <InlineError
+        embedded
+        message="Fəaliyyət jurnalı yüklənmədi"
+        hint="Şəbəkə və ya server cavab vermədi."
+        onRetry={() => void refetch()}
+      />
+    );
+  }
+
+  if (isLoading) {
+    return <TableSkeleton rows={5} columns={2} />;
+  }
 
   if (activity.length === 0) {
     return <EmptyState icon={Clock} title="Fəaliyyət yoxdur" />;
