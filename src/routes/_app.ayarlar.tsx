@@ -226,6 +226,7 @@ function AyarlarPage() {
           <div className="space-y-3">
             <Field
               label="Şablon"
+              required
               hint="{debt} yazdığınız yerə borc məbləği (məs. 250.00) əlavə olunacaq."
               error={errors.whatsappTemplate}
             >
@@ -237,7 +238,13 @@ function AyarlarPage() {
               />
             </Field>
 
-            <div className="rounded-control border border-dashed border-stone-300 bg-stone-50 px-4 py-3">
+            {/* Canlı önizləmə — dəyişdikcə ekran oxuyucusu da eşitsin
+                (mövcud naxış: PaymentConfirmModal `RemainingBanner`). */}
+            <div
+              role="status"
+              aria-live="polite"
+              className="rounded-control border border-dashed border-stone-300 bg-stone-50 px-4 py-3"
+            >
               <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-stone-500">
                 <MessageCircle size={13} aria-hidden /> Önizləmə (nümunə
                 borc: 250.00 AZN)
@@ -271,7 +278,11 @@ function AyarlarPage() {
       {canEdit && dirty && (
         <div className="sticky bottom-0 z-10 -mx-4 -mb-28 mt-5 border-t border-stone-200 bg-white px-4 py-3 shadow-panel lg:-mx-8 lg:-mb-10 lg:px-8">
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <p className="text-sm font-semibold text-stone-700">
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-sm font-semibold text-stone-700"
+            >
               Dəyişikliklər yadda saxlanılmayıb
             </p>
             <div className="flex w-full gap-2 sm:w-auto">
