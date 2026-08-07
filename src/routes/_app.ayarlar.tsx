@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useBlocker } from "@tanstack/react-router";
 import { Lock, MessageCircle } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
@@ -121,7 +121,7 @@ function AyarlarPage() {
 
   return (
     <div className="pb-6">
-      <PageHead title="Ayarlar" subtitle="Mağaza və sistem parametrləri" />
+      <PageHeader title="Ayarlar" subtitle="Mağaza və sistem parametrləri" />
 
       {!canEdit && (
         <div className="mb-4 flex items-center gap-2 rounded-xl bg-stone-50 px-4 py-3 text-sm font-medium text-stone-600 ring-1 ring-stone-200">

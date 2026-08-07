@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { PageHead } from "@/components/layout/PageHead";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { useAuthStore } from "@/features/auth/store";
 import { useEmployees } from "@/features/employees/queries";
@@ -48,7 +48,7 @@ function IscilarPage() {
 
   return (
     <div>
-      <PageHead title="İşçilər" subtitle={`${employees.length} işçi`} />
+      <PageHeader title="İşçilər" subtitle={`${employees.length} işçi`} />
 
       {canSeeSalary && (
         <div className="mb-5">

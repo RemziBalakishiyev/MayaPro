@@ -15,7 +15,7 @@ import {
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { StatCluster } from "@/components/ui/KpiCard";
 import { Badge } from "@/components/ui/Badge";
@@ -128,7 +128,7 @@ function DashboardPage() {
   if (isError && !d) {
     return (
       <div>
-        <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+        <PageHeader title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
         <InlineError
           message="Dashboard yüklənmədi"
           hint="Şəbəkə və ya server cavab vermədi."
@@ -141,7 +141,7 @@ function DashboardPage() {
   if (isLoading || !d) {
     return (
       <div>
-        <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+        <PageHeader title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
         <PageSkeleton
           label="Dashboard yüklənir"
           statCount={4}
@@ -209,7 +209,7 @@ function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <PageHead title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
+      <PageHeader title="Dashboard" subtitle="Bugünkü vəziyyət bir baxışda" />
 
       {/* FE#142: arxa-fon refetch xətası — mövcud (köhnə/keçərli) dashboard
           görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
