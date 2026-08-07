@@ -17,13 +17,18 @@ DƏYİŞMƏYİB.** Yoxlama meyarları: `docs/design-system.md` ·
 
 | Status | Say |
 |---|---|
-| **KEÇDİ** | 12 YOXLA bəndi · AC1, AC3, AC4, AC5, AC6, AC11(qismən), AC12, AC13, AC15, AC17, AC19, AC20 |
+| **KEÇDİ** | 10 YOXLA bəndi · AC1, AC3, AC4, AC5, AC7, AC12, AC13, AC17, AC19, AC20 |
 | **KƏSİLDİ (düzəldilib)** | 7 tapıntı — AC2, AC8, AC9b, AC10 (×2), AC14, AC15 |
-| **KƏSİLDİ (düzəldilməyib — davranış/backend tələb edir)** | 4 tapıntı — AC11 (təsdiqsiz maliyyə modal-ları), AC16 (Enter/barkod), AC6 (padding şkalası), AC9 (palitradan kənar rənglər) |
+| **KƏSİLDİ (düzəldilməyib — davranış/backend tələb edir)** | 7 tapıntı (§5 F-1…F-7) — F-1 AC11 (təsdiqsiz maliyyə modal-ları), F-2 AC16 (Enter/barkod), F-3 AC6 (padding şkalası), F-4 (palitradan kənar rənglər — DS palitrasından kənar status/kimlik rəngləri), F-5 («Ləğv et»/«İmtina» uyğunsuzluğu), F-6 (`ProductFilters` placeholder uyğunsuzluğu), F-7 (`.money` tokeninin natamam əhatəsi) |
 | **İCRA EDİLƏ BİLMƏDİ** | AC18 + 6 TC (TC24–TC29) — canlı backend əlçatmazdır |
 
-**AC-lər üzrə:** 20 AC-dən 14-ü tam keçdi, 5-i düzəlişdən sonra keçdi,
-1-i (AC18) icra edilə bilmədi.
+**AC-lər üzrə:** 20 AC-dən 10-u tam keçdi, 6-sı (AC2, AC8, AC9, AC10, AC14,
+AC15) düzəlişdən sonra keçdi (AC10 iki ayrı tapıntını əhatə etdiyi üçün bu
+qrupda cəmi 7 tapıntı, bax §3.2–§3.7), 3-ü (AC6, AC11, AC16) açıq qüsurla
+düzəlişsiz qalıb, 1-i (AC18) icra edilə bilmədi. §5-də sadalanan 7 tapıntının
+(F-1…F-7) yalnız 3-ü (F-1, F-2, F-3) birbaşa bu 3 AC-yə bağlıdır; qalan 4-ü
+(F-4…F-7) DS/sənəd səviyyəsində əlavə tapıntılardır və konkret nömrələnmiş
+AC-yə aid deyil (bax §5).
 **TC-lər üzrə:** 29 TC-dən 23-ü icra olundu (18 statik + 5 vitest), 6-sı
 icra edilə bilmədi.
 
