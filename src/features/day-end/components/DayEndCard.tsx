@@ -224,10 +224,13 @@ export function DayEndCard() {
           value={`+ ${fmtMoney(todayClosing.cashSales)}`}
           tone="text-emerald-700"
         />
+        {/* FE#81 (AC-9b): xərc NORMAL əməliyyatdır — ziyan/kritik DEYİL, ona
+            görə qırmızı ilə göstərilmir (DS §1.8; Xərclər səhifəsində eyni qayda
+            FE#76 ilə tətbiq olunub — amount-presentation.tsx). Kassadan çıxış
+            istiqaməti «−» prefiksi ilə verilir, rəngə ehtiyac yoxdur. */}
         <Row
           label="Günlük xərclər"
           value={`− ${fmtMoney(todayClosing.expenses)}`}
-          tone="text-red-600"
         />
         <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
           <Lock size={16} /> Gün bağlanıb — dəyişiklik mümkün deyil.
@@ -294,13 +297,11 @@ export function DayEndCard() {
           <Row
             label="Günlük xərclər"
             value={`− ${fmtMoney(todayExpenses)}`}
-            tone="text-red-600"
           />
           {typeof salaryExpenses === "number" && salaryExpenses > 0 && (
             <Row
               label="O cümlədən: işçi maaş ödənişləri"
               value={`− ${fmtMoney(salaryExpenses)}`}
-              tone="text-red-500"
             />
           )}
         </div>

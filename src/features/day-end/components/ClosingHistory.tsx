@@ -52,10 +52,11 @@ export function ClosingHistory() {
       {
         accessorKey: "expenses",
         header: "Xərc",
+        // FE#81 (AC-9b): xərc normal əməliyyatdır, xəta/ziyan deyil —
+        // `text-red-600` çıxarıldı (DS §1.8; Xərclər səhifəsində eyni qayda
+        // FE#76 ilə tətbiq olunub). Sütun başlığı kontekst üçün kifayətdir.
         cell: ({ getValue }) => (
-          <span className="tabular-nums text-red-600">
-            {fmtMoney(getValue() as number)}
-          </span>
+          <span className="tabular-nums">{fmtMoney(getValue() as number)}</span>
         ),
       },
       {
