@@ -113,15 +113,9 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
         variant="secondary"
         size="lg"
         className={footerBtnCls}
-        icon={
-          invoicePending ? (
-            <Loader2 size={18} className="shrink-0 animate-spin" />
-          ) : (
-            <Receipt size={18} className="shrink-0" />
-          )
-        }
+        icon={<Receipt size={18} className="shrink-0" />}
+        loading={invoicePending}
         onClick={() => void downloadInvoice(sale.id)}
-        disabled={invoicePending}
         aria-label="Qaiməni PDF kimi yüklə"
       >
         <span className="truncate">Qaimə (PDF)</span>

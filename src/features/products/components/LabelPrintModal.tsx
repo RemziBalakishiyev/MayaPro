@@ -150,7 +150,7 @@ function ProductPicker({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Mal axtar (ad və ya barkod)..."
+          placeholder="Bu siyahıda axtar... (ad və ya barkod)"
           role="combobox"
           aria-expanded={showList}
           aria-controls={listId}
@@ -428,8 +428,7 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
     : missingBarcode.length > 0
       ? `Barkodu olmayan mal var (${missingBarcode.length}) — əvvəlcə «Barkod yarat»`
       : null;
-  const pdfDisabled =
-    rowsWithProduct.length === 0 || blockReason !== null || submitting;
+  const pdfDisabled = rowsWithProduct.length === 0 || blockReason !== null;
 
   const footer = (
     <div className="flex flex-col gap-3 border-t border-stone-100 bg-white px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:flex-row sm:items-center sm:justify-between">
@@ -452,14 +451,9 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
       <Button
         onClick={() => void handlePrint()}
         disabled={pdfDisabled}
+        loading={submitting}
         title={blockReason ?? undefined}
-        icon={
-          submitting ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <Printer size={16} />
-          )
-        }
+        icon={<Printer size={16} />}
         className="w-full sm:w-auto"
       >
         {submitting ? "Hazırlanır..." : "PDF hazırla"}
