@@ -81,6 +81,23 @@ export const quickPeriodRange = (key: QuickPeriodKey): PeriodRange => {
  * sürüşən dövrü seçirdi (`find` birinci uyğunu qaytarır) — nəticədə
  * istifadəçi "Bu ay" çipinə klikləyəndə `aria-selected` "Bu həftə" çipində
  * qalırdı, "Bu ay" heç vaxt aktiv görünmürdü (FE#174).
+ *
+ * BİLİNƏN MƏHDUDİYYƏT: bu, statik prioritet sırası ilə HƏLL EDİLƏ BİLMƏYƏN
+ * bir toqquşma sinfini tam aradan qaldırmır, yalnız ən çox rast gəlinən
+ * halı (yuxarıda) düzgün istiqamətə yönləndirir. `matchQuickPeriod` yalnız
+ * yekun `{from,to}` aralığına baxır — hansı çipə klikləndiyi bilgisi URL-də
+ * saxlanmır. Deməli iki açar EYNİ aralığı hesabladıqda (məs. ayın 1-də
+ * "Bu gün" === "Bu ay", yanvarın istənilən günündə "Bu ay" === "Bu il")
+ * onları BİR-BİRİNDƏN AYIRD ETMƏK QEYRİ-MÜMKÜNDÜR — sıranı dəyişmək
+ * problemi həll etmir, sadəcə hansı cütün "səhv" tərəfə düşəcəyini dəyişir.
+ * Seçilmiş sıra FE#174-də bildirilən (və ən tez-tez rast gəlinən, hər ayın
+ * 7-si) "week vs month" toqquşmasını "month" xeyrinə həll edir; "today vs
+ * month" (ayın 1-i) və "month vs year" (bütün yanvar) toqquşmaları da eyni
+ * səbəbdən "month" xeyrinə həll olunur — bunlar FE#174-dən ƏVVƏL də mövcud
+ * idi (bax: `period-filter-lib.test.ts` FE#174 bloku) və bu PR-ın əhatə
+ * dairəsindən kənardır. Tam həll üçün seçilmiş açarın özünün (range yox)
+ * state kimi saxlanması lazımdır — bu, `PeriodFilter`-in "URL mənbədir,
+ * gizli state yoxdur" dizaynını dəyişdirəcəyi üçün ayrıca qərar tələb edir.
  */
 const MATCH_PRIORITY: QuickPeriodKey[] = [
   "month",
