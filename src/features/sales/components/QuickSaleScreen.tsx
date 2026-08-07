@@ -415,8 +415,15 @@ export function QuickSaleScreen() {
     >
       {/* SOL: seçim və ya detallar */}
       <div className="pb-28 lg:pb-0">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-stone-900 lg:text-3xl">Satış</h1>
+        {/* FE#81 (AC-1/AC-2): Satış tam-ekran POS ekranıdır və `PageHeader`
+            istifadə etmir (qəsdən istisna, bax docs/pages/sales-ui-refactor.md).
+            Başlığın tipoqrafiyası və alt boşluğu isə `PageHeader` ilə
+            EYNİLƏŞDİRİLDİ (`leading-tight` + `mb-6`) ki, səhifələr arasında
+            başlıq xətti sürüşməsin. */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold leading-tight text-stone-900 lg:text-3xl">
+            Satış
+          </h1>
         </div>
 
         {!showDetails ? (
