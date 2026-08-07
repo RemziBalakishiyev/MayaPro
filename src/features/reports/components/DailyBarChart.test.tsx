@@ -33,4 +33,22 @@ describe("DailyBarChart — FE#78", () => {
     // Cədvəldə tam tarix (il daxil) göstərilir — ox etiketindən fərqli olaraq.
     expect(screen.getByText("01.08.2026")).toBeInTheDocument();
   });
+
+  it("bənd #9: `xerc` mövcud olduqda əlçatan cədvəldə 'Xərc' sütunu göstərilir", () => {
+    const data = [
+      point({ satis: 100, qazanc: 20, xerc: 15 }),
+      point({ date: "02.08", fullDateIso: "2026-08-02", satis: 50, qazanc: 10, xerc: 5 }),
+    ];
+    render(<DailyBarChart data={data} showProfit />);
+    expect(screen.getByText("Xərc")).toBeInTheDocument();
+  });
+
+  it("bənd #9: `xerc` ötürülmədikdə (Dashboard) 'Xərc' sütunu YOXDUR", () => {
+    const data = [
+      point({ satis: 100, qazanc: 20 }),
+      point({ date: "02.08", fullDateIso: "2026-08-02", satis: 50, qazanc: 10 }),
+    ];
+    render(<DailyBarChart data={data} showProfit />);
+    expect(screen.queryByText("Xərc")).not.toBeInTheDocument();
+  });
 });

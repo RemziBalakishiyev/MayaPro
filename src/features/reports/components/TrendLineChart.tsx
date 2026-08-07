@@ -75,30 +75,35 @@ export function TrendLineChart({
 
   return (
     <>
-      <ResponsiveContainer width="100%" height={height}>
-        <LineChart
-          data={data}
-          margin={{ top: 4, right: 8, left: 0, bottom: wideLabels ? 16 : 4 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-          <XAxis
-            dataKey={xKey}
-            tick={{ fontSize: wideLabels ? 11 : 12 }}
-            interval={wideLabels ? 0 : undefined}
-            tickMargin={8}
-          />
-          <YAxis tick={{ fontSize: 12 }} width={56} />
-          <Tooltip content={<TrendTooltip seriesLabel={seriesLabel} />} />
-          <Line
-            type="monotone"
-            dataKey={dataKey}
-            name={seriesLabel}
-            stroke={stroke}
-            strokeWidth={2.5}
-            dot={{ r: 3 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      {/* Senior-frontend review (bənd #12) — bax DailyBarChart-dəki eyni
+          şərh: dekorativ SVG `aria-hidden`, ekvivalent `ChartDataTable`
+          screen reader üçün əsas mənbədir. */}
+      <div aria-hidden="true">
+        <ResponsiveContainer width="100%" height={height}>
+          <LineChart
+            data={data}
+            margin={{ top: 4, right: 8, left: 0, bottom: wideLabels ? 16 : 4 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+            <XAxis
+              dataKey={xKey}
+              tick={{ fontSize: wideLabels ? 11 : 12 }}
+              interval={wideLabels ? 0 : undefined}
+              tickMargin={8}
+            />
+            <YAxis tick={{ fontSize: 12 }} width={56} />
+            <Tooltip content={<TrendTooltip seriesLabel={seriesLabel} />} />
+            <Line
+              type="monotone"
+              dataKey={dataKey}
+              name={seriesLabel}
+              stroke={stroke}
+              strokeWidth={2.5}
+              dot={{ r: 3 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
       <ChartDataTable
         caption={`${seriesLabel} trendi cədvəli`}
         columns={[

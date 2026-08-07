@@ -135,20 +135,38 @@ export interface DailyPoint {
   fullDateIso: string;
   satis: number;
   qazanc: number;
+  /**
+   * FE#78 (bənd #9) — tooltip sxemi "tarix · satış · qazanc · xərc" tələb
+   * edir. Xərc qeydləri (`Expense.date`) artıq gündəlik satış/qazanc ilə
+   * EYNİ üsulla (həmin günün ISO tarixinə görə filtr + cəm) qruplaşdırılır —
+   * bu, `satis`/`qazanc` üçün onsuz da mövcud olan naxışın təkrarıdır, YENİ
+   * hesablama MƏNTİQİ deyil. `expenses` ötürülmədikdə (Dashboard-un köhnə
+   * çağırışı, bax `queries.ts`) `undefined` qalır — geriyə uyğun.
+   */
+  xerc?: number;
 }
 
-/** Günlük satış+qazanc seriyası (son N gün). */
-export const dailySeries = (sales: Sale[], days = 14): DailyPoint[] => {
+/** Günlük satış+qazanc(+xərc) seriyası (son N gün). */
+export const dailySeries = (
+  sales: Sale[],
+  days = 14,
+  expenses?: Expense[],
+): DailyPoint[] => {
   const out: DailyPoint[] = [];
   for (let d = days - 1; d >= 0; d--) {
     const iso = daysAgoISO(d);
     const ds = sales.filter((s) => s.createdAt.slice(0, 10) === iso);
-    out.push({
+    const point: DailyPoint = {
       date: fmtDate(iso).slice(0, 5),
       fullDateIso: iso,
       satis: round2(sumBy(ds, (s) => s.totalAmount)),
       qazanc: round2(sumBy(ds, (s) => s.profit ?? 0)),
-    });
+    };
+    if (expenses) {
+      const es = expenses.filter((e) => e.date.slice(0, 10) === iso);
+      point.xerc = round2(sumBy(es, (e) => e.amount));
+    }
+    out.push(point);
   }
   return out;
 };

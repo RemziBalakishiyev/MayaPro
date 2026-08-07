@@ -7,7 +7,7 @@ import {
   REPORT_COLORS,
   paymentBreakdown,
 } from "./lib";
-import type { Sale } from "@/types";
+import type { Expense, Sale } from "@/types";
 
 const sale = (overrides: Partial<Sale>): Sale =>
   ({
@@ -25,6 +25,19 @@ const sale = (overrides: Partial<Sale>): Sale =>
     employeeId: "e1",
     ...overrides,
   }) as Sale;
+
+const expense = (overrides: Partial<Expense>): Expense =>
+  ({
+    id: "e1",
+    title: "Xərc",
+    category: "Kirayə",
+    amount: 10,
+    productId: null,
+    date: "2026-08-01",
+    note: "",
+    source: "general",
+    ...overrides,
+  }) as Expense;
 
 describe("weeklySeries — FE#78 bənd #6 (real tarix aralığı etiketi)", () => {
   it("hər nöqtə üçün 'dd.MM – dd.MM' formatında oxunan `label` qaytarır ('H1'/'H2' YOXDUR)", () => {
@@ -51,6 +64,37 @@ describe("dailySeries — tooltip üçün tam tarix (fullDateIso)", () => {
       // Ox etiketi "dd.MM" formatındadır (il yazılmır).
       expect(p.date).toMatch(/^\d{2}\.\d{2}$/);
     }
+  });
+});
+
+describe("dailySeries — FE#78 bənd #9 (tooltip 'xərc' sahəsi)", () => {
+  it("`expenses` ötürülmədikdə `xerc` undefined qalır (geriyə uyğun, Dashboard çağırışı)", () => {
+    const points = dailySeries([], 2);
+    for (const p of points) {
+      expect(p.xerc).toBeUndefined();
+    }
+  });
+
+  it("`expenses` ötürüldükdə həmin günün xərc cəmini qaytarır — satış/qazanc EYNİ qalır", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const sales = [sale({ createdAt: `${today}T10:00:00.000Z`, totalAmount: 100, profit: 20 })];
+    const expenses = [
+      expense({ date: today, amount: 15 }),
+      expense({ date: today, amount: 5 }),
+    ];
+    const points = dailySeries(sales, 1, expenses);
+    expect(points).toHaveLength(1);
+    expect(points[0].satis).toBe(100);
+    expect(points[0].qazanc).toBe(20);
+    expect(points[0].xerc).toBe(20);
+  });
+
+  it("başqa günün xərci həmin günün cəminə qarışmır", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const expenses = [expense({ date: "2000-01-01", amount: 999 })];
+    const points = dailySeries([], 1, expenses);
+    expect(points[0].fullDateIso).toBe(today);
+    expect(points[0].xerc).toBe(0);
   });
 });
 

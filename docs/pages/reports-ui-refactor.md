@@ -14,7 +14,8 @@ frozenProducts, topProductsByQty, expenseByCategory, paymentBreakdown,
 lossSellers), tarix araligi qaydalari (inPeriod-un today/week/month/all
 pencereleri, bax bolme 2.1, bu qaydalar isoInRange ile eyni neticeni
 verir), chart data destleri (dailySeries/weeklySeries-in satis/qazanc
-deyerleri, yalniz etiket saheleri elave olundu), API sorgulari
+deyerleri -- yalniz etiket saheleri ve (bax bolme 2.7) opsional xerc
+cemi elave olundu, movcud deyerler/pencereler DEYISMEDI), API sorgulari
 (reportsApi.getAll, reportsApi.getSummary -- endpoint yolu/parametr
 adlari deyismeyib). Yeni analitika icad olunmayib -- butun elaveler
 artiq movcud deyerlerin yeniden teqdimatidir (reng, etiket, cedvel
@@ -24,13 +25,13 @@ gorunusu).
 
 | Fayl | Ne deyisdi |
 |---|---|
-| src/routes/_app.hesabatlar.tsx | Tam UI refactor: kohne dugme qrupu evezine standart PeriodFilter/SegmentedDateFilter (bolme 2.1); 6 StatCard evezine 6 KpiCard responsiv grid-de (bolme 2.2/2.3); kohne ?period= linki mount zamani from/to-ya cevrilir, race-siz (bolme 2.1.2); chart basliqlarina oxunan dovr adi (bolme 2.5) |
+| src/routes/_app.hesabatlar.tsx | Tam UI refactor: kohne dugme qrupu evezine standart PeriodFilter/SegmentedDateFilter (bolme 2.1); 6 StatCard evezine 6 KpiCard responsiv grid-de (bolme 2.2/2.3); kohne ?period= linki mount zamani from/to-ya cevrilir, race-siz (bolme 2.1.2); chart basliqlarina oxunan dovr adi (bolme 2.5); dailySeries(sales, 14, expenses) -- xam expenses massivi da otürülür (bolme 2.7) |
 | src/routes/_app.hesabatlar.test.tsx | Movcud FE#142 testleri yeni from/to search modeline uygunlasdirildi; FE#78 ucun 4 yeni test |
-| src/features/reports/lib.ts | REPORT_COLORS (semantik reng xeritesi, bolme 2.9); DailyPoint-e fullDateIso (bolme 2.7), WeekPoint-e label (bolme 2.6) elave saheler; nonZeroCount/MIN_CHART_POINTS (bolme 2.8) |
+| src/features/reports/lib.ts | REPORT_COLORS (semantik reng xeritesi, bolme 2.9); DailyPoint-e fullDateIso + opsional xerc (bolme 2.7), WeekPoint-e label (bolme 2.6) elave saheler; dailySeries opsional 3-cu parametr (expenses) qebul edir; nonZeroCount/MIN_CHART_POINTS (bolme 2.8) |
 | src/features/reports/queries.ts | useSummary(period) -> useSummary(period optional) (enabled ile, bolme 2.1.3); assembleDashboardStats-da daily mapping-e fullDateIso elave olundu |
 | src/components/ui/KpiCard.tsx | tone propuna green/red elave olundu (movcud default/amber deyismeyib) |
 | src/components/ui/KpiCard.test.tsx | 2 yeni test (green/red ton) |
-| src/features/reports/components/DailyBarChart.tsx | Semantik rengler; xususi tooltip (tam tarix, satis, qazanc); seyrek-data mesaji; ChartDataTable |
+| src/features/reports/components/DailyBarChart.tsx | Semantik rengler; xususi tooltip (tam tarix, satis, qazanc, xerc mövcud olduqda -- bolme 2.7); seyrek-data mesaji; ChartDataTable |
 | src/features/reports/components/TrendLineChart.tsx | Semantik reng; xususi tooltip; seyrek-data mesaji; opsional wideLabels; ChartDataTable |
 | src/features/reports/components/ExpensePie.tsx | Legend elave olundu; EmptyState embedded; ChartDataTable |
 | src/features/reports/components/TopProductsBar.tsx | Semantik reng; EmptyState embedded; ChartDataTable |
@@ -149,11 +150,32 @@ deyerine toxunulmayib. Route faylinda xKey "week"den "label"e deyisdi.
 ### 2.7 Hover/focus tooltip-ler (bend 9)
 
 Gunluk chart-da xususi tooltip -- tam tarix (yeni DailyPoint.fullDateIso
-sahesi), Satis, Qazanc, fmtMoney formatinda. Heftelik trend-de xususi
-tooltip -- dovr araligi, Qazanc. Pie/bar tooltip-leri movcud formatlarini
-saxladi. Gunluk/heftelik chart-larda xerc seriyasi yoxdur ve yeni seriya
-elave edilmedi (yeni analitika icad olunmur qaydasi) -- xerc oz ayrica
-chart/KPI-inda gosterilir.
+sahesi), Satis, Qazanc, **Xerc**, fmtMoney formatinda. Heftelik trend-de
+xususi tooltip -- dovr araligi, Qazanc. Pie/bar tooltip-leri movcud
+formatlarini saxladi.
+
+**Senior-frontend review duzelisi (bu tapinti ile bagli):** ilk versiyada
+gunluk chart tooltip-inde "Xerc" YOX idi -- inkisafci bunu "bu data
+seriyada movcud deyil, elave etmek yeni analitika olardi" kimi
+esaslandirmisdi. Kod oxunarkan aydin oldu ki, bu, YARIM dogru idi:
+`dailySeries` funksiyasina xerc CƏMİ hec vaxt hesablanmirdi (`DailyPoint`
+sahesi yox idi) -- AMMA xam `Expense[]` massivi (`date` saheli qeydler)
+artiq `useReportsData()`-dan gelen `data.expenses`-de movcud idi (Hesabatlar
+sehifesi onu `periodExpenses` ucun onsuz da filtreleyirdi). Yeni "analitika"
+(yeni hesablama MENTIQI/formula) yaratmaq EVEZINE, artiq `satis`/`qazanc`
+ucun istifade olunan EYNI gun-bazali qruplasdirma naxisi (`createdAt`/`date`
+sliced-e gore filtr + `sumBy`) `dailySeries`-e OPSIONAL 3-cu parametr
+(`expenses?: Expense[]`) kimi elave olundu -- `DailyPoint.xerc` YALNIZ bu
+parametr oturulende hesablanir (Dashboard-un kohne cagirisi `expenses`
+otürmür, `xerc` o zaman `undefined` qalir -- geriye uygun, Dashboard-un
+davranisi/gorunusu deyismir). Hesabatlar sehifesi (`_app.hesabatlar.tsx`)
+indi `dailySeries(sales, 14, expenses)` cagirir. `satis`/`qazanc`
+deyerlerine VE tarix pencerelerine TOXUNULMAYIB -- yalniz artiq movcud xam
+xerc qeydlerinin eyni gunun ekvivalenti kimi cemlenmesi elave olundu.
+Heftelik trend TEK-seriyali ("Qazanc trendi") olaraq qaldi -- bend 9-un
+sxemi ("tarix * satis * qazanc * xerc") esas Gunluk kombinasiya chart-ina
+aiddir, tek-seriyali trend chart-a satis/xerc elave etmek onun dizayn
+meqsedini (yalniz qazanc trendi) deyisdirerdi.
 
 ### 2.8 Seyrek data mesaji + oxunaqliliq (bend 8/11)
 
@@ -180,6 +202,14 @@ Yeni ChartDataTable -- her chartin altinda yigilan "Cedvel kimi bax"
 acilisi, eyni datanin sade HTML cedveli. 5 chart komponentine elave
 olundu.
 
+**Senior-frontend review duzelisi:** 4 SVG-esasli chart-in (DailyBarChart,
+TrendLineChart, ExpensePie, TopProductsBar) `ResponsiveContainer`-i
+`aria-hidden="true"` olan bir div-e alindi -- dekorativ SVG-nin ekran
+oxuyucusuna qismen/qarisiq oxunmasinin qarsisini alir, ekvivalent
+melumat onsuz da yuxaridaki ChartDataTable-da tam movcuddur. PaymentBreakdown
+buna daxil deyil -- o, SVG chart deyil, birbasa metn/DOM sesli barlardir
+(onsuz da ekran oxuyucusu ucun oxunan).
+
 ### 2.11 Chart legend-leri (bend 7)
 
 DailyBarChart-in movcud legend-i saxlanildi. ExpensePie-a legend elave
@@ -205,12 +235,14 @@ deyer movcud x.date-den gelir.
 tsc --noEmit ve npm run build (tsc && vite build) sehvsiz kecir.
 vitest run tam paketde yalniz src/components/ui/PeriodFilter.test.tsx
 faylindaki 1 test ("AC3 -- bir cipe kliklyende yalniz o aktiv olur")
-ugursuzdur -- bu, git stash ile main budaginda da tesdiqlenen, bu
-taskdan asili olmayan movcud reqressiyadir (FE#75/76/77-de de qeyd
-edilib). Bu taskda elave olunan 25 yeni test (lib.test.ts,
-ChartDataTable.test.tsx, DailyBarChart.test.tsx, TrendLineChart.test.tsx,
-PaymentBreakdown.test.tsx, ExpensePie.test.tsx, KpiCard.test.tsx +2,
-_app.hesabatlar.test.tsx +4) yasildir.
+ugursuzdur -- bu, PeriodFilter.tsx/period-filter-lib.ts bu PR-da
+DEYISMEDIYI (git diff origin/main ile tesdiqlendi) ucun, bu taskdan
+asili olmayan movcud reqressiyadir (FE#75/76/77-de de qeyd edilib).
+Bu taskda elave olunan 30 yeni test (lib.test.ts (+ senior-frontend
+review-de elave olunan 3 xerc testi), ChartDataTable.test.tsx,
+DailyBarChart.test.tsx (+ review-de elave olunan 2 xerc testi),
+TrendLineChart.test.tsx, PaymentBreakdown.test.tsx, ExpensePie.test.tsx,
+KpiCard.test.tsx +2, _app.hesabatlar.test.tsx +4) yasildir.
 
 Responsive yoxlama kod/CSS seviyyesindedir (headless brauzer muhiti
 movcud deyil, evvelki FE#70-77-de de qeyd olunan mehdudiyyet): 375px-de
@@ -224,6 +256,11 @@ title-de.
 
 Piksel-seviyyeli skrinsot yoxlamasi aparilmadi (yuxari bax -- evvelki
 tasklarla eyni mehdudiyyet). Bend 5-in "ay adlari lazimda Avq" hissesi
-bu sehifedeki hec bir chart-a aid deyil (N/A). Bend 9-un "xerc" hissesi
-gunluk/heftelik chart-larda yeni seriya kimi elave edilmedi (yeni
-analitika qadagasi), xerc oz ayrica yerlerinde gosterilir.
+bu sehifedeki hec bir chart-a aid deyil (N/A).
+
+Bend 9-un "xerc" hissesi -- bax 2.7-de senior-frontend review duzelisi:
+gunluk chart tooltip-ine (ve onun elcatan cedveline) xerc ELAVE OLUNDU
+(mövcud xam `Expense[]` datasindan, yeni hesablama MENTIQI icad
+olunmadan). Heftelik trend TEK-seriyali qazanc chart-i olaraq qaldi --
+ona satis/xerc elave etmek onun mövcud dizayn meqsedini deyisdirerdi,
+bu sebeble bilercekden elave olunmadi.

@@ -174,7 +174,7 @@ function HesabatlarPage() {
       // Günlük/həftəlik trend HƏMİŞƏ son 14 gün/6 həftədir — seçilmiş dövr
       // filtrindən ASILI DEYİL (əvvəlki davranış, dəyişməyib: `sales` xam
       // massivdən, `periodSales`-dən DEYİL).
-      daily: dailySeries(sales, 14),
+      daily: dailySeries(sales, 14, expenses),
       weekly: weeklySeries(sales, 6),
       expByCat: expenseByCategory(periodExpenses),
       expBySource,
