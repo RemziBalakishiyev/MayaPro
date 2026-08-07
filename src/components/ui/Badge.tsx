@@ -36,6 +36,15 @@ export const STATUS_STYLE: Record<string, string> = {
   Yeni: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
   Yenilənəcək: "bg-indigo-50 text-indigo-700 ring-indigo-200/70",
   Xətalı: "bg-red-50 text-red-700 ring-red-200/70",
+  /**
+   * FE#79 (AC-6) — işçi rol nişanları (`employeeRoleLabel` ilə birlikdə
+   * istifadə olunur, `İşçilər` səhifəsi). Hər rol həmişə eyni tonda —
+   * status rənglərindən (uğur/xəbərdarlıq/təhlükə) qəsdən ayrı ailələr.
+   */
+  Sahibkar: "bg-violet-50 text-violet-700 ring-violet-200/70",
+  Menecer: "bg-sky-50 text-sky-700 ring-sky-200/70",
+  Kassir: "bg-sky-50 text-sky-700 ring-sky-200/70",
+  "Satıcı": "bg-teal-50 text-teal-700 ring-teal-200/70",
 };
 
 const FALLBACK = "bg-stone-50 text-stone-600 ring-stone-200/80";

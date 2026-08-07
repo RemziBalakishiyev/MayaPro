@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
+import { employeeRoleLabel } from "../lib";
 import type { Employee } from "@/types";
 
 interface Props {
@@ -48,7 +49,10 @@ export function EmployeesTable({
       {
         accessorKey: "role",
         header: "Rol",
-        cell: ({ getValue }) => <Badge>{getValue() as string}</Badge>,
+        cell: ({ getValue }) => {
+          const label = employeeRoleLabel(getValue() as string);
+          return <Badge tone={label}>{label}</Badge>;
+        },
       },
       {
         accessorKey: "phone",

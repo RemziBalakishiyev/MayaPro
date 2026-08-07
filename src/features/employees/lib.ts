@@ -74,3 +74,24 @@ export const salaryProgressPercent = (paid: number, salary: number): number => {
   if (!(salary > 0)) return 0;
   return Math.max(0, Math.min(100, (paid / salary) * 100));
 };
+
+/**
+ * FE#79 (AC-6/AC-15) — rol kodunu sabit, oxunaqlı Azərbaycanca etiketə
+ * çevirir. Real backend `role` sahəsində kiçik hərfli kodlar göndərir
+ * (`"sahib" | "menecer" | "satici"` — bax `UserRole.ToCode`), mock/test
+ * fixture-ları isə artıq oxunaqlı mətnlə gəlir (`"Sahibkar" | "Menecer" |
+ * "Satıcı"`). Hər iki forma eyni sabit etiketə düşür ki, `Badge` tonu bütün
+ * kartlarda eyni rol üçün HƏMİŞƏ eyni olsun. Naməlum dəyər olduğu kimi
+ * qaytarılır (Badge-in FALLBACK tonuna düşür).
+ */
+const ROLE_LABELS: Record<string, string> = {
+  sahib: "Sahibkar",
+  sahibkar: "Sahibkar",
+  menecer: "Menecer",
+  kassir: "Kassir",
+  satici: "Satıcı",
+  "satıcı": "Satıcı",
+};
+
+export const employeeRoleLabel = (role: string): string =>
+  ROLE_LABELS[role.trim().toLowerCase()] ?? role;

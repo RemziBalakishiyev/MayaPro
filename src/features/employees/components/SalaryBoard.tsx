@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Wallet } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { InlineError } from "@/components/ui/InlineError";
 import { useCan } from "@/features/auth/store";
 import { useSalarySummary } from "../queries";
 import { SALARY_MONTH_RE, currentSalaryMonth } from "../lib";
@@ -22,7 +23,7 @@ interface Props {
 export function SalaryBoard({ month: monthProp, onMonthChange }: Props) {
   const month =
     monthProp && SALARY_MONTH_RE.test(monthProp) ? monthProp : currentSalaryMonth();
-  const { data: rows, isLoading, isError, error } = useSalarySummary(month);
+  const { data: rows, isLoading, isError, error, refetch } = useSalarySummary(month);
   const canRecord = useCan()("salary.record");
   const canSetSalary = useCan()("salary.set");
 
@@ -32,7 +33,7 @@ export function SalaryBoard({ month: monthProp, onMonthChange }: Props) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <p className="text-sm text-stone-500">
           Aylıq maaş hesablanması — işçi başına ödəniş/tutulma
         </p>
@@ -42,9 +43,14 @@ export function SalaryBoard({ month: monthProp, onMonthChange }: Props) {
       {isLoading ? (
         <Spinner />
       ) : isError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm font-medium text-red-700">
-          {error instanceof Error ? error.message : "Maaş məlumatı yüklənmədi"}
-        </div>
+        // AC-12 (xəta vəziyyəti): aydın mətn + "Yenidən" — mövcud `isError`
+        // yolu qorunub, yalnız görünüş digər səhifələrlə (InlineError) eyni
+        // dilə keçib.
+        <InlineError
+          message="Maaş məlumatı yüklənmədi"
+          hint={error instanceof Error ? error.message : undefined}
+          onRetry={() => void refetch()}
+        />
       ) : !rows || rows.length === 0 ? (
         <EmptyState
           icon={Wallet}
