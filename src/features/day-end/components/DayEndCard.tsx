@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { InlineError } from "@/components/ui/InlineError";
 import { StatCard, type StatTone } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/toast-store";
 import { TONE_SURFACE, TONE_TEXT } from "@/lib/ui-tokens";
@@ -108,7 +109,11 @@ export function DayEndCard() {
   // `SummaryData.salaryExpenses` (əlavə, additiv sahə) yalnız bu cəmin bir
   // hissəsini AYRICA sətir kimi göstərmək üçün oxunur, `expected` düsturuna
   // heç nə ƏLAVƏ OLUNMUR (o, artıq `todayExpenses` daxilindədir).
-  const { data: summary } = useSummary("today");
+  const {
+    data: summary,
+    isError: summaryError,
+    refetch: refetchSummary,
+  } = useSummary("today");
   const { data: closings = [] } = useClosings();
   const {
     data: todayClosing,
@@ -260,6 +265,25 @@ export function DayEndCard() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      {/*
+       * FE#81 (AC-10): bu səhifədə XƏTA vəziyyəti YOX idi — `useSummary`
+       * uğursuz olanda nağd satış/xərc cəmləri səssizcə 0 kimi görünür və
+       * "kassada olmalı" rəqəmi YANLIŞ hesablanırdı. İndi şəbəkə/server
+       * xətası açıq elan olunur + "Yenidən" verilir.
+       *
+       * DİQQƏT: bu YALNIZ xəbərdarlıqdır — bağlanış axını, düsturlar və
+       * düymə şərtləri DƏYİŞMƏYİB (biznes məntiqi toxunulmazdır). Xəta
+       * halında bağlanışın tam BLOKLANMASI ayrıca task tələb edir, bax
+       * docs/final-ui-ux-regression-report.md.
+       */}
+      {summaryError && (
+        <InlineError
+          className="lg:col-span-2"
+          message="Bugünkü cəmlər yüklənmədi"
+          hint="Nağd satış və xərc rəqəmləri əskik ola bilər — bağlamazdan əvvəl yeniləyin."
+          onRetry={() => void refetchSummary()}
+        />
+      )}
       <Card title={<StepHeading n={1}>Bugünkü hesabı yoxla</StepHeading>}>
         <Field
           label="Başlanğıc kassa"
