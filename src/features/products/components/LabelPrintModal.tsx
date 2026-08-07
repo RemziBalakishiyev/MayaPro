@@ -150,7 +150,7 @@ function ProductPicker({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Bu siyahıda axtar (ad və ya barkod)..."
+          placeholder="Bu siyahıda axtar... (ad və ya barkod)"
           role="combobox"
           aria-expanded={showList}
           aria-controls={listId}
