@@ -105,7 +105,8 @@ export function NewCustomerModal({
         </Button>
         <Button
           onClick={save}
-          disabled={createMut.isPending || !name.trim() || debtInvalid}
+          disabled={!name.trim() || debtInvalid}
+          loading={createMut.isPending}
           icon={<Plus size={15} />}
         >
           Əlavə et

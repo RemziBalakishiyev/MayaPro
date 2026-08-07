@@ -84,7 +84,7 @@ export function StockAdjustModal({ open, onClose, product, mode }: Props) {
         </Button>
         <Button
           onClick={apply}
-          disabled={adjustMut.isPending}
+          loading={adjustMut.isPending}
           icon={mode === "add" ? <Plus size={15} /> : <Minus size={15} />}
         >
           Tətbiq et

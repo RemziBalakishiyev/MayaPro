@@ -112,7 +112,8 @@ export function PaymentModal({ open, onClose, customer, context }: Props) {
         </Button>
         <Button
           onClick={save}
-          disabled={!valid || addPayment.isPending}
+          disabled={!valid}
+          loading={addPayment.isPending}
           icon={<Check size={15} />}
         >
           Ödənişi qəbul et

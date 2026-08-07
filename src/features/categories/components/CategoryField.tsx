@@ -55,7 +55,7 @@ export function CategoryField({ value, onChange }: Props) {
           type="button"
           size="sm"
           onClick={submitNew}
-          disabled={createCat.isPending}
+          loading={createCat.isPending}
           icon={<Check size={14} />}
         >
           Yarat

@@ -90,7 +90,8 @@ export function NewSupplierModal({ open, onClose }: Props) {
         </Button>
         <Button
           onClick={save}
-          disabled={createMut.isPending || !name.trim() || debtInvalid}
+          disabled={!name.trim() || debtInvalid}
+          loading={createMut.isPending}
           icon={<Plus size={15} />}
         >
           Əlavə et

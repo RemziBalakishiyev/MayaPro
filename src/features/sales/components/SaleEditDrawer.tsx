@@ -197,7 +197,8 @@ export function SaleEditDrawer({ saleId, onClose, onSaved }: Props) {
               </div>
               <Button
                 className="w-full justify-center"
-                disabled={!canSubmit || updateSale.isPending}
+                disabled={!canSubmit}
+                loading={updateSale.isPending}
                 onClick={() => void save()}
               >
                 Yadda saxla
