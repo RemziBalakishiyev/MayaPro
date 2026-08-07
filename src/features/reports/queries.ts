@@ -246,6 +246,7 @@ export const assembleDashboardStats = (
     recentPayments,
     daily: d.dailySeries.map((x) => ({
       date: fmtDate(x.date).slice(0, 5),
+      fullDateIso: x.date,
       satis: x.sales,
       qazanc: x.profit,
     })),
@@ -295,11 +296,25 @@ export const useReportsData = () =>
     queryFn: reportsApi.getAll,
   });
 
-/** Dövr xülasəsi — server /api/reports/summary (gün sonu cəmləri də bundan gəlir). */
-export const useSummary = (period: Period) =>
+/**
+ * Dövr xülasəsi — server /api/reports/summary (gün sonu cəmləri də bundan
+ * gəlir). Backend `period` YALNIZ sabit açarları qəbul edir (today/week/
+ * month/year/all — `ReportPeriod`, backend kontraktı DƏYİŞMƏYİB).
+ *
+ * FE#78 — `period` OPTIONAL edildi: Hesabatlar səhifəsi indi sərbəst
+ * `from`/`to` aralığı seçə bilən `PeriodFilter`dən istifadə edir və seçilmiş
+ * aralıq həmişə yuxarıdakı sabit açarlardan birinə uyğun gəlmir (məs. "Keçən
+ * ay" və ya sərbəst tarix). Belə halda çağıran tərəf `period`-u ötürmür,
+ * sorğu `enabled: false` ilə sükutla keçilir və mövcud lokal fallback
+ * (`expenseBySource`, dəyişməyib) istifadə olunur — server sorğusu YANLIŞ
+ * parametrlə çağırılmır. `DayEndCard.tsx`-in `useSummary("today")` çağırışı
+ * (həmişə sabit dəyər) TAM eyni davranır (geriyə uyğun, additiv dəyişiklik).
+ */
+export const useSummary = (period?: Period) =>
   useQuery({
-    queryKey: ["summary", period],
-    queryFn: () => reportsApi.getSummary(period),
+    queryKey: ["summary", period ?? "unmatched"],
+    queryFn: () => reportsApi.getSummary(period as Period),
+    enabled: period != null,
   });
 
 /**

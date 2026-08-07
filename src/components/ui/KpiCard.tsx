@@ -2,16 +2,34 @@ import type { ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/cn";
 
+/**
+ * FE#78 — `green`/`red` əlavə edildi (mövcud `default`/`amber` DƏYİŞMƏYİB,
+ * geriyə uyğun genişləndirmə). `StatCard`-ın `StatTone` semantikası ilə eyni
+ * mənadadır: `green` müsbət maliyyə nəticəsi, `red` ziyan/xərc, `amber`
+ * xəbərdarlıq (məs. nisyə/kassa fərqi). Yalnız dəyər mətninin rəngi dəyişir —
+ * `amber` üçün mövcud olan xüsusi fon/çərçivə (`bg-amber-50`) `green`/`red`-ə
+ * ƏLAVƏ EDİLMİR (StatCard-da da tonlar üçün fon dəyişmir, yalnız mətn rəngi).
+ */
 export interface KpiCardProps {
   label: ReactNode;
   value?: ReactNode;
   sub?: ReactNode;
-  tone?: "default" | "amber";
+  tone?: "default" | "amber" | "green" | "red";
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => void;
   className?: string;
 }
+
+const KPI_VALUE_TONE: Record<
+  NonNullable<KpiCardProps["tone"]>,
+  string
+> = {
+  default: "text-stone-900",
+  amber: "text-amber-700",
+  green: "text-emerald-700",
+  red: "text-red-600",
+};
 
 /**
  * Tək dəyərli KPI kartı — label üstdə, böyük rəqəm altda, opsional alt sətir
@@ -73,7 +91,7 @@ export function KpiCard({
               // FE#69 (R-04): `money` = tabular-nums + min-w-0 + truncate —
               // uzun məbləğ kartdan daşmır, tam dəyər `title`-dədir.
               "money mt-1 text-xl font-bold leading-tight lg:text-2xl",
-              tone === "amber" ? "text-amber-700" : "text-stone-900",
+              KPI_VALUE_TONE[tone],
             )}
           >
             {value}

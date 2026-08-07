@@ -24,6 +24,18 @@ describe("KpiCard", () => {
     await user.click(screen.getByRole("button", { name: /yenidən/i }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  // FE#78 — `green`/`red` tonları əlavə edildi (mövcud `default`/`amber`
+  // DƏYİŞMƏYİB, geriyə uyğun genişləndirmə).
+  it("tone='green' dəyəri emerald rəngdə göstərir", () => {
+    render(<KpiCard label="Xalis qazanc" value="100.00 ₼" tone="green" />);
+    expect(screen.getByText("100.00 ₼")).toHaveClass("text-emerald-700");
+  });
+
+  it("tone='red' dəyəri qırmızı rəngdə göstərir", () => {
+    render(<KpiCard label="Xərc" value="50.00 ₼" tone="red" />);
+    expect(screen.getByText("50.00 ₼")).toHaveClass("text-red-600");
+  });
 });
 
 describe("StatCluster", () => {

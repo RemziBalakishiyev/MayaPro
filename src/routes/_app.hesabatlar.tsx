@@ -1,21 +1,28 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { TrendingDown, Snowflake, AlertTriangle, Check } from "lucide-react";
-import { PageHead } from "@/components/layout/PageHead";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { StatCard } from "@/components/ui/StatCard";
+import { KpiCard } from "@/components/ui/KpiCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InlineError } from "@/components/ui/InlineError";
 import { StaleDataBanner } from "@/components/ui/StaleDataBanner";
 import { PageSkeleton } from "@/components/ui/LoadingSkeleton";
-import { cn } from "@/lib/cn";
+import { PeriodFilter } from "@/components/ui/PeriodFilter";
+import {
+  matchQuickPeriod,
+  quickPeriodRange,
+  formatRangeChip,
+  isoInRange,
+  QUICK_PERIODS,
+  type PeriodRange,
+} from "@/components/ui/period-filter-lib";
 import { fmtMoney } from "@/lib/format";
 import { useReportsData, useSummary } from "@/features/reports/queries";
 import { salesMoneySplit } from "@/features/sales/lib";
 import {
   sumBy,
-  inPeriod,
   dailySeries,
   weeklySeries,
   expenseByCategory,
@@ -23,8 +30,7 @@ import {
   frozenProducts,
   lossSellers,
   paymentBreakdown,
-  PERIOD_LABELS,
-  type BasePeriod,
+  type Period,
 } from "@/features/reports/lib";
 import {
   expenseBySource,
@@ -36,10 +42,18 @@ import { ExpensePie } from "@/features/reports/components/ExpensePie";
 import { TopProductsBar } from "@/features/reports/components/TopProductsBar";
 import { PaymentBreakdown } from "@/features/reports/components/PaymentBreakdown";
 
-const PERIODS: BasePeriod[] = ["today", "week", "month", "all"];
+/**
+ * FE#78 — köhnə `?period=today|week|month|all` linkləri (bax
+ * `docs/ui-refactor-roadmap.md`, Mərhələ 2A/2A.3). Standart `PeriodFilter`
+ * `from`/`to` aralığı istifadə etdiyi üçün bu açar YALNIZ mount zamanı
+ * oxunur, uyğun aralığa çevrilir və URL-dən silinir (aşağı, `useEffect`).
+ */
+const LEGACY_PERIODS = ["today", "week", "month", "all"] as const;
 
 const searchSchema = z.object({
-  period: z.enum(["today", "week", "month", "all"]).default("month"),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  period: z.enum(LEGACY_PERIODS).optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/_app/hesabatlar")({
@@ -49,17 +63,71 @@ export const Route = createFileRoute("/_app/hesabatlar")({
 
 function HesabatlarPage() {
   const navigate = Route.useNavigate();
-  const { period } = Route.useSearch();
+  const search = Route.useSearch();
+  // FE#78 — dəyər HƏMİŞƏ (render zamanı, effekt gözləmədən) tam həll olunur:
+  // URL-də `from`/`to` varsa ONLAR; yoxdursa köhnə `?period=` linki (varsa)
+  // uyğun aralığa çevrilir; heç biri yoxdursa defolt "Bu ay" (əvvəlki
+  // `z.object({period}).default("month")` davranışı ilə EYNİ). Bu, `range`-i
+  // ASENKRON bir effektin nəticəsini gözləmədən dərhal DÜZGÜN göstərir və
+  // (mühüm) `PeriodFilter`-in ÖZ mount-defolt effekti ilə YARIŞA girmir —
+  // ona görə aşağıda `PeriodFilter`ə `defaultKey` VERİLMİR (component öz
+  // daxili defoltunu, "all"ı, İŞLƏTMİR, çünki bu hesablama onu artıq
+  // ötürüb — bax `PeriodFilter` çağırışı, aşağıda).
+  const range: PeriodRange =
+    search.from || search.to
+      ? { from: search.from, to: search.to }
+      : search.period
+        ? quickPeriodRange(search.period)
+        : quickPeriodRange("month");
   const { data, isLoading, isError, refetch } = useReportsData();
+
+  // Yuxarıdakı `range` artıq render zamanı düzgün dəyəri göstərir — bu effekt
+  // YALNIZ URL-i həmin dəyərlə sinxronlaşdırır (köhnə `?period=` açarını
+  // silir, boş URL-ə defolt "Bu ay"nı yazır) ki, deep-link/refresh zamanı da
+  // eyni nəticə alınsın (AC2 naxışı). Bir dəfə, ilk mount-da — istifadəçi
+  // sonra `PeriodFilter`dən şüurlu seçim etdikdə bu YENİDƏN İŞƏ DÜŞMÜR.
+  useEffect(() => {
+    if (search.from || search.to) return;
+    navigate({
+      search: (prev) => ({ ...prev, period: undefined, from: range.from, to: range.to }),
+      replace: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const updateRange = (patch: PeriodRange) =>
+    navigate({
+      search: (prev) => ({ ...prev, from: patch.from, to: patch.to, period: undefined }),
+    });
+
+  // Seçilmiş aralıq sabit "Bu gün/Bu həftə/Bu ay/Bu il/Hamısı" çiplərindən
+  // birinə uyğun gəlirmi? Uyğun gəlirsə server `/api/reports/summary?period=`
+  // (backend kontraktı DƏYİŞMƏYİB — yalnız bu sabit açarları qəbul edir)
+  // çağırılır; "Keçən ay" və ya sərbəst tarix aralığında YOX — bu halda
+  // `useSummary` sükutla keçilir (`enabled: false`) və aşağıdaki lokal
+  // fallback (`expenseBySource`) istifadə olunur (dəyər/hesablama EYNİDİR).
+  const matchedKey = matchQuickPeriod(range);
+  const summaryPeriod: Period | undefined =
+    matchedKey && matchedKey !== "lastMonth" ? matchedKey : undefined;
   // Xərc mənbəyi bölgüsü (Ümumi/Mala bağlı) üçün server summary — mövcud olduqda
   // ONDAN istifadə olunur (Xərclər səhifəsi ilə eyni rəqəm, FE#9/AC1-AC2).
-  const { data: summary } = useSummary(period);
+  const { data: summary } = useSummary(summaryPeriod);
+
+  // Chart başlıqlarında göstərilən oxunan dövr adı — YENİ analitika DEYİL,
+  // artıq mövcud olan `range`-dən çıxarılan mətn (bənd #5, "aydın başlıq").
+  const periodLabel = useMemo(() => {
+    if (matchedKey) {
+      return QUICK_PERIODS.find((p) => p.key === matchedKey)?.label ?? "Bu dövr";
+    }
+    if (range.from && range.to) return formatRangeChip(range.from, range.to);
+    return "Bu dövr";
+  }, [matchedKey, range.from, range.to]);
 
   const view = useMemo(() => {
     if (!data) return null;
     const { products, sales, expenses } = data;
-    const periodSales = sales.filter((s) => inPeriod(s.createdAt, period));
-    const periodExpenses = expenses.filter((e) => inPeriod(e.date, period));
+    const periodSales = sales.filter((s) => isoInRange(s.createdAt, range.from, range.to));
+    const periodExpenses = expenses.filter((e) => isoInRange(e.date, range.from, range.to));
 
     // Xərc mənbəyi bölgüsü: server summary-də HƏR İKİ sahə ƏDƏD olduqda onlardan
     // götürülür (0 legitim dəyərdir — ona görə truthy yox, `typeof` yoxlaması).
@@ -103,7 +171,10 @@ function HesabatlarPage() {
       // (qismən ödənilmiş satışda tam yekun deyil) — server summary ilə eyni.
       cashSales: periodMoney.cash,
       creditSales: periodMoney.credit,
-      daily: dailySeries(sales, 14),
+      // Günlük/həftəlik trend HƏMİŞƏ son 14 gün/6 həftədir — seçilmiş dövr
+      // filtrindən ASILI DEYİL (əvvəlki davranış, dəyişməyib: `sales` xam
+      // massivdən, `periodSales`-dən DEYİL).
+      daily: dailySeries(sales, 14, expenses),
       weekly: weeklySeries(sales, 6),
       expByCat: expenseByCategory(periodExpenses),
       expBySource,
@@ -115,7 +186,7 @@ function HesabatlarPage() {
       frozenTotal: sumBy(frozen, (p) => p.frozenValue),
       lossSellers: lossSellers(products),
     };
-  }, [data, period, summary]);
+  }, [data, range.from, range.to, summary]);
 
   // FE#142 (TC-32): xəta vəziyyəti yüklənmə/boş vəziyyətdən ƏVVƏL yoxlanılır —
   // şəbəkə/server xətasında sonsuz spinner ƏVƏZİNƏ InlineError + "Yenidən"
@@ -128,7 +199,7 @@ function HesabatlarPage() {
   if (isError && !view) {
     return (
       <div>
-        <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
+        <PageHeader title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
         <InlineError
           message="Hesabatlar yüklənmədi"
           hint="Şəbəkə və ya server cavab vermədi."
@@ -141,7 +212,7 @@ function HesabatlarPage() {
   if (isLoading || !view) {
     return (
       <div>
-        <PageHead title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
+        <PageHeader title="Hesabatlar" subtitle="Satış və qazanc analitikası" />
         <PageSkeleton label="Hesabatlar yüklənir" cardCount={4} />
       </div>
     );
@@ -149,28 +220,19 @@ function HesabatlarPage() {
 
   return (
     <div className="space-y-5">
-      <PageHead
+      <PageHeader
         title="Hesabatlar"
         subtitle="Satış, qazanc və xərc analitikası"
-        actions={
-          <div className="flex rounded-lg bg-stone-100 p-0.5">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => navigate({ search: { period: p } })}
-                className={cn(
-                  "inline-flex min-h-[40px] items-center rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                  period === p
-                    ? "bg-white text-emerald-700 shadow-sm"
-                    : "text-stone-500 hover:text-stone-700",
-                )}
-              >
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </div>
-        }
       />
+
+      {/* FE#78 (bənd #4) — dövr seçimi standart səhifə toolbar-ında
+          (`SegmentedDateFilter`/`PeriodFilter`), Mallar/Xərclər/Satış/Nisyə
+          Borclar səhifələri ilə EYNİ yerdə və görünüşdə. Köhnə düymə qrupu
+          SİLİNDİ. `defaultKey` QƏSDƏN ötürülmür — defolt "Bu ay" artıq
+          yuxarıdakı `range` hesablamasında tətbiq olunub (yuxarı bax); əks
+          halda `PeriodFilter`in öz mount-defolt effekti bizim köhnə `period`
+          keçidimizlə eyni anda işə düşüb YARIŞA girərdi. */}
+      <PeriodFilter value={range} onChange={updateRange} />
 
       {/* FE#142: arxa-fon refetch xətası — mövcud (köhnə/keçərli) hesabat
           görünməyə davam edir, sadəcə üstündə xəbərdarlıq zolağı var. */}
@@ -181,42 +243,51 @@ function HesabatlarPage() {
         />
       )}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Satış" value={fmtMoney(view.sales)} />
-        <StatCard label="Xalis qazanc" value={fmtMoney(view.profit)} tone="green" />
-        <StatCard
+      {/* FE#78 (bənd #1/#2/#3) — 6 KPI `KpiCard` (StatCard-dan fərqli, daha
+          kompakt dizayn primitivi — `text-xl lg:text-2xl` + `money` sinfi,
+          bax `docs/design-system.md` §1.5) ilə TƏK responsiv grid-də: mobil
+          2 sütun (3 sıra), `sm`-dən 3 (2 sıra), `lg`-dən 4 sütun (2 sıra:
+          4+2) — heç bir kart qonşusunun üstünə minmir, böyük məbləğ kəsilmir
+          (money = min-w-0 + overflow-hidden + truncate, tam dəyər `title`-də). */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <KpiCard label="Satış" value={fmtMoney(view.sales)} />
+        <KpiCard label="Xalis qazanc" value={fmtMoney(view.profit)} tone="green" />
+        <KpiCard
           label="Xərc"
           value={fmtMoney(view.expenses)}
           sub={expenseSourceSummaryText(view.expBySource)}
           tone="red"
         />
-        <StatCard label="Anbar dəyəri" value={fmtMoney(view.stockValue)} />
-        <StatCard label="Nağd satış" value={fmtMoney(view.cashSales)} />
-        <StatCard label="Nisyə satış" value={fmtMoney(view.creditSales)} tone="amber" />
+        <KpiCard label="Anbar dəyəri" value={fmtMoney(view.stockValue)} />
+        <KpiCard label="Nağd satış" value={fmtMoney(view.cashSales)} />
+        <KpiCard label="Nisyə satış" value={fmtMoney(view.creditSales)} tone="amber" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Günlük satış + qazanc (son 14 gün)">
           <DailyBarChart data={view.daily} showProfit />
         </Card>
-        <Card title="Həftəlik qazanc trendi">
-          <TrendLineChart data={view.weekly} xKey="week" />
+        <Card title="Həftəlik qazanc trendi (son 6 həftə)">
+          {/* FE#78 (bənd #6) — "H1, H2, H3" ƏVƏZİNƏ real tarix aralığı
+              ("28.07 – 03.08"); `wideLabels` bu geniş etiketlərin
+              kəsişmədən görünməsi üçün (bənd #8). */}
+          <TrendLineChart data={view.weekly} xKey="label" wideLabels />
         </Card>
-        <Card title="Xərc kateqoriyaları">
+        <Card title={`Xərc kateqoriyaları (${periodLabel})`}>
           <ExpensePie data={view.expByCat} />
         </Card>
-        <Card title="Ən çox satılan mallar">
+        <Card title={`Ən çox satılan mallar (${periodLabel})`}>
           <TopProductsBar data={view.topBar} />
         </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title={`Nağd / Kart / Nisyə müqayisəsi (${PERIOD_LABELS[period]})`}>
+        <Card title={`Nağd / Kart / Nisyə müqayisəsi (${periodLabel})`}>
           <PaymentBreakdown data={view.payments} />
         </Card>
-        <Card title="Ən az satılan mallar">
+        <Card title={`Ən az satılan mallar (${periodLabel})`}>
           {view.leastSold.length === 0 ? (
-            <EmptyState icon={TrendingDown} title="Satış datası yoxdur" />
+            <EmptyState embedded icon={TrendingDown} title="Satış datası yoxdur" />
           ) : (
             <div className="space-y-2.5">
               {view.leastSold.map(({ product, qty }) => (
@@ -238,7 +309,7 @@ function HesabatlarPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Satılmayan mallar (30/60/90 gün)">
           {view.frozen.length === 0 ? (
-            <EmptyState icon={Snowflake} title="Donmuş mal yoxdur" />
+            <EmptyState embedded icon={Snowflake} title="Donmuş mal yoxdur" />
           ) : (
             <div className="space-y-4">
               {view.frozenGroups.map(
@@ -275,7 +346,7 @@ function HesabatlarPage() {
 
         <Card title="Ziyana satılan mallar">
           {view.lossSellers.length === 0 ? (
-            <EmptyState icon={Check} title="Ziyana satılan mal yoxdur" />
+            <EmptyState embedded icon={Check} title="Ziyana satılan mal yoxdur" />
           ) : (
             <div className="space-y-2.5">
               {view.lossSellers.map((p) => (
