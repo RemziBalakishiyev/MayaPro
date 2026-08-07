@@ -418,6 +418,7 @@ export function ProductForm({ open, onClose, initial }: Props) {
                           onClick={() => remove(idx)}
                           className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600"
                           aria-label="Xüsusiyyəti sil"
+                          title="Xüsusiyyəti sil"
                         >
                           <Trash2 size={16} />
                         </button>

@@ -76,7 +76,8 @@ export function EditSupplierModal({ open, onClose, supplier }: Props) {
         </Button>
         <Button
           onClick={() => void save()}
-          disabled={updateMut.isPending || !name.trim()}
+          disabled={!name.trim()}
+          loading={updateMut.isPending}
           icon={<Check size={15} />}
         >
           Yadda saxla

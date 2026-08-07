@@ -61,7 +61,7 @@ export function ExpenseTypeField({ value, onChange }: Props) {
           type="button"
           size="sm"
           onClick={submitNew}
-          disabled={createType.isPending}
+          loading={createType.isPending}
           icon={<Check size={14} />}
         >
           Yarat

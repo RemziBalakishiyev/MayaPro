@@ -119,6 +119,7 @@ export function SalaryCard({
               <button
                 type="button"
                 aria-label="Yadda saxla"
+                title="Yadda saxla"
                 onClick={() => void saveSalary()}
                 disabled={setSalaryMut.isPending}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-emerald-700 hover:bg-emerald-50"
@@ -128,6 +129,7 @@ export function SalaryCard({
               <button
                 type="button"
                 aria-label="İmtina"
+                title="İmtina"
                 onClick={() => setEditing(false)}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100"
               >

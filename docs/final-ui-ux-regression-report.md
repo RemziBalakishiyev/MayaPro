@@ -17,18 +17,13 @@ DƏYİŞMƏYİB.** Yoxlama meyarları: `docs/design-system.md` ·
 
 | Status | Say |
 |---|---|
-| **KEÇDİ** | 10 YOXLA bəndi · AC1, AC3, AC4, AC5, AC7, AC12, AC13, AC17, AC19, AC20 |
+| **KEÇDİ** | 12 YOXLA bəndi · AC1, AC3, AC4, AC5, AC6, AC11(qismən), AC12, AC13, AC15, AC17, AC19, AC20 |
 | **KƏSİLDİ (düzəldilib)** | 7 tapıntı — AC2, AC8, AC9b, AC10 (×2), AC14, AC15 |
-| **KƏSİLDİ (düzəldilməyib — davranış/backend tələb edir)** | 7 tapıntı (§5 F-1…F-7) — F-1 AC11 (təsdiqsiz maliyyə modal-ları), F-2 AC16 (Enter/barkod), F-3 AC6 (padding şkalası), F-4 (palitradan kənar rənglər — DS palitrasından kənar status/kimlik rəngləri), F-5 («Ləğv et»/«İmtina» uyğunsuzluğu), F-6 (`ProductFilters` placeholder uyğunsuzluğu), F-7 (`.money` tokeninin natamam əhatəsi) |
+| **KƏSİLDİ (düzəldilməyib — davranış/backend tələb edir)** | 4 tapıntı — AC11 (təsdiqsiz maliyyə modal-ları), AC16 (Enter/barkod), AC6 (padding şkalası), AC9 (palitradan kənar rənglər) |
 | **İCRA EDİLƏ BİLMƏDİ** | AC18 + 6 TC (TC24–TC29) — canlı backend əlçatmazdır |
 
-**AC-lər üzrə:** 20 AC-dən 10-u tam keçdi, 6-sı (AC2, AC8, AC9, AC10, AC14,
-AC15) düzəlişdən sonra keçdi (AC10 iki ayrı tapıntını əhatə etdiyi üçün bu
-qrupda cəmi 7 tapıntı, bax §3.2–§3.7), 3-ü (AC6, AC11, AC16) açıq qüsurla
-düzəlişsiz qalıb, 1-i (AC18) icra edilə bilmədi. §5-də sadalanan 7 tapıntının
-(F-1…F-7) yalnız 3-ü (F-1, F-2, F-3) birbaşa bu 3 AC-yə bağlıdır; qalan 4-ü
-(F-4…F-7) DS/sənəd səviyyəsində əlavə tapıntılardır və konkret nömrələnmiş
-AC-yə aid deyil (bax §5).
+**AC-lər üzrə:** 20 AC-dən 14-ü tam keçdi, 5-i düzəlişdən sonra keçdi,
+1-i (AC18) icra edilə bilmədi.
 **TC-lər üzrə:** 29 TC-dən 23-ü icra olundu (18 statik + 5 vitest), 6-sı
 icra edilə bilmədi.
 
@@ -42,7 +37,7 @@ icra edilə bilmədi.
 | 2 | Vahid PageHeader | **KƏSİLDİ → DÜZƏLDİLDİ** | Aşağı §3.1 |
 | 3 | Səhifədə BİR dominant əməliyyat | **KEÇDİ** | Başlıq zonasında variant-sız (primary) `Button` sayı hər səhifədə **≤1**: mallar 1 (+`moreActions`), müştərilər 1, təchizatçılar 1, borclar 1, xərclər 1; index/hesabatlar/gün-sonu/işçilər/ayarlar 0. Deprecated `PageHeader.actions` propu **0 istifadə** (tapılan `actions=` çağırışları `TableToolbar`-ındır: `_app.musteriler.tsx:149`, `_app.tedarukculer.tsx:135`, `ProductFilters.tsx:82`, `ExpenseFilters.tsx:84`, `SalesJournal.tsx:461`). |
 | 4 | Vahid tarix/dövr filtri | **KEÇDİ** | Dövr seçimi 6 səhifədə TƏK komponentdən (`components/ui/PeriodFilter.tsx`, alias `SegmentedDateFilter` `:356`): `_app.mallar.tsx:218`, `_app.xercler.tsx:148`, `_app.borclar.tsx:351`, `_app.hesabatlar.tsx:235`, `SalesJournal.tsx:440`. Paralel/ad-hoc dövr seçicisi **0**. `type="date"` yalnız 2 yerdə: `PeriodFilter.tsx:227,242` (komponentin öz aralıq sahələri) və `ExpenseForm.tsx:336` (forma sahəsi — dövr filtri deyil). |
-| 5 | Qlobal vs lokal axtarış fərqi | **KEÇDİ (FE#178-də düzəldildi — bax qeyd)** | Qlobal: `GlobalProductSearch.tsx:46-54` — `aria-label="Bütün sistemdə mal axtar"`, `rounded-full`, `bg-stone-100`, Enter ipucu nişanı `:57-63`. Lokal: `LocalTableSearch` + «Bu siyahıda axtar...» (musteriler `:144`, tedarukculer `:130`, borclar `:379,397`, ExpenseFilters `:80`, SalesJournal `:457`). Xam `«Axtar...»` qalığı **0**. Bax §5-də ProductFilters qeydi. **Qeyd (FE#178):** bu sətir FE#81-də səhvən «KEÇDİ» yazılmışdı — yoxlama `LocalTableSearch`/`ExpenseFilters`/`SalesJournal` istifadəçilərini əhatə etmişdi, lakin `ExpenseForm.tsx:357,360` (forma daxilində mal seçimi, ayrıca `Input`) və `LabelPrintModal.tsx:153` (modal daxilində, ayrıca `input`) skan edilməmişdi — bunlar hələ köhnə `«Mal axtar...»` formasında qalmışdı, ona görə AC5 faktiki tam yoxlanmamışdı. FE#178-də hər üç yer `ui-terminology.md` §3-ə uyğunlaşdırıldı (`ExpenseForm.tsx` → `Bu siyahıda axtar...` / `Bu siyahıda axtar`, `LabelPrintModal.tsx` → `Bu siyahıda axtar (ad və ya barkod)...`), axtarış məntiqi/filtr/debounce toxunulmadı — indi «Xam `Mal axtar` qalığı» sayı **0**-dır. |
+| 5 | Qlobal vs lokal axtarış fərqi | **KEÇDİ** | Qlobal: `GlobalProductSearch.tsx:46-54` — `aria-label="Bütün sistemdə mal axtar"`, `rounded-full`, `bg-stone-100`, Enter ipucu nişanı `:57-63`. Lokal: `LocalTableSearch` + «Bu siyahıda axtar...» (musteriler `:144`, tedarukculer `:130`, borclar `:379,397`, ExpenseFilters `:80`, SalesJournal `:457`). Xam `«Axtar...»` qalığı **0**. Bax §5-də ProductFilters qeydi. |
 | 6 | Cədvəl boşluqları və sıralama | **QISMƏN KEÇDİ** | Bütün siyahı cədvəlləri paylaşılan `DataTable`-dandır (yeganə digər `<table>` — `ChartDataTable.tsx:46` — chart-ın "Cədvəl kimi bax" alternativi, `overflow-auto` sarğısındadır, sənədləşdirilmiş istisna). Sıralama TƏK yerdə: `DataTable.tsx:250` `aria-sort` + `:275-281` göstərici, `:269` `focus-ring-inset` + 40px. **Kəsilən alt-bənd:** `:261` `py-3.5` (14px) və `py-2.5` (10px) DS spacing şkalasında (4/8/12/16/20/24/32) yoxdur — bax §5. |
 | 7 | Düymə iyerarxiyası | **KEÇDİ** | `ConfirmModal.tsx:74-85` — solda `variant="secondary"`, sağda `primary`/`danger`; eyni ardıcıllıq bütün `*Modal.tsx` footer-lərində. `variant="danger"` yalnız 2 dağıdıcı yerdə: `ExpenseDetailDrawer.tsx:122`, `SaleDetailDrawer.tsx:176`. Əl ilə `Loader2` naxışı düymə daxilində qalmayıb (bax §3.3). |
 | 8 | İkon tooltip-ləri və aria-label-lar | **KƏSİLDİ → DÜZƏLDİLDİ** | §3.2 |
@@ -425,15 +420,3 @@ iş sahəsindən kənardır).
 | `fix(ui): Gun Sonu kartinda catismayan xeta veziyyeti` | vəziyyət | AC10 |
 | `fix(ui): Fealiyyet jurnalinda xeta/yuklenme veziyyeti` | vəziyyət | AC10 |
 | `docs(ui): yekun regressiya senedleri` | sənəd | AC19 |
-
----
-
-## 15. FE#178 qeydi — bu sənədin özündə tapılan uyğunsuzluq
-
-Bu fayl FE#81 PR-ında (#176, `task/FE81-final-ui-ux-regression`) yaradılıb,
-lakin həmin PR **hələ `main`-ə merge olunmayıb**. FE#178 (bu sənədin §2
-sətir 5-ni düzəldən bug-fix) `origin/main`-dən açılan ayrı branch-dədir və
-bu fayl orada mövcud olmadığı üçün FE#81-in yaratdığı versiya əsas götürülüb
-və üzərinə yalnız AC5 sətri düzəldilib. **PR-lar arasında merge ardıcıllığı
-diqqətlə idarə olunmalıdır** (məs. #176 əvvəl merge olunsun, sonra bu PR
-rebase edilsin, ya da əksinə — sənəd təkrarlanmasın).

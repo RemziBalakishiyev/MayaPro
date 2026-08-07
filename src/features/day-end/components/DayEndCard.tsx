@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { InlineError } from "@/components/ui/InlineError";
 import { StatCard, type StatTone } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/toast-store";
 import { TONE_SURFACE, TONE_TEXT } from "@/lib/ui-tokens";
@@ -108,7 +109,11 @@ export function DayEndCard() {
   // `SummaryData.salaryExpenses` (əlavə, additiv sahə) yalnız bu cəmin bir
   // hissəsini AYRICA sətir kimi göstərmək üçün oxunur, `expected` düsturuna
   // heç nə ƏLAVƏ OLUNMUR (o, artıq `todayExpenses` daxilindədir).
-  const { data: summary } = useSummary("today");
+  const {
+    data: summary,
+    isError: summaryError,
+    refetch: refetchSummary,
+  } = useSummary("today");
   const { data: closings = [] } = useClosings();
   const {
     data: todayClosing,
@@ -224,10 +229,13 @@ export function DayEndCard() {
           value={`+ ${fmtMoney(todayClosing.cashSales)}`}
           tone="text-emerald-700"
         />
+        {/* FE#81 (AC-9b): xərc NORMAL əməliyyatdır — ziyan/kritik DEYİL, ona
+            görə qırmızı ilə göstərilmir (DS §1.8; Xərclər səhifəsində eyni qayda
+            FE#76 ilə tətbiq olunub — amount-presentation.tsx). Kassadan çıxış
+            istiqaməti «−» prefiksi ilə verilir, rəngə ehtiyac yoxdur. */}
         <Row
           label="Günlük xərclər"
           value={`− ${fmtMoney(todayClosing.expenses)}`}
-          tone="text-red-600"
         />
         <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
           <Lock size={16} /> Gün bağlanıb — dəyişiklik mümkün deyil.
@@ -257,6 +265,25 @@ export function DayEndCard() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
+      {/*
+       * FE#81 (AC-10): bu səhifədə XƏTA vəziyyəti YOX idi — `useSummary`
+       * uğursuz olanda nağd satış/xərc cəmləri səssizcə 0 kimi görünür və
+       * "kassada olmalı" rəqəmi YANLIŞ hesablanırdı. İndi şəbəkə/server
+       * xətası açıq elan olunur + "Yenidən" verilir.
+       *
+       * DİQQƏT: bu YALNIZ xəbərdarlıqdır — bağlanış axını, düsturlar və
+       * düymə şərtləri DƏYİŞMƏYİB (biznes məntiqi toxunulmazdır). Xəta
+       * halında bağlanışın tam BLOKLANMASI ayrıca task tələb edir, bax
+       * docs/final-ui-ux-regression-report.md.
+       */}
+      {summaryError && (
+        <InlineError
+          className="lg:col-span-2"
+          message="Bugünkü cəmlər yüklənmədi"
+          hint="Nağd satış və xərc rəqəmləri əskik ola bilər — bağlamazdan əvvəl yeniləyin."
+          onRetry={() => void refetchSummary()}
+        />
+      )}
       <Card title={<StepHeading n={1}>Bugünkü hesabı yoxla</StepHeading>}>
         <Field
           label="Başlanğıc kassa"
@@ -294,13 +321,11 @@ export function DayEndCard() {
           <Row
             label="Günlük xərclər"
             value={`− ${fmtMoney(todayExpenses)}`}
-            tone="text-red-600"
           />
           {typeof salaryExpenses === "number" && salaryExpenses > 0 && (
             <Row
               label="O cümlədən: işçi maaş ödənişləri"
               value={`− ${fmtMoney(salaryExpenses)}`}
-              tone="text-red-500"
             />
           )}
         </div>

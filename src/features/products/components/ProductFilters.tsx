@@ -119,6 +119,7 @@ export function ProductFilters({
                   type="button"
                   onClick={() => handleRemoveFilter(filter.id)}
                   aria-label={`${filter.label} sil`}
+                  title={`${filter.label} sil`}
                   className="focus-ring absolute inset-[-12px] inline-flex items-center justify-center rounded hover:bg-emerald-100"
                 >
                   <X size={14} />

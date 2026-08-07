@@ -435,12 +435,8 @@ export function ExcelImportModal({ open, onClose }: Props) {
             <Button
               type="button"
               onClick={() => void handleCommit()}
-              disabled={importCount === 0 || commitMut.isPending}
-              icon={
-                commitMut.isPending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : undefined
-              }
+              disabled={importCount === 0}
+              loading={commitMut.isPending}
             >
               {commitMut.isPending
                 ? "İdxal olunur..."

@@ -62,7 +62,7 @@ export function DebtModal({ open, onClose, supplier }: Props) {
         <Button
           variant="warn"
           onClick={save}
-          disabled={addDebt.isPending}
+          loading={addDebt.isPending}
           icon={<Plus size={15} />}
         >
           Borc əlavə et

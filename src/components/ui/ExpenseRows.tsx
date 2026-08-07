@@ -158,6 +158,7 @@ export function ExpenseRows({ value, onChange, error }: Props) {
                 onClick={() => removeRow(idx)}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600"
                 aria-label="Xərci sil"
+                title="Xərci sil"
               >
                 <Trash2 size={16} />
               </button>

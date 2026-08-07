@@ -75,7 +75,8 @@ export function PayModal({ open, onClose, supplier }: Props) {
         </Button>
         <Button
           onClick={save}
-          disabled={!valid || addPayment.isPending}
+          disabled={!valid}
+          loading={addPayment.isPending}
           icon={<HandCoins size={15} />}
         >
           Ödənişi et
