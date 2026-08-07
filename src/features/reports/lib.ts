@@ -4,7 +4,13 @@ import { salesMoneySplit } from "@/features/sales/lib";
 import { daysBetween, daysAgoISO, fmtDate, todayISO } from "@/lib/format";
 import type { Sale, Product, Expense, ProductStatus } from "@/types";
 
-/** Recharts pie/progress rəngləri (MVP ilə eyni). */
+/**
+ * Recharts pie/progress rəngləri — kateqoriyalı (qualitative) palet. Xərc
+ * kateqoriyaları (`ExpensePie`) əvvəlcədən bilinməyən, dinamik adlardır
+ * (Kirayə, İşıq, Nəqliyyat və s.) — buna görə TƏK sabit rəngə bağlanmır,
+ * indeks üzrə bu paletdən dövr edir. FE#78 — semantik (sahə mənalı) rənglər
+ * üçün bax `REPORT_COLORS` (aşağıda); bu iki palet MƜQSƏD baxımından fərqlidir.
+ */
 export const PIE_COLORS = [
   "#047857",
   "#b45309",
@@ -13,6 +19,28 @@ export const PIE_COLORS = [
   "#7c3aed",
   "#57534e",
 ];
+
+/**
+ * FE#78 (bənd #13) — bütün Hesabatlar qrafiklərində EYNİ mənalı sahə həmişə
+ * EYNİ rəngdə görünsün deyə TƏK yerdə sabitlənən semantik xəritə:
+ * satış → emerald, qazanc → fərqli (tund) yaşıl ton, xərc → narıncı,
+ * nisyə → amber, kart → mavi, nağd → satışla eyni emerald ton (nağd da satışın
+ * bir hissəsidir). Əvvəlki kod bu sahələri müxtəlif komponentlərdə fərqli/
+ * səhv toxunmuş hex kodlarla göstərirdi (məs. `PaymentBreakdown`-da "Kart"
+ * indeks-1 rəngi ilə, "Nisyə" indeks-2 rəngi ilə — nəticədə kart narıncı,
+ * nisyə göy görünürdü, bu xəritədəki qayda ilə TƏRS idi). Yalnız TƏQDİMAT
+ * (rəng) dəyişikliyidir — heç bir dəyər/hesablama toxunulmayıb.
+ */
+export const REPORT_COLORS = {
+  sales: "#047857", // emerald-700 — satış
+  cash: "#047857", // nağd (satışın faktiki alınan hissəsi) — satışla eyni ton
+  profit: "#0f766e", // teal-700 — qazanc (satışdan fərqli, aydın ayrılan yaşıl ton)
+  expense: "#c2410c", // orange-700 — xərc (narıncı)
+  credit: "#b45309", // amber-700 — nisyə
+  card: "#2563eb", // blue-600 — kart
+} as const;
+
+export type ReportColorKey = keyof typeof REPORT_COLORS;
 
 export const sumBy = <T>(arr: T[], f: (x: T) => number): number =>
   arr.reduce((a, x) => a + f(x), 0);
@@ -97,7 +125,14 @@ export const topProductsByQty = (
 };
 
 export interface DailyPoint {
+  /** Ox etiketi — "01.08" (gün.ay, il yazılmır — FE#78 bənd #5). */
   date: string;
+  /**
+   * FE#78 (bənd #9) — tooltip-də TAM tarix göstərmək üçün (ox etiketi
+   * qısaldılmış olduğu üçün il məlumatı itir). Yalnız TƏQDİMAT sahəsidir,
+   * `satis`/`qazanc` hesablamasına təsir etmir.
+   */
+  fullDateIso: string;
   satis: number;
   qazanc: number;
 }
@@ -110,6 +145,7 @@ export const dailySeries = (sales: Sale[], days = 14): DailyPoint[] => {
     const ds = sales.filter((s) => s.createdAt.slice(0, 10) === iso);
     out.push({
       date: fmtDate(iso).slice(0, 5),
+      fullDateIso: iso,
       satis: round2(sumBy(ds, (s) => s.totalAmount)),
       qazanc: round2(sumBy(ds, (s) => s.profit ?? 0)),
     });
@@ -118,7 +154,14 @@ export const dailySeries = (sales: Sale[], days = 14): DailyPoint[] => {
 };
 
 export interface WeekPoint {
+  /** Köhnə qısa açar — daxili sıralama/açar üçün saxlanılır, EKRANDA göstərilmir. */
   week: string;
+  /**
+   * FE#78 (bənd #6) — ekranda göstərilən oxunan etiket: "28.07 – 03.08"
+   * formatında REAL tarix aralığı ("H1"/"H2" kimi qeyri-müəyyən açarlar
+   * ƏVƏZ OLUNUR). Data (`qazanc`) dəyişməyib — yalnız etiket formatlaması.
+   */
+  label: string;
   qazanc: number;
 }
 
@@ -132,10 +175,27 @@ export const weeklySeries = (sales: Sale[], weeks = 6): WeekPoint[] => {
       const d = s.createdAt.slice(0, 10);
       return d >= from && d <= to;
     });
-    out.push({ week: `H${weeks - w}`, qazanc: Math.round(sumBy(ws, (s) => s.profit ?? 0)) });
+    out.push({
+      week: `H${weeks - w}`,
+      label: `${fmtDate(from, "dd.MM")} – ${fmtDate(to, "dd.MM")}`,
+      qazanc: Math.round(sumBy(ws, (s) => s.profit ?? 0)),
+    });
   }
   return out;
 };
+
+/**
+ * FE#78 (bənd #11) — bir seriyada nə qədər SIFIRDAN FƏRQLİ nöqtə olduğunu
+ * sayır. Seyrək data (0 və ya 1 nöqtə) üçün böyük, əksər hissəsi boş olan
+ * qrafik ƏVƏZİNƏ aydın "kifayət qədər məlumat yoxdur" mesajı göstərilir —
+ * bax `MIN_CHART_POINTS`. Xalis (pure) funksiya, heç bir hesablamaya
+ * TOXUNMUR — yalnız artıq mövcud olan dəyərləri sayır.
+ */
+export const nonZeroCount = <T>(data: T[], pick: (x: T) => number): number =>
+  data.filter((x) => pick(x) !== 0).length;
+
+/** FE#78 (bənd #11) — "seyrək data" həddi: 2-dən az qeyri-sıfır nöqtə. */
+export const MIN_CHART_POINTS = 2;
 
 export interface MonthPoint {
   month: string;
