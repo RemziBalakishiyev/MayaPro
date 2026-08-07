@@ -84,6 +84,33 @@ describe("period-filter-lib", () => {
     it("xüsusi (heç bir çipə uyğun olmayan) aralıq üçün null qaytarır", () => {
       expect(matchQuickPeriod({ from: "2026-03-05", to: "2026-03-20" })).toBeNull();
     });
+
+    describe("FE#174 — toqquşan aralıqlarda təqvimə bağlı dövr sürüşən dövrdən üstündür", () => {
+      it("ayın 7-də 'Bu həftə' və 'Bu ay' eyni aralığı verir — 'month' seçilməlidir", () => {
+        vi.setSystemTime(new Date(2026, 7, 7, 10, 0, 0)); // 2026-08-07 (aslında toqquşma günü)
+        // Ön şərt: iki açarın öz-özlüyündə eyni aralığı hesabladığını təsdiqləyir —
+        // əks halda bu test heç nə sınamır (yalnız gündən asılı olmayaraq işləsin deyə).
+        expect(quickPeriodRange("week")).toEqual(quickPeriodRange("month"));
+        expect(matchQuickPeriod(quickPeriodRange("month"))).toBe("month");
+        expect(matchQuickPeriod(quickPeriodRange("week"))).toBe("month");
+      });
+
+      it("yanvarın istənilən günündə 'Bu ay' və 'Bu il' toqquşa bilər — 'month' seçilir (mövcud davranış, FE#174-dən əvvəl də belə idi)", () => {
+        vi.setSystemTime(new Date(2026, 0, 15, 10, 0, 0)); // 2026-01-15
+        expect(quickPeriodRange("month")).toEqual(quickPeriodRange("year"));
+        expect(matchQuickPeriod(quickPeriodRange("year"))).toBe("month");
+      });
+
+      it("'lastMonth' `to`-su həmişə keçən ayın son günüdür — heç vaxt bugünkü tarixə (digər açarların `to`-suna) bərabər olmadığı üçün toqquşma iştirakçısı deyil", () => {
+        for (const day of [1, 7, 15, 28]) {
+          vi.setSystemTime(new Date(2026, 7, day, 10, 0, 0));
+          const lastMonth = quickPeriodRange("lastMonth");
+          for (const key of ["today", "week", "month", "year"] as const) {
+            expect(quickPeriodRange(key)).not.toEqual(lastMonth);
+          }
+        }
+      });
+    });
   });
 
   describe("last12Months (TC19)", () => {

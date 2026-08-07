@@ -67,12 +67,53 @@ export const quickPeriodRange = (key: QuickPeriodKey): PeriodRange => {
   }
 };
 
+/**
+ * `matchQuickPeriod` üçün tanınma prioritet sırası — `QUICK_PERIODS` (görüntü
+ * sırası) İLƏ EYNİ DEYİL, qəsdən.
+ *
+ * Təqvimə bağlı dövrlər ("Bu ay"/"Keçən ay"/"Bu il", hər zaman ayın/ilin 1-i
+ * ilə başlayır) sürüşən (rolling) dövrlərdən ("Bu gün"/"Bu həftə", həmişə
+ * bugündən geriyə sabit gün sayı) ÖNCƏ yoxlanılır. Səbəb: bəzi günlərdə iki
+ * fərqli açarın hesabladığı aralıq TAM ÜST-ÜSTƏ düşür — məs. ayın 7-də
+ * "Bu həftə" (son 7 gün) === "Bu ay" (ayın 1-dən bu günə) və ya yanvarın
+ * istənilən günündə "Bu ay" === "Bu il". Əvvəlki sıra (`QUICK_PERIODS`
+ * sırası: gün, həftə, ay, keçən ay, il) bu kimi toqquşmalarda həmişə
+ * sürüşən dövrü seçirdi (`find` birinci uyğunu qaytarır) — nəticədə
+ * istifadəçi "Bu ay" çipinə klikləyəndə `aria-selected` "Bu həftə" çipində
+ * qalırdı, "Bu ay" heç vaxt aktiv görünmürdü (FE#174).
+ *
+ * BİLİNƏN MƏHDUDİYYƏT: bu, statik prioritet sırası ilə HƏLL EDİLƏ BİLMƏYƏN
+ * bir toqquşma sinfini tam aradan qaldırmır, yalnız ən çox rast gəlinən
+ * halı (yuxarıda) düzgün istiqamətə yönləndirir. `matchQuickPeriod` yalnız
+ * yekun `{from,to}` aralığına baxır — hansı çipə klikləndiyi bilgisi URL-də
+ * saxlanmır. Deməli iki açar EYNİ aralığı hesabladıqda (məs. ayın 1-də
+ * "Bu gün" === "Bu ay", yanvarın istənilən günündə "Bu ay" === "Bu il")
+ * onları BİR-BİRİNDƏN AYIRD ETMƏK QEYRİ-MÜMKÜNDÜR — sıranı dəyişmək
+ * problemi həll etmir, sadəcə hansı cütün "səhv" tərəfə düşəcəyini dəyişir.
+ * Seçilmiş sıra FE#174-də bildirilən (və ən tez-tez rast gəlinən, hər ayın
+ * 7-si) "week vs month" toqquşmasını "month" xeyrinə həll edir; "today vs
+ * month" (ayın 1-i) və "month vs year" (bütün yanvar) toqquşmaları da eyni
+ * səbəbdən "month" xeyrinə həll olunur — bunlar FE#174-dən ƏVVƏL də mövcud
+ * idi (bax: `period-filter-lib.test.ts` FE#174 bloku) və bu PR-ın əhatə
+ * dairəsindən kənardır. Tam həll üçün seçilmiş açarın özünün (range yox)
+ * state kimi saxlanması lazımdır — bu, `PeriodFilter`-in "URL mənbədir,
+ * gizli state yoxdur" dizaynını dəyişdirəcəyi üçün ayrıca qərar tələb edir.
+ */
+const MATCH_PRIORITY: QuickPeriodKey[] = [
+  "month",
+  "lastMonth",
+  "year",
+  "today",
+  "week",
+  "all",
+];
+
 /** Verilmiş aralıq hansı hazır çipə uyğun gəlir — heç birinə uyğun gəlmirsə (xüsusi aralıq) `null`. */
 export const matchQuickPeriod = (range: PeriodRange): QuickPeriodKey | null => {
   const norm = (r: PeriodRange) => `${r.from ?? ""}|${r.to ?? ""}`;
   const target = norm(range);
-  const found = QUICK_PERIODS.find((p) => norm(quickPeriodRange(p.key)) === target);
-  return found ? found.key : null;
+  const found = MATCH_PRIORITY.find((key) => norm(quickPeriodRange(key)) === target);
+  return found ?? null;
 };
 
 export interface MonthOption {
