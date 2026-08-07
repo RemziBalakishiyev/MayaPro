@@ -354,10 +354,10 @@ export function ExpenseForm({ open, onClose, initial = null }: Props) {
               >
                 <div className="space-y-2">
                   <Input
-                    aria-label="Mal axtar"
+                    aria-label="Bu siyahıda axtar"
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
-                    placeholder="Mal axtar..."
+                    placeholder="Bu siyahıda axtar..."
                   />
                   <Select
                     aria-label="Mal seçimi"
