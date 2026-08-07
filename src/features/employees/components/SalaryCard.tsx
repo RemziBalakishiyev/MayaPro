@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
 import { fmtMoney, parseMoneyInput } from "@/lib/format";
 import { useSalaryEntries, useSetEmployeeSalary } from "../queries";
-import { salaryProgressPercent } from "../lib";
+import { employeeRoleLabel, salaryProgressPercent } from "../lib";
 import type { EmployeeSalarySummary } from "@/types";
 
 interface Props {
@@ -19,7 +19,15 @@ interface Props {
   onHistory: () => void;
 }
 
-/** Bir işçinin bir ay üçün maaş kartı: 3 böyük rəqəm + proqres + [Pul ver]/[Tutulma yaz]/[Tarixçə]. */
+/**
+ * Bir işçinin bir ay üçün maaş kartı (FE#79):
+ * standart 3-göstərici sətri ("Aylıq maaş" · "Bu ay ödənilib" · "Qalıq
+ * məbləğ", AC-3), artıq-ödəniş vəziyyəti (AC-4), maaş təyin olunmayıb
+ * vəziyyəti (AC-5), rol nişanı (AC-6) və əsas/ikinci dərəcəli əməliyyat
+ * iyerarxiyası "Maaş ödə" / "Tutulma əlavə et" / "Tarixçəyə bax" (AC-7/AC-8).
+ * Maaş/qalıq HESABLAMA məntiqi (`salaryProgressPercent`, `remaining`)
+ * TOXUNULMAYIB — yalnız təqdimat qatı.
+ */
 export function SalaryCard({
   summary,
   month,
@@ -70,8 +78,10 @@ export function SalaryCard({
     }
   };
 
+  const salaryUnset = summary.monthlySalary === 0;
   const progress = salaryProgressPercent(summary.paidTotal, summary.monthlySalary);
   const overpaid = summary.remaining < 0;
+  const roleLabel = employeeRoleLabel(summary.role);
 
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
@@ -82,12 +92,15 @@ export function SalaryCard({
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-stone-900">{summary.fullName}</p>
         </div>
-        <Badge tone={summary.role}>{summary.role}</Badge>
+        <Badge tone={roleLabel}>{roleLabel}</Badge>
       </div>
 
+      {/* AC-3: hər kartda eyni 3 göstərici, eyni sırada, bərabər sütunlarda. */}
       <div className="grid grid-cols-3 gap-2">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Maaş</p>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+            Aylıq maaş
+          </p>
           {editing ? (
             <div className="mt-0.5 flex items-center gap-1">
               <input
@@ -121,6 +134,28 @@ export function SalaryCard({
                 <X size={15} />
               </button>
             </div>
+          ) : salaryUnset ? (
+            // AC-5: maaş təyin olunmayıb — proqres YOX, aydın mətn, YALNIZ
+            // Sahibkar rolunda (canSetSalary) mövcud inline redaktə
+            // triggerinə fokuslanan keçid göstərilir.
+            canSetSalary ? (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                title="Maaş təyin et"
+                className="focus-ring group relative mt-0.5 flex items-center gap-1 rounded text-sm font-bold text-stone-500 before:absolute before:inset-[-6px] before:content-[''] hover:text-emerald-700"
+              >
+                Maaş təyin olunmayıb
+                <Pencil
+                  size={12}
+                  className="shrink-0 text-stone-300 group-hover:text-emerald-600"
+                />
+              </button>
+            ) : (
+              <p className="mt-0.5 text-sm font-bold text-stone-500">
+                Maaş təyin olunmayıb
+              </p>
+            )
           ) : (
             // FE#153 — AC-8: dəyər ~28px hündürlükdədir, minimum 40x40px
             // toxunma hədəfini `::before` hit-slop naxışı ilə (grid
@@ -145,15 +180,20 @@ export function SalaryCard({
             </button>
           )}
         </div>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Verilib</p>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">
+            Bu ay ödənilib
+          </p>
           <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-700">
             {fmtMoney(summary.paidTotal)}
           </p>
         </div>
-        <div>
+        <div className="min-w-0">
+          {/* AC-4: artıq ödəniş — "Qalıq məbləğ" sahəsi ƏVƏZİNƏ narıncı
+              xəbərdarlıq etiketi/dəyəri. Rəqəmin özü (`remaining`) və
+              proqresin 100%-də qalması DƏYİŞMİR — yalnız etiket/mətn/rəng. */}
           <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">
-            {overpaid ? "Artıq verilib" : "Qalıb"}
+            {overpaid ? "Artıq ödəniş" : "Qalıq məbləğ"}
           </p>
           <p
             className={cn(
@@ -166,12 +206,15 @@ export function SalaryCard({
         </div>
       </div>
 
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-stone-100">
-        <div
-          className={cn("h-full rounded-full", overpaid ? "bg-orange-500" : "bg-emerald-600")}
-          style={{ width: `${overpaid ? 100 : progress}%` }}
-        />
-      </div>
+      {/* AC-5: maaş təyin olunmayanda proqres zolağı RENDER OLUNMUR. */}
+      {!salaryUnset && (
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-stone-100">
+          <div
+            className={cn("h-full rounded-full", overpaid ? "bg-orange-500" : "bg-emerald-600")}
+            style={{ width: `${overpaid ? 100 : progress}%` }}
+          />
+        </div>
+      )}
 
       {summary.deductionTotal > 0 && (
         <p className="mt-2 text-xs text-stone-500">
@@ -180,42 +223,46 @@ export function SalaryCard({
         </p>
       )}
 
-      <div className="mt-3.5 grid grid-cols-3 gap-1.5">
+      {/* AC-7/AC-8: "Maaş ödə" əsas əməliyyat (dolu, tam en) — "Tutulma
+          əlavə et" və "Tarixçəyə bax" tam mətnli, zəif tonlu ikinci dərəcəli
+          əməliyyatlar altında. */}
+      <div className="mt-3.5 space-y-1.5">
         <Button
           type="button"
-          variant="secondary"
+          variant="primary"
           size="sm"
           disabled={!canRecord}
           onClick={onPay}
           icon={<HandCoins size={14} />}
-          title="Pul ver"
-          className="min-w-0 px-1.5 text-xs"
+          title={canRecord ? undefined : "Bu əməliyyat üçün icazəniz yoxdur"}
+          className="w-full"
         >
-          <span className="truncate">Pul ver</span>
+          Maaş ödə
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={!canRecord}
-          onClick={onDeduct}
-          icon={<MinusCircle size={14} />}
-          title="Tutulma yaz"
-          className="min-w-0 px-1.5 text-xs"
-        >
-          <span className="truncate">Tutulma</span>
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={onHistory}
-          icon={<History size={14} />}
-          title="Tarixçə"
-          className="min-w-0 px-1.5 text-xs"
-        >
-          <span className="truncate">Tarixçə</span>
-        </Button>
+        <div className="grid grid-cols-2 gap-1.5">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={!canRecord}
+            onClick={onDeduct}
+            icon={<MinusCircle size={14} />}
+            title={canRecord ? undefined : "Bu əməliyyat üçün icazəniz yoxdur"}
+            className="min-w-0 px-1.5 text-xs"
+          >
+            <span className="truncate">Tutulma əlavə et</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onHistory}
+            icon={<History size={14} />}
+            className="min-w-0 px-1.5 text-xs"
+          >
+            <span className="truncate">Tarixçəyə bax</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

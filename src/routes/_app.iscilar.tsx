@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { Wallet, Clock } from "lucide-react";
 import { PageHead } from "@/components/layout/PageHead";
 import { Card } from "@/components/ui/Card";
-import { cn } from "@/lib/cn";
 import { useAuthStore } from "@/features/auth/store";
 import { useEmployees } from "@/features/employees/queries";
 import { SALARY_MONTH_RE } from "@/features/employees/lib";
 import { EmployeesTable } from "@/features/employees/components/EmployeesTable";
 import { ActivityLog } from "@/features/employees/components/ActivityLog";
 import { SalaryBoard } from "@/features/employees/components/SalaryBoard";
+import { EmployeesViewToggle } from "@/features/employees/components/EmployeesViewToggle";
 
 const searchSchema = z.object({
   tab: z.enum(["maaslar", "faaliyyet"]).default("maaslar").catch("maaslar"),
@@ -25,11 +24,6 @@ export const Route = createFileRoute("/_app/iscilar")({
   validateSearch: searchSchema,
   component: IscilarPage,
 });
-
-const TABS = [
-  { key: "maaslar" as const, label: "Maaşlar", Icon: Wallet },
-  { key: "faaliyyet" as const, label: "Fəaliyyət", Icon: Clock },
-];
 
 function IscilarPage() {
   const navigate = Route.useNavigate();
@@ -57,34 +51,13 @@ function IscilarPage() {
       <PageHead title="İşçilər" subtitle={`${employees.length} işçi`} />
 
       {canSeeSalary && (
-        <div
-          role="tablist"
-          aria-label="İşçilər görünüşü"
-          className="mb-5 grid grid-cols-2 gap-3 sm:max-w-md"
-        >
-          {TABS.map(({ key, label, Icon }) => {
-            const active = activeTab === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() =>
-                  navigate({ search: (prev) => ({ ...prev, tab: key }) })
-                }
-                className={cn(
-                  "flex items-center gap-2.5 rounded-2xl border-2 px-4 py-3 text-left text-sm font-bold transition-colors",
-                  active
-                    ? "border-emerald-600 bg-emerald-50 text-emerald-800"
-                    : "border-stone-200 bg-white text-stone-600 hover:border-stone-300",
-                )}
-              >
-                <Icon size={18} className="shrink-0" />
-                {label}
-              </button>
-            );
-          })}
+        <div className="mb-5">
+          <EmployeesViewToggle
+            value={activeTab}
+            onChange={(key) =>
+              navigate({ search: (prev) => ({ ...prev, tab: key }) })
+            }
+          />
         </div>
       )}
 
