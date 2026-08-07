@@ -101,14 +101,20 @@ export function DebtsKpiCards({ range, onSelectDebtor }: DebtsKpiCardsProps) {
         ) : (
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             {/* ÜMUMİ QALIQ — panelin ulduzu, ən böyük rəqəm */}
-            <div className="sm:w-40 sm:shrink-0">
+            {/* FE#81 (AC-14 / FE#69 AC-17 qalığı): `min-w-0` olmadan flex
+                elementi öz məzmunundan kiçilə bilmir — 375px-də çox uzun
+                «Ümumi qalıq» məbləği səhifəni üfüqi sürüşdürə bilirdi. */}
+            <div className="min-w-0 sm:w-40 sm:shrink-0">
               <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                 Ümumi qalıq
               </span>
               {isLoading ? (
                 <div className="mt-1.5 h-8 w-2/3 animate-pulse rounded bg-stone-200" />
               ) : (
-                <p className="mt-1 whitespace-nowrap text-2xl font-bold tabular-nums leading-tight text-red-600 lg:text-3xl">
+                <p
+                  title={fmtMoney(data?.totalOutstanding)}
+                  className="money mt-1 whitespace-nowrap text-2xl font-bold leading-tight text-red-600 lg:text-3xl"
+                >
                   {fmtMoney(data?.totalOutstanding)}
                 </p>
               )}
@@ -116,19 +122,19 @@ export function DebtsKpiCards({ range, onSelectDebtor }: DebtsKpiCardsProps) {
 
             {/* Borclu sayı / Ən köhnə borc — incə ayırıcı ilə */}
             <div className="flex min-w-0 flex-1 flex-col divide-y divide-stone-100 border-t border-stone-100 pt-3 sm:flex-row sm:divide-x sm:divide-y-0 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
-              <div className="py-2.5 first:pt-0 sm:flex-1 sm:px-4 sm:py-0 sm:first:pl-0">
+              <div className="min-w-0 py-2.5 first:pt-0 sm:flex-1 sm:px-4 sm:py-0 sm:first:pl-0">
                 <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                   Borclu sayı
                 </span>
                 {isLoading ? (
                   <div className="mt-1.5 h-6 w-2/3 animate-pulse rounded bg-stone-200" />
                 ) : (
-                  <p className="mt-1 whitespace-nowrap text-xl font-bold tabular-nums leading-tight text-stone-900 lg:text-2xl">
+                  <p className="money mt-1 whitespace-nowrap text-xl font-bold leading-tight text-stone-900 lg:text-2xl">
                     {data?.debtorCount}
                   </p>
                 )}
               </div>
-              <div className="py-2.5 sm:flex-1 sm:px-4">
+              <div className="min-w-0 py-2.5 sm:flex-1 sm:px-4">
                 <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                   Ən köhnə borc günü
                 </span>
@@ -137,7 +143,7 @@ export function DebtsKpiCards({ range, onSelectDebtor }: DebtsKpiCardsProps) {
                 ) : (
                   <p
                     className={cn(
-                      "mt-1 whitespace-nowrap text-xl font-bold tabular-nums leading-tight lg:text-2xl",
+                      "money mt-1 whitespace-nowrap text-xl font-bold leading-tight lg:text-2xl",
                       oldestTone,
                     )}
                   >
