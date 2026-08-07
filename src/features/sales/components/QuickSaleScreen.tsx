@@ -340,18 +340,12 @@ export function QuickSaleScreen() {
             <Button
               variant="secondary"
               size="sm"
-              icon={
-                invoicePending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Receipt size={16} />
-                )
-              }
+              icon={<Receipt size={16} />}
+              loading={invoicePending}
               onClick={() => {
                 setHoldSuccess(true);
                 void downloadInvoice(success.id);
               }}
-              disabled={invoicePending}
             >
               Qaimə çıxar
             </Button>

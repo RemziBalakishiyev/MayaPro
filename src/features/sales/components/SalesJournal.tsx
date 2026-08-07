@@ -486,15 +486,9 @@ export function SalesJournal() {
                   variant="secondary"
                   size="sm"
                   className="shrink-0"
-                  icon={
-                    exportingPdf ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <FileText size={14} />
-                    )
-                  }
+                  icon={<FileText size={14} />}
+                  loading={exportingPdf}
                   onClick={() => void exportPdf()}
-                  disabled={exportingPdf}
                 >
                   PDF hesabat
                 </Button>
