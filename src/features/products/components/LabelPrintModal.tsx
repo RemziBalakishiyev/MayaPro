@@ -556,6 +556,7 @@ export function LabelPrintModal({ open, onClose, products, preselected }: Props)
                         type="button"
                         onClick={() => removeRow(row.productId)}
                         aria-label={`${row.product.name} sətrini siyahıdan sil`}
+                        title={`${row.product.name} sətrini siyahıdan sil`}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 size={16} />

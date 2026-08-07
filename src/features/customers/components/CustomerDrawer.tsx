@@ -397,6 +397,7 @@ export function CustomerDrawer({ customer, onClose, onPay }: Props) {
                           <button
                             type="button"
                             aria-label="Nisyə borcu sil"
+                            title="Nisyə borcu sil"
                             onClick={() => setCreditToDelete(h)}
                             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-red-50 hover:text-red-600"
                           >

@@ -103,6 +103,7 @@ export function SalaryHistoryDrawer({ employee, month, onClose }: Props) {
                       <button
                         type="button"
                         aria-label="Sil"
+                        title="Sil"
                         onClick={() => setDeleteFor(e)}
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600"
                       >
