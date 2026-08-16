@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { Store } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -11,9 +11,11 @@ import { Field } from "@/components/ui/Field";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: () => {
-    // Artıq daxil olubsa dashboard-a yönləndir
-    if (useAuthStore.getState().user) {
-      throw redirect({ to: "/" });
+    // Artıq daxil olubsa uyğun yerə yönləndir — platforma admini /admin-ə,
+    // adi mağaza istifadəçisi dashboard-a (AC-8).
+    const user = useAuthStore.getState().user;
+    if (user) {
+      throw redirect({ to: user.role === "platform_admin" ? "/admin" : "/" });
     }
   },
   component: LoginPage,
@@ -44,7 +46,8 @@ export function LoginPage() {
         data.password,
       );
       login(user, token);
-      navigate({ to: "/" });
+      // FE#183 (AC-8) — platforma admini birbaşa /admin-ə, adi istifadəçi dashboard-a.
+      navigate({ to: user.role === "platform_admin" ? "/admin" : "/" });
     } catch (e) {
       setServerError(
         e instanceof ApiError
@@ -108,6 +111,14 @@ export function LoginPage() {
             Daxil ol
           </Button>
         </form>
+
+        {/* FE#183 (AC-1) — yeni mağaza sahibi üçün özünəqeydiyyat keçidi. */}
+        <p className="mt-5 text-center text-sm text-stone-500">
+          Hesabınız yoxdur?{" "}
+          <Link to="/qeydiyyat" className="font-semibold text-emerald-700 hover:underline">
+            Yeni mağaza qeydiyyatı
+          </Link>
+        </p>
 
         {import.meta.env.DEV && !USE_MOCK && (
           <div className="mt-6 rounded-lg bg-stone-50 px-3 py-2.5 text-[11px] leading-relaxed text-stone-500 ring-1 ring-stone-200">

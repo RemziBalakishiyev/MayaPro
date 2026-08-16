@@ -12,6 +12,12 @@ vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => () => ({}),
   redirect: vi.fn(),
   useNavigate: () => mockNavigate,
+  // FE#183 — login.tsx indi "Yeni mağaza qeydiyyatı" keçidi üçün `Link` istifadə edir.
+  Link: ({ children, to, ...rest }: { children: React.ReactNode; to: string }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("@/features/auth/api", () => ({

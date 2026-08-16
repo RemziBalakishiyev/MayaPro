@@ -37,6 +37,45 @@ export const setUnauthorizedHandler = (fn: () => void): void => {
   unauthorizedHandler = fn;
 };
 
+/**
+ * FE#183 — mağaza girişini tam bloklayan üç vəziyyət: hesab hələ təsdiq
+ * gözləyir, mağaza bloklanıb, ya da abunə müddəti bitib. Backend bu üçünü
+ * `{ code, message }` bədənindəki `code`-la bildirir (BE#36/BE#41,
+ * `TenantGateMiddleware` + `LoginHandler`) — mesajın Azərbaycanca mətni
+ * artıq admin əlaqə nömrəsini ehtiva edir (Blocked/SubscriptionExpired).
+ */
+export type AccessBlockedReason = "PendingApproval" | "Blocked" | "SubscriptionExpired";
+
+/** Backend `code` → blok ekranı növü. `Auth.TenantInactiveForbidden` (naməlum/silinmiş mağaza) ehtiyat üçün Blocked kimi ötürülür. */
+const BLOCKED_CODES: Record<string, AccessBlockedReason> = {
+  "Auth.TenantPendingApprovalForbidden": "PendingApproval",
+  "Auth.TenantBlockedForbidden": "Blocked",
+  "Auth.TenantInactiveForbidden": "Blocked",
+  SubscriptionExpired: "SubscriptionExpired",
+};
+
+/**
+ * 403 blok koduna baxaraq: mövcud sessiyanı təmizləyir (istifadəçi "geri"
+ * düyməsi/URL yazmaqla app-a qayıda bilməsin — F-05) və tam səhifə blok
+ * ekranına yönləndirir. `unauthorizedHandler`-dən fərqli olaraq bu handler
+ * konfiqurasiya edilə bilməz: yönləndirmə hədəfi (`/hesab-bloklu`) hər zaman
+ * sabitdir, çünki bu ekran tətbiqin İÇİNDƏ deyil, ondan tamam kənardadır.
+ */
+function handleAccessBlocked(reason: AccessBlockedReason, message: string): void {
+  useAuthStore.getState().logout();
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams({ reason, message });
+  window.location.assign(`/hesab-bloklu?${params.toString()}`);
+}
+
+/** `data` artıq bədəndən oxunub — 403 cavabı blok kodlarından biridirsə blok ekranına keçir. */
+function checkAccessBlocked(data: unknown, status: number): void {
+  if (status !== 403) return;
+  const err = toApiError(data, status);
+  const reason = BLOCKED_CODES[err.code];
+  if (reason) handleAccessBlocked(reason, err.message);
+}
+
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
 /** Ortaq fetch başlıqları (token + body varsa Content-Type). */
@@ -102,6 +141,11 @@ async function request<T>(
 
   const data = parseMaybeJson(await res.text());
 
+  // FE#183 — 403 blok kodlarını 401-dən sonra, digər xətalardan ƏVVƏL yoxla:
+  // uğursuz olsa belə (məs. avtomatik yönləndirmə testdə yoxdur) çağıran
+  // tərəf yenə ApiError alır, sadəcə əvvəlcə sessiya təmizlənib istiqamətləndirilib.
+  checkAccessBlocked(data, res.status);
+
   if (!res.ok) throw toApiError(data, res.status);
 
   return data as T;
@@ -127,6 +171,8 @@ async function requestForm<T>(path: string, formData: FormData): Promise<T> {
   if (res.status === 401) throwUnauthorized();
 
   const data = parseMaybeJson(await res.text());
+
+  checkAccessBlocked(data, res.status);
 
   if (!res.ok) throw toApiError(data, res.status);
 
@@ -160,7 +206,9 @@ async function requestBlob(
     // Blob cavabında da xəta bədəni JSON-dur; JSON deyilsə (HTML/boş)
     // toApiError ümumi mesaja düşür.
     const text = await res.text().catch(() => "");
-    throw toApiError(parseMaybeJson(text), res.status);
+    const data = parseMaybeJson(text);
+    checkAccessBlocked(data, res.status);
+    throw toApiError(data, res.status);
   }
 
   return {

@@ -9,7 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as QeydiyyatRouteImport } from './routes/qeydiyyat'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HesabBlokluRouteImport } from './routes/hesab-bloklu'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppXerclerRouteImport } from './routes/_app.xercler'
@@ -24,9 +27,24 @@ import { Route as AppBorclarRouteImport } from './routes/_app.borclar'
 import { Route as AppAyarlarRouteImport } from './routes/_app.ayarlar'
 import { Route as AppMallarIdRouteImport } from './routes/_app.mallar_.$id'
 
+const QeydiyyatRoute = QeydiyyatRouteImport.update({
+  id: '/qeydiyyat',
+  path: '/qeydiyyat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HesabBlokluRoute = HesabBlokluRouteImport.update({
+  id: '/hesab-bloklu',
+  path: '/hesab-bloklu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -96,7 +114,10 @@ const AppMallarIdRoute = AppMallarIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/admin': typeof AdminRoute
+  '/hesab-bloklu': typeof HesabBlokluRoute
   '/login': typeof LoginRoute
+  '/qeydiyyat': typeof QeydiyyatRoute
   '/ayarlar': typeof AppAyarlarRoute
   '/borclar': typeof AppBorclarRoute
   '/gun-sonu': typeof AppGunSonuRoute
@@ -110,7 +131,10 @@ export interface FileRoutesByFullPath {
   '/mallar/$id': typeof AppMallarIdRoute
 }
 export interface FileRoutesByTo {
+  '/admin': typeof AdminRoute
+  '/hesab-bloklu': typeof HesabBlokluRoute
   '/login': typeof LoginRoute
+  '/qeydiyyat': typeof QeydiyyatRoute
   '/ayarlar': typeof AppAyarlarRoute
   '/borclar': typeof AppBorclarRoute
   '/gun-sonu': typeof AppGunSonuRoute
@@ -127,7 +151,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/admin': typeof AdminRoute
+  '/hesab-bloklu': typeof HesabBlokluRoute
   '/login': typeof LoginRoute
+  '/qeydiyyat': typeof QeydiyyatRoute
   '/_app/ayarlar': typeof AppAyarlarRoute
   '/_app/borclar': typeof AppBorclarRoute
   '/_app/gun-sonu': typeof AppGunSonuRoute
@@ -145,7 +172,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
+    | '/hesab-bloklu'
     | '/login'
+    | '/qeydiyyat'
     | '/ayarlar'
     | '/borclar'
     | '/gun-sonu'
@@ -159,7 +189,10 @@ export interface FileRouteTypes {
     | '/mallar/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/admin'
+    | '/hesab-bloklu'
     | '/login'
+    | '/qeydiyyat'
     | '/ayarlar'
     | '/borclar'
     | '/gun-sonu'
@@ -175,7 +208,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/admin'
+    | '/hesab-bloklu'
     | '/login'
+    | '/qeydiyyat'
     | '/_app/ayarlar'
     | '/_app/borclar'
     | '/_app/gun-sonu'
@@ -192,16 +228,40 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  AdminRoute: typeof AdminRoute
+  HesabBlokluRoute: typeof HesabBlokluRoute
   LoginRoute: typeof LoginRoute
+  QeydiyyatRoute: typeof QeydiyyatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/qeydiyyat': {
+      id: '/qeydiyyat'
+      path: '/qeydiyyat'
+      fullPath: '/qeydiyyat'
+      preLoaderRoute: typeof QeydiyyatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hesab-bloklu': {
+      id: '/hesab-bloklu'
+      path: '/hesab-bloklu'
+      fullPath: '/hesab-bloklu'
+      preLoaderRoute: typeof HesabBlokluRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -332,7 +392,10 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  AdminRoute: AdminRoute,
+  HesabBlokluRoute: HesabBlokluRoute,
   LoginRoute: LoginRoute,
+  QeydiyyatRoute: QeydiyyatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
