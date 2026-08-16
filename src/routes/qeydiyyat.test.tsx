@@ -7,6 +7,11 @@ import type { ComponentType, ReactNode } from "react";
  * FE#183 (AC-1/AC-2/AC-3, TC-01/TC-02/TC-03) — qeydiyyat forması: happy path
  * (token yazılmır, "qəbul olundu" ekranı görünür), boş sahə validasiyası,
  * server xətasında forma məlumatları itmir.
+ *
+ * `RegisterPage` `useRegisterTenant` (react-query `useMutation`) çağırır —
+ * `QueryClientProvider`-siz mühitdə xəta atır (bax `QuickSaleScreen.test.tsx`-
+ * dəki eyni naxış), ona görə burada `authApi` yox, birbaşa mutasiya hook-u
+ * mocklanır.
  */
 vi.mock("@tanstack/react-router", async () => {
   const actual = await vi.importActual<typeof import("@tanstack/react-router")>(
@@ -22,15 +27,16 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
-vi.mock("@/features/auth/api", () => ({
-  authApi: { register: vi.fn() },
+vi.mock("@/features/auth/queries", () => ({
+  useRegisterTenant: vi.fn(),
 }));
 
 import { Route } from "./qeydiyyat";
-import { authApi } from "@/features/auth/api";
+import { useRegisterTenant } from "@/features/auth/queries";
 import { useAuthStore } from "@/features/auth/store";
 
 const RegisterPage = Route.options.component as ComponentType;
+const mockUseRegisterTenant = vi.mocked(useRegisterTenant);
 
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByPlaceholderText("Sədərək Market"), "Test Market");
@@ -40,14 +46,20 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("/qeydiyyat", () => {
+  let mutateAsync: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
-    vi.mocked(authApi.register).mockReset();
+    mutateAsync = vi.fn();
+    mockUseRegisterTenant.mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    } as never);
     useAuthStore.setState({ user: null, token: null });
   });
 
   it("TC-01 — uğurlu qeydiyyatda 'Müraciətiniz qəbul olundu' ekranı görünür, sessiya yazılmır", async () => {
     const user = userEvent.setup();
-    vi.mocked(authApi.register).mockResolvedValue({
+    mutateAsync.mockResolvedValue({
       tenantId: "t1",
       storeName: "Test Market",
       status: "PendingApproval",
@@ -78,13 +90,13 @@ describe("/qeydiyyat", () => {
     expect(await screen.findByText("Mağaza adı boş ola bilməz")).toBeInTheDocument();
     expect(screen.getByText("Sahibkar adı boş ola bilməz")).toBeInTheDocument();
     expect(screen.getByText("Şifrə boş ola bilməz")).toBeInTheDocument();
-    expect(authApi.register).not.toHaveBeenCalled();
+    expect(mutateAsync).not.toHaveBeenCalled();
   });
 
   it("TC-03 — server xətasında forma açıq qalır, mesaj göstərilir, məlumatlar itmir", async () => {
     const user = userEvent.setup();
     const { ApiError } = await import("@/lib/api-client");
-    vi.mocked(authApi.register).mockRejectedValue(
+    mutateAsync.mockRejectedValue(
       new ApiError("Bu telefon nömrəsi artıq qeydiyyatdan keçib", "Conflict", 409),
     );
 
@@ -100,7 +112,7 @@ describe("/qeydiyyat", () => {
     expect(screen.getByPlaceholderText("Sədərək Market")).toHaveValue("Test Market");
 
     await waitFor(() => {
-      expect(authApi.register).toHaveBeenCalledTimes(1);
+      expect(mutateAsync).toHaveBeenCalledTimes(1);
     });
   });
 });

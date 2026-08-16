@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Field } from "@/components/ui/Field";
 import { useAuthStore } from "@/features/auth/store";
-import { authApi } from "@/features/auth/api";
+import { useRegisterTenant } from "@/features/auth/queries";
 import { ApiError } from "@/lib/api-client";
 
 export const Route = createFileRoute("/qeydiyyat")({
@@ -30,11 +30,12 @@ const MIN_PASSWORD_LENGTH = 6;
 function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const registerMut = useRegisterTenant();
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<RegisterFormValues>({
     defaultValues: { storeName: "", ownerName: "", phone: "", password: "" },
   });
@@ -44,7 +45,7 @@ function RegisterPage() {
     try {
       // FE#183 (AC-2) — token yazılmır, istifadəçi login edilmir; yalnız
       // "qəbul olundu" ekranı göstərilir.
-      await authApi.register({
+      await registerMut.mutateAsync({
         storeName: data.storeName.trim(),
         ownerName: data.ownerName.trim(),
         phone: data.phone.trim(),
@@ -150,7 +151,7 @@ function RegisterPage() {
           <Button
             type="submit"
             size="lg"
-            loading={isSubmitting}
+            loading={registerMut.isPending}
             className="w-full justify-center"
           >
             Qeydiyyatdan keç

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { Badge } from "@/components/ui/Badge";
 import type { Tenant } from "../types";
 
 /**
@@ -12,28 +12,17 @@ export function tenantStatusLabel(t: Pick<Tenant, "status" | "isExpired">): stri
   return "Aktiv";
 }
 
-const TONE: Record<string, string> = {
-  Gözləyir: "bg-amber-50 text-amber-800 ring-amber-200/70",
-  Aktiv: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
-  Bloklu: "bg-red-50 text-red-700 ring-red-200/70",
-  "Müddəti bitib": "bg-orange-50 text-orange-800 ring-orange-200/70",
-};
-
-/** Mağazalar cədvəlindəki status nişanı: Gözləyir=sarı, Aktiv=yaşıl, Bloklu=qırmızı, Müddəti bitib=narıncı. */
+/**
+ * Mağazalar cədvəlindəki status nişanı: Gözləyir=sarı, Aktiv=yaşıl,
+ * Bloklu=qırmızı, Müddəti bitib=narıncı. Paylaşılan DS `Badge` primitivinə
+ * (`components/ui/Badge.tsx`) delegasiya edir — `ProductStatusBadge` ilə eyni
+ * naxış (ayrıca rəng xəritəsi/markup TƏKRARLANMIR).
+ */
 export function TenantStatusBadge({
   tenant,
 }: {
   tenant: Pick<Tenant, "status" | "isExpired">;
 }) {
   const label = tenantStatusLabel(tenant);
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium tracking-wide ring-1 ring-inset",
-        TONE[label],
-      )}
-    >
-      {label}
-    </span>
-  );
+  return <Badge tone={label}>{label}</Badge>;
 }
