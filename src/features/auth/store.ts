@@ -38,6 +38,9 @@ const CAPABILITIES: Record<Role, string[]> = {
     "salary.record",
   ],
   satici: ["sales.write", "customers.write"],
+  // FE#183 — platforma admini heç bir mağaza icazəsinə sahib deyil: onun
+  // səlahiyyəti `/admin` bölməsindədir (route guard-ı ilə), bu cədvəldə yox.
+  platform_admin: [],
 };
 
 interface AuthState {

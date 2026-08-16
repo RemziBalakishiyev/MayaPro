@@ -45,6 +45,15 @@ export const STATUS_STYLE: Record<string, string> = {
   Menecer: "bg-sky-50 text-sky-700 ring-sky-200/70",
   Kassir: "bg-sky-50 text-sky-700 ring-sky-200/70",
   "Satıcı": "bg-teal-50 text-teal-700 ring-teal-200/70",
+  /**
+   * FE#183 — platforma admin panelindəki mağaza statusları
+   * (`TenantStatusBadge`). "Aktiv" yuxarıda artıq mövcuddur, digər üçü
+   * buraya əlavə olunub ki, o komponent özü ayrıca rəng xəritəsi
+   * saxlamasın — bax Badge.tsx başındakı şərh (təkrar komponent qadağası).
+   */
+  Gözləyir: "bg-amber-50 text-amber-800 ring-amber-200/70",
+  Bloklu: "bg-red-50 text-red-700 ring-red-200/70",
+  "Müddəti bitib": "bg-orange-50 text-orange-800 ring-orange-200/70",
 };
 
 const FALLBACK = "bg-stone-50 text-stone-600 ring-stone-200/80";

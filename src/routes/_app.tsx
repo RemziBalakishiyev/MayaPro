@@ -34,8 +34,15 @@ import { fmtMoney } from "@/lib/format";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: () => {
-    if (!useAuthStore.getState().user) {
+    const user = useAuthStore.getState().user;
+    if (!user) {
       throw redirect({ to: "/login" });
+    }
+    // FE#183 (AC-10) — platforma admininin mağaza interfeysinə heç bir girişi
+    // yoxdur: `/`, `/mallar`, `/satis` və s. bütün mağaza route-larından
+    // avtomatik `/admin`-ə geri yönləndirilir.
+    if (user.role === "platform_admin") {
+      throw redirect({ to: "/admin" });
     }
   },
   component: AppLayout,

@@ -15,8 +15,12 @@ export type ProductStatus =
  */
 export type ExpenseSource = "general" | "product";
 
-/** Auth istifadəçisinin rolu. */
-export type Role = "sahib" | "menecer" | "satici";
+/**
+ * Auth istifadəçisinin rolu.
+ * `platform_admin` — BE#36/FE#183: platforma operatoru, heç bir mağazaya
+ * bağlı deyil, yalnız `/admin` bölməsinə (PlatformAdminOnly) girişi var.
+ */
+export type Role = "sahib" | "menecer" | "satici" | "platform_admin";
 
 /** Malın partiya xərci sətri — sərbəst ad + məbləğ. */
 export interface ProductExpenseLine {
