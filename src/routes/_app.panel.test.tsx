@@ -45,7 +45,7 @@ vi.mock("@/features/day-end/queries", async () => {
   return { ...actual, useTodayClosing: vi.fn() };
 });
 
-import { Route } from "./_app.index";
+import { Route } from "./_app.panel";
 import { useDashboardStats, useDebtsKpi } from "@/features/reports/queries";
 import { useTodayClosing } from "@/features/day-end/queries";
 

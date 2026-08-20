@@ -80,7 +80,7 @@ describe("LoginPage", () => {
     await waitFor(() => {
       expect(useAuthStore.getState().user?.id).toBe("u1");
     });
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/panel" });
   });
 
   it("API xətasında server xəta mesajı göstərilir və yönləndirmə baş vermir", async () => {

@@ -30,7 +30,7 @@ import { useTodayClosing } from "@/features/day-end/queries";
 import { DailyBarChart } from "@/features/reports/components/DailyBarChart";
 import { TrendLineChart } from "@/features/reports/components/TrendLineChart";
 
-export const Route = createFileRoute("/_app/")({
+export const Route = createFileRoute("/_app/panel")({
   component: DashboardPage,
 });
 

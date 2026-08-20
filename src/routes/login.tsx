@@ -15,7 +15,7 @@ export const Route = createFileRoute("/login")({
     // adi mağaza istifadəçisi dashboard-a (AC-8).
     const user = useAuthStore.getState().user;
     if (user) {
-      throw redirect({ to: user.role === "platform_admin" ? "/admin" : "/" });
+      throw redirect({ to: user.role === "platform_admin" ? "/admin" : "/panel" });
     }
   },
   component: LoginPage,
@@ -47,7 +47,7 @@ export function LoginPage() {
       );
       login(user, token);
       // FE#183 (AC-8) — platforma admini birbaşa /admin-ə, adi istifadəçi dashboard-a.
-      navigate({ to: user.role === "platform_admin" ? "/admin" : "/" });
+      navigate({ to: user.role === "platform_admin" ? "/admin" : "/panel" });
     } catch (e) {
       setServerError(
         e instanceof ApiError

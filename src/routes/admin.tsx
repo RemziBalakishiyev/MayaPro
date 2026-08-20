@@ -35,7 +35,7 @@ export const Route = createFileRoute("/admin")({
   beforeLoad: () => {
     const user = useAuthStore.getState().user;
     if (!user) throw redirect({ to: "/login" });
-    if (user.role !== "platform_admin") throw redirect({ to: "/" });
+    if (user.role !== "platform_admin") throw redirect({ to: "/panel" });
   },
   component: AdminPage,
 });

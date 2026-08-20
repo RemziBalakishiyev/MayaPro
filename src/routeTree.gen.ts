@@ -14,10 +14,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as HesabBlokluRouteImport } from './routes/hesab-bloklu'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
-import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppXerclerRouteImport } from './routes/_app.xercler'
 import { Route as AppTedarukculerRouteImport } from './routes/_app.tedarukculer'
 import { Route as AppSatisRouteImport } from './routes/_app.satis'
+import { Route as AppPanelRouteImport } from './routes/_app.panel'
 import { Route as AppMusterilerRouteImport } from './routes/_app.musteriler'
 import { Route as AppMallarRouteImport } from './routes/_app.mallar'
 import { Route as AppIscilarRouteImport } from './routes/_app.iscilar'
@@ -51,10 +52,10 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppXerclerRoute = AppXerclerRouteImport.update({
   id: '/xercler',
@@ -69,6 +70,11 @@ const AppTedarukculerRoute = AppTedarukculerRouteImport.update({
 const AppSatisRoute = AppSatisRouteImport.update({
   id: '/satis',
   path: '/satis',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPanelRoute = AppPanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMusterilerRoute = AppMusterilerRouteImport.update({
@@ -113,7 +119,7 @@ const AppMallarIdRoute = AppMallarIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
+  '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/hesab-bloklu': typeof HesabBlokluRoute
   '/login': typeof LoginRoute
@@ -125,12 +131,14 @@ export interface FileRoutesByFullPath {
   '/iscilar': typeof AppIscilarRoute
   '/mallar': typeof AppMallarRoute
   '/musteriler': typeof AppMusterilerRoute
+  '/panel': typeof AppPanelRoute
   '/satis': typeof AppSatisRoute
   '/tedarukculer': typeof AppTedarukculerRoute
   '/xercler': typeof AppXerclerRoute
   '/mallar/$id': typeof AppMallarIdRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/hesab-bloklu': typeof HesabBlokluRoute
   '/login': typeof LoginRoute
@@ -142,14 +150,15 @@ export interface FileRoutesByTo {
   '/iscilar': typeof AppIscilarRoute
   '/mallar': typeof AppMallarRoute
   '/musteriler': typeof AppMusterilerRoute
+  '/panel': typeof AppPanelRoute
   '/satis': typeof AppSatisRoute
   '/tedarukculer': typeof AppTedarukculerRoute
   '/xercler': typeof AppXerclerRoute
-  '/': typeof AppIndexRoute
   '/mallar/$id': typeof AppMallarIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/admin': typeof AdminRoute
   '/hesab-bloklu': typeof HesabBlokluRoute
@@ -162,10 +171,10 @@ export interface FileRoutesById {
   '/_app/iscilar': typeof AppIscilarRoute
   '/_app/mallar': typeof AppMallarRoute
   '/_app/musteriler': typeof AppMusterilerRoute
+  '/_app/panel': typeof AppPanelRoute
   '/_app/satis': typeof AppSatisRoute
   '/_app/tedarukculer': typeof AppTedarukculerRoute
   '/_app/xercler': typeof AppXerclerRoute
-  '/_app/': typeof AppIndexRoute
   '/_app/mallar_/$id': typeof AppMallarIdRoute
 }
 export interface FileRouteTypes {
@@ -183,12 +192,14 @@ export interface FileRouteTypes {
     | '/iscilar'
     | '/mallar'
     | '/musteriler'
+    | '/panel'
     | '/satis'
     | '/tedarukculer'
     | '/xercler'
     | '/mallar/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/admin'
     | '/hesab-bloklu'
     | '/login'
@@ -200,13 +211,14 @@ export interface FileRouteTypes {
     | '/iscilar'
     | '/mallar'
     | '/musteriler'
+    | '/panel'
     | '/satis'
     | '/tedarukculer'
     | '/xercler'
-    | '/'
     | '/mallar/$id'
   id:
     | '__root__'
+    | '/'
     | '/_app'
     | '/admin'
     | '/hesab-bloklu'
@@ -219,14 +231,15 @@ export interface FileRouteTypes {
     | '/_app/iscilar'
     | '/_app/mallar'
     | '/_app/musteriler'
+    | '/_app/panel'
     | '/_app/satis'
     | '/_app/tedarukculer'
     | '/_app/xercler'
-    | '/_app/'
     | '/_app/mallar_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AdminRoute: typeof AdminRoute
   HesabBlokluRoute: typeof HesabBlokluRoute
@@ -271,12 +284,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/': {
-      id: '/_app/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/xercler': {
       id: '/_app/xercler'
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       path: '/satis'
       fullPath: '/satis'
       preLoaderRoute: typeof AppSatisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/panel': {
+      id: '/_app/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof AppPanelRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/musteriler': {
@@ -366,10 +386,10 @@ interface AppRouteChildren {
   AppIscilarRoute: typeof AppIscilarRoute
   AppMallarRoute: typeof AppMallarRoute
   AppMusterilerRoute: typeof AppMusterilerRoute
+  AppPanelRoute: typeof AppPanelRoute
   AppSatisRoute: typeof AppSatisRoute
   AppTedarukculerRoute: typeof AppTedarukculerRoute
   AppXerclerRoute: typeof AppXerclerRoute
-  AppIndexRoute: typeof AppIndexRoute
   AppMallarIdRoute: typeof AppMallarIdRoute
 }
 
@@ -381,16 +401,17 @@ const AppRouteChildren: AppRouteChildren = {
   AppIscilarRoute: AppIscilarRoute,
   AppMallarRoute: AppMallarRoute,
   AppMusterilerRoute: AppMusterilerRoute,
+  AppPanelRoute: AppPanelRoute,
   AppSatisRoute: AppSatisRoute,
   AppTedarukculerRoute: AppTedarukculerRoute,
   AppXerclerRoute: AppXerclerRoute,
-  AppIndexRoute: AppIndexRoute,
   AppMallarIdRoute: AppMallarIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AdminRoute: AdminRoute,
   HesabBlokluRoute: HesabBlokluRoute,
