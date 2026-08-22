@@ -104,6 +104,12 @@ function RegisterPage() {
             </div>
           </div>
 
+          {serverError && (
+            <div className="mb-4">
+              <InlineError message={serverError} />
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <Field label="Mağaza adı" required error={errors.storeName?.message}>
               <Input
@@ -156,8 +162,6 @@ function RegisterPage() {
                 placeholder="••••••"
               />
             </Field>
-
-            {serverError && <InlineError message={serverError} />}
 
             <Button
               type="submit"
