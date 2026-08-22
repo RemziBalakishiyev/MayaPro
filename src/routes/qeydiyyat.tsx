@@ -13,7 +13,10 @@ import { ApiError } from "@/lib/api-client";
 export const Route = createFileRoute("/qeydiyyat")({
   beforeLoad: () => {
     const user = useAuthStore.getState().user;
-    if (user) throw redirect({ to: user.role === "platform_admin" ? "/admin" : "/" });
+    if (user)
+      throw redirect({
+        to: user.role === "platform_admin" ? "/admin" : "/panel",
+      });
   },
   component: RegisterPage,
 });

@@ -71,7 +71,7 @@ export function Sidebar({
             key={to}
             to={to}
             onClick={onNavigate}
-            activeOptions={{ exact: to === "/" }}
+            activeOptions={{ exact: to === "/panel" }}
             className={cn(
               "flex min-h-[44px] items-center gap-3 rounded-control px-3 py-2",
               "text-base font-medium text-emerald-100/80 transition",

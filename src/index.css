@@ -86,6 +86,17 @@ body {
     @apply min-w-0 overflow-hidden truncate tabular-nums;
   }
 
+  /*
+   * LANDING (public `/`) — giriş animasiyası.
+   * Yalnız `opacity` + `transform`; JS vəziyyəti YOXDUR, ona görə arxa fonda
+   * açılan tabda da "görünməz qalmış məzmun" riski yoxdur. `both` doldurması
+   * ilə animasiya başlamazdan əvvəl də, sonra da vəziyyət müəyyəndir.
+   * Yuxarıdakı `prefers-reduced-motion` bloku bunu avtomatik söndürür.
+   */
+  .landing-enter {
+    animation: landing-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   /* Səhifə daxilində vahid kart səthi */
   .surface-card {
     @apply rounded-card border border-stone-200 bg-white shadow-card;
@@ -101,6 +112,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
@@ -146,4 +158,15 @@ a {
 
 .sidebar-scroll::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+@keyframes landing-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

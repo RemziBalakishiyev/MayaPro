@@ -55,7 +55,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: "/", label: "Ana səhifə", icon: LayoutDashboard },
+  { to: "/panel", label: "Ana səhifə", icon: LayoutDashboard },
   { to: "/mallar", label: "Mallar", icon: Package },
   { to: "/satis", label: "Satış", icon: ShoppingCart },
   { to: "/musteriler", label: "Müştərilər", icon: Users },
@@ -70,7 +70,7 @@ const NAV: NavItem[] = [
 
 /** Aşağı tab bar üçün ən vacib 4 bənd (+ "Daha çox"). */
 const TABS: NavItem[] = [
-  { to: "/", label: "Ana səhifə", icon: LayoutDashboard },
+  { to: "/panel", label: "Ana səhifə", icon: LayoutDashboard },
   { to: "/satis", label: "Satış", icon: ShoppingCart },
   { to: "/mallar", label: "Mallar", icon: Package },
   { to: "/borclar", label: "Borclar", icon: Users },
@@ -149,7 +149,7 @@ function AppLayout() {
           <Link
             key={to}
             to={to}
-            activeOptions={{ exact: to === "/" }}
+            activeOptions={{ exact: to === "/panel" }}
             className="focus-ring-inset flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold text-stone-500"
             activeProps={{ className: "text-emerald-700" }}
           >

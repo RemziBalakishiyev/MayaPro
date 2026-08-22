@@ -39,7 +39,7 @@ describe("/admin beforeLoad guard", () => {
       caught = e;
     }
     expect(isRedirect(caught)).toBe(true);
-    expect((caught as { options: { to: string } }).options.to).toBe("/");
+    expect((caught as { options: { to: string } }).options.to).toBe("/panel");
   });
 
   it("platform_admin rolu heç bir yönləndirmə olmadan davam edir", () => {
