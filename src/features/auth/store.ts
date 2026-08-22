@@ -1,6 +1,82 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import type { StateStorage } from "zustand/middleware";
 import type { Role } from "@/types";
+
+/** Auth persist state-inin saxlandığı açar (həm `persist`, həm aşağıdakı təmizləmə üçün TƏK mənbə). */
+const AUTH_STORAGE_KEY = "sederek-auth";
+
+/**
+ * FE#187 — "Hesabı yadda saxla" checkbox-ının vəziyyəti bu açarda saxlanılır
+ * (auth state-in özündən AYRI, HƏMİŞƏ localStorage-da) — çünki səhifə açılışında
+ * `persist` middleware-i hansı yaddaşdan (localStorage/sessionStorage) oxuyacağını
+ * auth state-in özü yüklənməzdən ƏVVƏL bilməlidir.
+ *
+ * - "1" (və ya açar yoxdursa, defolt) → localStorage: tab/brauzer bağlanandan sonra
+ *   da sessiya qalır (BE#45: rememberMe=true → 30 günlük token).
+ * - "0" → sessionStorage: brauzer tam bağlananda sessiya silinir.
+ */
+const REMEMBER_FLAG_KEY = "sederek-auth-remember";
+
+function readRememberFlag(): boolean {
+  try {
+    const v = localStorage.getItem(REMEMBER_FLAG_KEY);
+    return v === null ? true : v === "1";
+  } catch {
+    // localStorage əlçatan deyil (məs. gizli rejim/SSR) — defolt davranış.
+    return true;
+  }
+}
+
+/**
+ * Login formu checkbox dəyişəndə (submit-dən əvvəl) çağırır: sonrakı
+ * `login()` çağırışının hansı yaddaşa yazılacağını təyin edir. Digər
+ * yaddaşdakı köhnə iz (əvvəlki sessiyadan miras) dərhal silinir ki, iki
+ * yaddaşda eyni anda köhnəlmiş/təzə auth state qarışığı qalmasın.
+ */
+export function setRememberMe(remember: boolean): void {
+  try {
+    localStorage.setItem(REMEMBER_FLAG_KEY, remember ? "1" : "0");
+    (remember ? sessionStorage : localStorage).removeItem(AUTH_STORAGE_KEY);
+  } catch {
+    // yaddaş əlçatan deyil — sükutla keç, defolt (localStorage) davranış davam edir.
+  }
+}
+
+/**
+ * `rememberMe` seçiminə görə runtime-da localStorage/sessionStorage arasında
+ * keçid edən storage adapteri. `zustand/persist` hər state dəyişikliyində
+ * `setItem` çağırır — checkbox vəziyyəti hər dəfə `readRememberFlag()` ilə
+ * yenidən oxunur, ona görə seçim login zamanı dərhal effektiv olur.
+ */
+const dynamicAuthStorage: StateStorage = {
+  getItem: (name) => {
+    try {
+      return (readRememberFlag() ? localStorage : sessionStorage).getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    try {
+      const remember = readRememberFlag();
+      const active = remember ? localStorage : sessionStorage;
+      const inactive = remember ? sessionStorage : localStorage;
+      active.setItem(name, value);
+      inactive.removeItem(name);
+    } catch {
+      // yaddaş əlçatan deyil — sükutla keç.
+    }
+  },
+  removeItem: (name) => {
+    try {
+      localStorage.removeItem(name);
+      sessionStorage.removeItem(name);
+    } catch {
+      // yaddaş əlçatan deyil — sükutla keç.
+    }
+  },
+};
 
 export interface AuthUser {
   id: string;
@@ -66,7 +142,10 @@ export const useAuthStore = create<AuthState>()(
         return caps.includes("*") || caps.includes(permission);
       },
     }),
-    { name: "sederek-auth" },
+    {
+      name: AUTH_STORAGE_KEY,
+      storage: createJSONStorage(() => dynamicAuthStorage),
+    },
   ),
 );
 
