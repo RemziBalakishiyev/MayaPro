@@ -11,6 +11,7 @@ import { authApi } from "@/features/auth/api";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
+import { AuthBackground } from "./-auth-background";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: () => {
@@ -75,16 +76,9 @@ export function LoginPage() {
        * FE#187 — fon: landing (`HeroSection`) ilə eyni rəng ailəsi (emerald-
        * stone), lakin YÜNGÜL versiya: tünd `bg-emerald-950` yerinə açıq isti
        * fon üzərində incə radial parıltı + şəbəkə naxışı. Şəkil yoxdur (0 kB
-       * şəbəkə yükü), CLS riski yoxdur.
+       * şəbəkə yükü), CLS riski yoxdur. `/qeydiyyat` ilə paylaşılan komponent.
        */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(65%_50%_at_50%_0%,rgba(16,185,129,0.14),transparent_70%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(to_right,#065f46_1px,transparent_1px),linear-gradient(to_bottom,#065f46_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(60%_45%_at_50%_10%,black,transparent)]"
-      />
+      <AuthBackground />
 
       <div className="relative w-full max-w-sm">
         <div className="rounded-card bg-white p-6 shadow-panel ring-1 ring-stone-200 sm:p-8">

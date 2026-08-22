@@ -7,29 +7,11 @@ import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Field } from "@/components/ui/Field";
+import { InlineError } from "@/components/ui/InlineError";
 import { useAuthStore } from "@/features/auth/store";
 import { useRegisterTenant } from "@/features/auth/queries";
 import { ApiError } from "@/lib/api-client";
-
-/**
- * FE#187 — login (`/login`) ilə eyni vizual ailə: incə isti fon (radial
- * parıltı + şəbəkə naxışı) + tək təmiz kart. İki səhifə arasında keçən
- * istifadəçi eyni "hiss"i alsın deyə paylaşılan sabitlər.
- */
-function AuthBackground() {
-  return (
-    <>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(65%_50%_at_50%_0%,rgba(16,185,129,0.14),transparent_70%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(to_right,#065f46_1px,transparent_1px),linear-gradient(to_bottom,#065f46_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(60%_45%_at_50%_10%,black,transparent)]"
-      />
-    </>
-  );
-}
+import { AuthBackground } from "./-auth-background";
 
 export const Route = createFileRoute("/qeydiyyat")({
   beforeLoad: () => {
@@ -175,11 +157,7 @@ function RegisterPage() {
               />
             </Field>
 
-            {serverError && (
-              <div className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200">
-                {serverError}
-              </div>
-            )}
+            {serverError && <InlineError message={serverError} />}
 
             <Button
               type="submit"

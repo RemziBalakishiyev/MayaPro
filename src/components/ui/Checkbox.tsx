@@ -35,7 +35,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             ref={ref}
             id={inputId}
             type="checkbox"
-            className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-md border-2 border-stone-300 bg-white outline-none transition-colors checked:border-emerald-600 checked:bg-emerald-600 focus-visible:ring-4 focus-visible:ring-emerald-500/20"
+            className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-tag border-2 border-stone-300 bg-white outline-none transition-colors checked:border-emerald-600 checked:bg-emerald-600 focus-visible:ring-4 focus-visible:ring-emerald-500/20"
             {...props}
           />
           <Check
