@@ -328,3 +328,17 @@ createRoot(document.getElementById("root")!).render(
 - **Rol icazələri:** `features/auth/store.ts`-də `can(permission)` helper — Satıcı endirim edə bilmirsə, düymə buradan gizlənir
 - **Dil dəstəyi:** bütün mətnlər hələlik komponentlərdə Azərbaycanca; i18n lazım olsa `lib/i18n.ts` + açar faylları əlavə olunur
 - **Offline / PWA:** bazar şəraitində internet kəsilə bilər — TanStack Query persist + service worker sonradan asan əlavə olunur, çünki server state onsuz da mərkəzləşib
+
+---
+
+## 8. Deploy (Azure Static Web Apps)
+
+Build/deploy: `.github/workflows/azure-static-web-apps-*.yml` — `app_location: "/"`, `output_location: "dist"`. Backend ünvanı build zamanı step-in `env` bloğundakı `VITE_API_URL`-dən gəlir; **verilməsə `USE_MOCK=true` olur və deploy olunan sayt mock data ilə işləyir** (hər giriş `sahib` rolu ilə "uğurlu" olur).
+
+### 8.1 SPA fallback məcburidir
+
+`public/staticwebapp.config.json` → build zamanı `dist/`-ə kopyalanır. `navigationFallback` olmadan SWA yalnız `/` üçün `index.html` verir; `/login`, `/admin`, `/panel`, `/hesab-bloklu` kimi bütün digər yollar Azure-un öz 404 səhifəsini qaytarır. Bu təkcə səhifə yeniləməyə/paylaşılan linkə deyil, kodun **tam səhifə keçidlərinə** də toxunur: `api-client` 401-də `window.location.assign("/login")`, blok kodlarında isə `/hesab-bloklu`-ya keçir.
+
+### 8.2 Sessiya rolu serverdən təsdiqlənir
+
+`features/auth/session.ts` — açılışda token varsa `GET /api/auth/me` çağırılır və `user` (xüsusən `role`) serverdən gələnlə əvəz olunur, sonra `router.invalidate()` guard-ları yenidən işlədir. Səbəb: `localStorage`-dakı rol bütün marşrut guard-larını idarə edir (`/admin` yalnız `platform_admin`-ə), köhnəlmiş rol isə istifadəçini səhv interfeysdə kilidləyir və login səhifəsi də əlçatmaz olur (login guard-ı geri atır). 401 sessiyanı təmizləyir; 500/şəbəkə xətası isə toxunmur.
