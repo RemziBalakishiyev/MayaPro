@@ -50,7 +50,14 @@ describe("weeklySeries — FE#78 bənd #6 (real tarix aralığı etiketi)", () =
   });
 
   it("qazanc dəyəri dövrün satışlarından hesablanır — etiket formatı DƏYİŞSƏ də dəyər eyni qalır", () => {
-    const sales = [sale({ profit: 50 }), sale({ profit: 30 })];
+    // Cari tarixə bağlı olmasın deyə "bugün"ə nisbətən dinamik hesablanır
+    // (bax FE#197: sabit tarix testin real vaxtla "son 1 həftə" pəncərəsindən
+    // çıxmasına səbəb olurdu).
+    const today = new Date().toISOString().slice(0, 10);
+    const sales = [
+      sale({ profit: 50, createdAt: `${today}T10:00:00.000Z` }),
+      sale({ profit: 30, createdAt: `${today}T10:00:00.000Z` }),
+    ];
     const points = weeklySeries(sales, 1);
     expect(points[0].qazanc).toBe(80);
   });
