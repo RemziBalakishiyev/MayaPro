@@ -173,6 +173,27 @@ describe("LoginPage", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
+  // FE#190 — /hesab-bloklu (PendingApproval) tam səhifə yönləndirməsi zamanı
+  // React state itdiyi üçün cəhd edilən telefon sessionStorage-a yazılmalıdır.
+  it("submit zamanı cəhd edilən telefon sessionStorage-a (WhatsApp körpüsü) yazılır", async () => {
+    const user = userEvent.setup();
+    vi.mocked(authApi.login).mockRejectedValue(
+      new ApiError("Hesabınız təsdiq gözləyir", "Auth.TenantPendingApprovalForbidden", 403),
+    );
+
+    render(<LoginPage />);
+
+    await user.type(screen.getByPlaceholderText("50 123 45 67"), "501112233");
+    await user.type(screen.getByPlaceholderText("••••••"), "demo123");
+    await user.click(screen.getByRole("button", { name: /daxil ol/i }));
+
+    await waitFor(() => {
+      expect(sessionStorage.getItem("sederek-last-login-phone")).toBe(
+        "994501112233",
+      );
+    });
+  });
+
   it("qeydiyyat və ana səhifə keçidləri düzgün ünvanlara işarə edir", () => {
     render(<LoginPage />);
 

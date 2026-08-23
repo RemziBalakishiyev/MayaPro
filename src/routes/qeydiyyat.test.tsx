@@ -81,6 +81,32 @@ describe("/qeydiyyat", () => {
     );
   });
 
+  // FE#190 — "qəbul olundu" ekranında mağaza adı + telefonla WhatsApp bildiriş linki.
+  it("uğurlu qeydiyyatdan sonra WhatsApp bildiriş düyməsi mağaza adı və telefonla düzgün linkə yönəlir", async () => {
+    const user = userEvent.setup();
+    mutateAsync.mockResolvedValue({
+      tenantId: "t1",
+      storeName: "Test Market",
+      status: "PendingApproval",
+      message: "Qəbul edildi",
+    });
+
+    render(<RegisterPage />);
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: /qeydiyyatdan keç/i }));
+
+    const waLink = await screen.findByRole("link", {
+      name: /whatsapp-la qeydiyyatını bildir/i,
+    });
+    const href = waLink.getAttribute("href") ?? "";
+    expect(href).toContain("https://wa.me/994508712603?text=");
+    expect(decodeURIComponent(href)).toContain("Mağaza: Test Market");
+    expect(decodeURIComponent(href)).toContain("Telefon: 994501112233");
+    expect(
+      screen.getByText("Bir mesajla admin qeydiyyatını görüb təsdiqləyəcək"),
+    ).toBeInTheDocument();
+  });
+
   it("TC-02 — boş formada validasiya xətaları göstərilir, backend çağırılmır", async () => {
     const user = userEvent.setup();
     render(<RegisterPage />);
