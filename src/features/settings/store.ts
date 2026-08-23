@@ -23,7 +23,10 @@ interface SettingsState extends Settings {
 }
 
 const DEFAULTS: Settings = {
-  storeName: "Sədərək Anbar",
+  // FE#192 — platforma brendi ("Anbarcı Az") ilə qarışdırmamaq üçün defolt
+  // burada BOŞ saxlanılır: mağaza adı qeydiyyat zamanı istifadəçi tərəfindən
+  // daxil edilir (bax `qeydiyyat.tsx`), sistemin öz brendi ilə əvəz olunmur.
+  storeName: "",
   ownerName: "",
   address: "",
   phone: "",

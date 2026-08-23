@@ -1,4 +1,4 @@
-# MayaPro — Sədərək Anbar Sistemi
+# Anbarcı Az — Anbar İdarəetmə Sistemi
 
 Bazar/anbar biznesi üçün mal, satış, nisyə borc, təchizatçı, xərc, gün sonu və hesabat idarəetmə sistemi (frontend). Sistemin fərqi «real pul» (kassada olmalı nağd) ilə «kağız üzərində qazanc» (nisyə daxil) arasındakı fərqi daim göz önündə saxlamasıdır. Bütün interfeys Azərbaycancadır və pul `fmtMoney()` ilə "1,250.00 AZN" formatında göstərilir.
 

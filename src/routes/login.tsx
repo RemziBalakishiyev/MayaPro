@@ -12,6 +12,7 @@ import { authApi } from "@/features/auth/api";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
 import { isPhoneIncomplete } from "@/lib/phone";
 import { Field } from "@/components/ui/Field";
+import { BRAND_NAME } from "@/lib/config";
 import { AuthBackground } from "./-auth-background";
 
 export const Route = createFileRoute("/login")({
@@ -89,7 +90,7 @@ export function LoginPage() {
               <Store size={26} className="text-emerald-700" aria-hidden />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-stone-900">Sədərək Anbar</h1>
+              <h1 className="text-xl font-extrabold text-stone-900">{BRAND_NAME}</h1>
               <p className="mt-1 text-sm text-stone-500">Sistemə daxil ol</p>
             </div>
           </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Menu, Store, X } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { BRAND_NAME } from "@/lib/config";
 import { Container } from "./Section";
 import { scrollToSection } from "./motion";
 
@@ -64,7 +65,7 @@ export function LandingHeader() {
               solid || menuOpen ? "text-stone-900" : "text-white",
             )}
           >
-            Sədərək Sistem
+            {BRAND_NAME}
           </span>
         </button>
 
