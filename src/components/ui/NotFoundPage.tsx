@@ -45,7 +45,7 @@ export function NotFoundPage() {
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-400/40">
               <ShieldCheck size={20} />
             </span>
-            <h1 className="text-lg font-bold text-stone-900">Platforma Admin</h1>
+            <p className="text-lg font-bold text-stone-900">Platforma Admin</p>
           </div>
         </header>
         <NotFoundCard
