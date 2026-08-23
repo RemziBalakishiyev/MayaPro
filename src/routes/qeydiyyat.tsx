@@ -142,7 +142,7 @@ function RegisterPage() {
                   <PhoneInput
                     value={field.value}
                     onChange={field.onChange}
-                    className="!h-[52px]"
+                    size="lg"
                   />
                 )}
               />

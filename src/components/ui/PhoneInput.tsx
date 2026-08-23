@@ -2,15 +2,18 @@ import { forwardRef } from "react";
 import type { InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 import { formatLocalPhone, toLocalPhoneDigits, toStoredPhone } from "@/lib/phone";
-import { inputCls } from "./Input";
+import { inputCls, SIZE_CLS } from "./Input";
+import type { InputSize } from "./Input";
 
 export type PhoneInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
-  "value" | "onChange" | "type" | "inputMode"
+  "value" | "onChange" | "type" | "inputMode" | "size"
 > & {
   /** Saxlanılan format: "994501234567" və ya "". */
   value: string;
   onChange: (value: string) => void;
+  /** Vizual ölçü tokeni — `Input`/`PasswordInput` ilə eyni `SIZE_CLS` cədvəlindən istifadə edir. */
+  size?: InputSize;
 };
 
 /**
@@ -23,6 +26,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
       onChange,
       className,
       placeholder = "50 123 45 67",
+      size = "md",
       // FE#188 — login kimi xüsusi formalar parol menecerləri üçün
       // `autoComplete="username"` ötürə bilsin deyə defolt override edilə bilir.
       autoComplete = "tel-national",
@@ -36,6 +40,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
       <div
         className={cn(
           "flex h-12 overflow-hidden rounded-xl border border-stone-300 bg-white transition-shadow focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/20",
+          SIZE_CLS[size],
           className,
         )}
       >

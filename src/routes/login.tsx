@@ -117,7 +117,7 @@ export function LoginPage() {
                     value={field.value}
                     onChange={field.onChange}
                     autoComplete="username"
-                    className="!h-[52px]"
+                    size="lg"
                   />
                 )}
               />

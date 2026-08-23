@@ -19,7 +19,7 @@ export type InputSize = "md" | "lg";
  * saxlayır (mövcud səhifələr dəyişmir). `!h-[52px]` (important) istifadə
  * olunur ki, utility class sırasından asılı olmadan etibarlı override etsin.
  */
-const SIZE_CLS: Record<InputSize, string> = {
+export const SIZE_CLS: Record<InputSize, string> = {
   md: "",
   lg: "!h-[52px]",
 };
