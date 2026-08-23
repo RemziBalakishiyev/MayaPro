@@ -8,8 +8,7 @@ import { EmptyValue } from "@/components/ui/EmptyValue";
 import { Spinner } from "@/components/ui/Spinner";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
-import { fmtMoney, fmtMoneySigned } from "@/lib/format";
-import { formatPhoneDisplay } from "@/lib/phone";
+import { fmtMoney, fmtMoneySigned, fmtPhone } from "@/lib/format";
 import { useCan } from "@/features/auth/store";
 import { useCustomers } from "@/features/customers/queries";
 import { useEmployees } from "@/features/employees/queries";
@@ -342,7 +341,7 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
 
               {customerPhone.trim() && (
                 <p className="text-sm text-stone-600">
-                  {formatPhoneDisplay(customerPhone)}
+                  {fmtPhone(customerPhone)}
                 </p>
               )}
 

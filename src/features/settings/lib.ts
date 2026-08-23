@@ -1,3 +1,4 @@
+import { isPhoneIncomplete } from "@/lib/phone";
 import type { Settings } from "./store";
 
 export type SettingsFieldErrors = Partial<Record<keyof Settings, string>>;
@@ -24,6 +25,10 @@ export function validateSettings(f: Settings): SettingsFieldErrors {
 
   if (f.phone.length > 30)
     errors.phone = "Telefon 30 simvoldan çox ola bilməz";
+  // FE#188 — PhoneInput natamam nömrə saxlaya bilər (məs. yalnız "50 12"
+  // yazılıb): tam 9 yerli rəqəm doldurulmayıbsa saxlamadan əvvəl xəbərdarlıq.
+  else if (isPhoneIncomplete(f.phone))
+    errors.phone = "Nömrəni tam yazın";
 
   const whatsappTemplate = f.whatsappTemplate.trim();
   if (!whatsappTemplate) errors.whatsappTemplate = "WhatsApp şablonu boş ola bilməz";

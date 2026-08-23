@@ -46,11 +46,13 @@ describe("LoginPage", () => {
   it("DS primitivlərindən istifadə edir — telefon/şifrə input-ları 52px, submit düyməsi min-h-[52px] hündürlük tokeni daşıyır", () => {
     render(<LoginPage />);
 
-    const phoneInput = screen.getByPlaceholderText("0501112233");
+    const phoneInput = screen.getByPlaceholderText("50 123 45 67");
     const passwordInput = screen.getByPlaceholderText("••••••");
     const submitButton = screen.getByRole("button", { name: /daxil ol/i });
 
-    expect(phoneInput.className).toContain("52px");
+    // PhoneInput-un `!h-[52px]` override-i daxili <input>-də deyil, sabit
+    // "+994" prefiksini əhatə edən xarici wrapper `<div>`-dədir.
+    expect(phoneInput.parentElement?.className).toContain("52px");
     expect(passwordInput.className).toContain("52px");
     expect(submitButton.className).toContain("min-h-[52px]");
   });
@@ -94,6 +96,19 @@ describe("LoginPage", () => {
     expect(authApi.login).not.toHaveBeenCalled();
   });
 
+  // FE#188 — PhoneInput ilə natamam nömrə (9 yerli rəqəmdən az) submit edilməsin.
+  it("natamam telefon nömrəsi ilə submit ediləndə 'Nömrəni tam yazın' xətası göstərilir, login çağırılmır", async () => {
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByPlaceholderText("50 123 45 67"), "5011");
+    await user.type(screen.getByPlaceholderText("••••••"), "demo123");
+    await user.click(screen.getByRole("button", { name: /daxil ol/i }));
+
+    expect(await screen.findByText("Nömrəni tam yazın")).toBeInTheDocument();
+    expect(authApi.login).not.toHaveBeenCalled();
+  });
+
   it("uğurlu girişdə (rememberMe AÇIQ) auth store yenilənir, sessiya localStorage-a yazılır və dashboard-a yönləndirilir", async () => {
     const user = userEvent.setup();
     vi.mocked(authApi.login).mockResolvedValue({
@@ -103,7 +118,7 @@ describe("LoginPage", () => {
 
     render(<LoginPage />);
 
-    await user.type(screen.getByPlaceholderText("0501112233"), "0501112233");
+    await user.type(screen.getByPlaceholderText("50 123 45 67"), "501112233");
     await user.type(screen.getByPlaceholderText("••••••"), "demo123");
     // Checkbox defolt açıqdır — toxunmadan submit edirik.
     await user.click(screen.getByRole("button", { name: /daxil ol/i }));
@@ -111,7 +126,7 @@ describe("LoginPage", () => {
     await waitFor(() => {
       expect(useAuthStore.getState().user?.id).toBe("u1");
     });
-    expect(authApi.login).toHaveBeenCalledWith("0501112233", "demo123", true);
+    expect(authApi.login).toHaveBeenCalledWith("994501112233", "demo123", true);
     expect(mockNavigate).toHaveBeenCalledWith({ to: "/panel" });
     // AC — "yadda saxla" AÇIQ: sessiya localStorage-dadır (brauzer bağlanıb-açılsa da qalır).
     expect(localStorage.getItem("sederek-auth")).toContain("tok_1");
@@ -127,7 +142,7 @@ describe("LoginPage", () => {
 
     render(<LoginPage />);
 
-    await user.type(screen.getByPlaceholderText("0501112233"), "0501112233");
+    await user.type(screen.getByPlaceholderText("50 123 45 67"), "501112233");
     await user.type(screen.getByPlaceholderText("••••••"), "demo123");
     await user.click(screen.getByRole("checkbox", { name: /hesabı yadda saxla/i }));
     await user.click(screen.getByRole("button", { name: /daxil ol/i }));
@@ -135,7 +150,7 @@ describe("LoginPage", () => {
     await waitFor(() => {
       expect(useAuthStore.getState().user?.id).toBe("u2");
     });
-    expect(authApi.login).toHaveBeenCalledWith("0501112233", "demo123", false);
+    expect(authApi.login).toHaveBeenCalledWith("994501112233", "demo123", false);
     // AC — "yadda saxla" SÖNÜK: brauzer tam bağlananda sessionStorage silinir, login təkrar tələb olunur.
     expect(sessionStorage.getItem("sederek-auth")).toContain("tok_2");
     expect(localStorage.getItem("sederek-auth")).toBeNull();
@@ -149,7 +164,7 @@ describe("LoginPage", () => {
 
     render(<LoginPage />);
 
-    await user.type(screen.getByPlaceholderText("0501112233"), "0501112233");
+    await user.type(screen.getByPlaceholderText("50 123 45 67"), "501112233");
     await user.type(screen.getByPlaceholderText("••••••"), "wrongpass");
     await user.click(screen.getByRole("button", { name: /daxil ol/i }));
 

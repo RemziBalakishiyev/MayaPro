@@ -7,6 +7,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
+import { isPhoneIncomplete } from "@/lib/phone";
 import { useCreateSupplier } from "../queries";
 
 interface Props {
@@ -34,9 +35,10 @@ export function NewSupplierModal({ open, onClose }: Props) {
   const debtNum = Number(initialDebt);
   const debtInvalid =
     initialDebt.trim() !== "" && (!Number.isFinite(debtNum) || debtNum < 0);
+  const phoneInvalid = isPhoneIncomplete(phone);
 
   const save = async () => {
-    if (!name.trim() || debtInvalid) return;
+    if (!name.trim() || debtInvalid || phoneInvalid) return;
     try {
       await createMut.mutateAsync({
         name,
@@ -58,7 +60,10 @@ export function NewSupplierModal({ open, onClose }: Props) {
         <Field label="Ad" required>
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field label="Telefon">
+        <Field
+          label="Telefon"
+          error={phoneInvalid ? "Nömrəni tam yazın" : undefined}
+        >
           <PhoneInput value={phone} onChange={setPhone} />
         </Field>
         <Field
@@ -90,7 +95,7 @@ export function NewSupplierModal({ open, onClose }: Props) {
         </Button>
         <Button
           onClick={save}
-          disabled={!name.trim() || debtInvalid}
+          disabled={!name.trim() || debtInvalid || phoneInvalid}
           loading={createMut.isPending}
           icon={<Plus size={15} />}
         >

@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatPhoneDisplay } from "./phone";
 
 /** Pul dəyərini təhlükəsiz ədədə çevirir: null / undefined / NaN → 0 */
 const toAmount = (value: number | string | null | undefined): number => {
@@ -60,6 +61,15 @@ export const fmtDate = (
   if (Number.isNaN(d.getTime())) return "—";
   return format(d, pattern);
 };
+
+/**
+ * FE#188 — telefon göstərim formatı: kanonik "994501234567" → "+994 50 123 45 67".
+ * Boş/naməlum dəyər üçün "" qaytarır. Əsas normallaşdırma məntiqi `lib/phone.ts`-də
+ * yaşayır (PhoneInput da ondan istifadə edir); bura yalnız `fmt*` adlandırma
+ * konvensiyasına (bax `fmtMoney`/`fmtDate`) uyğun ictimai ad üçün nazik örtükdür.
+ */
+export const fmtPhone = (value: string | null | undefined): string =>
+  formatPhoneDisplay(value || "");
 
 /** Sadə unikal identifikator. */
 export const uid = (prefix = "id"): string =>

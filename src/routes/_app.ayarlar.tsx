@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -171,12 +172,9 @@ function AyarlarPage() {
               hint="Qaimə başlığında görünəcək"
               error={errors.phone}
             >
-              <Input
-                type="tel"
+              <PhoneInput
                 value={f.phone}
-                maxLength={30}
-                placeholder="Məs. +994 50 123 45 67"
-                onChange={(e) => set("phone", e.target.value)}
+                onChange={(v) => set("phone", v)}
               />
             </Field>
           </div>

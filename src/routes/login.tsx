@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { ArrowLeft, Store } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { InlineError } from "@/components/ui/InlineError";
 import { useAuthStore, setRememberMe } from "@/features/auth/store";
 import { authApi } from "@/features/auth/api";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
-import { Input } from "@/components/ui/Input";
+import { isPhoneIncomplete } from "@/lib/phone";
 import { Field } from "@/components/ui/Field";
 import { AuthBackground } from "./-auth-background";
 
@@ -38,6 +39,7 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     // FE#187 (AC-1) — Sədərək bazarında telefondan giriş edən alverçi üçün
@@ -100,15 +102,24 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <Field label="Telefon" error={errors.phone?.message}>
-              <Input
-                size="lg"
-                type="tel"
-                inputMode="tel"
-                autoComplete="username"
-                {...register("phone", {
-                  required: "Telefon nömrəsi mütləqdir",
-                })}
-                placeholder="0501112233"
+              <Controller
+                name="phone"
+                control={control}
+                rules={{
+                  validate: (v) => {
+                    if (!v || v.trim() === "") return "Telefon nömrəsi mütləqdir";
+                    if (isPhoneIncomplete(v)) return "Nömrəni tam yazın";
+                    return true;
+                  },
+                }}
+                render={({ field }) => (
+                  <PhoneInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    autoComplete="username"
+                    size="lg"
+                  />
+                )}
               />
             </Field>
             <Field label="Şifrə" error={errors.password?.message}>

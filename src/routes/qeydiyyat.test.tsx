@@ -93,6 +93,21 @@ describe("/qeydiyyat", () => {
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
+  // FE#188 — PhoneInput natamam nömrə (9 yerli rəqəmdən az) ilə submit-i bloklamalıdır.
+  it("natamam telefon nömrəsi ilə submit ediləndə 'Nömrəni tam yazın' xətası göstərilir, backend çağırılmır", async () => {
+    const user = userEvent.setup();
+    render(<RegisterPage />);
+
+    await user.type(screen.getByPlaceholderText("Sədərək Market"), "Test Market");
+    await user.type(screen.getByPlaceholderText("Ad Soyad"), "Elvin Məmmədov");
+    await user.type(screen.getByPlaceholderText("50 123 45 67"), "5011");
+    await user.type(screen.getByPlaceholderText("••••••"), "demo123");
+    await user.click(screen.getByRole("button", { name: /qeydiyyatdan keç/i }));
+
+    expect(await screen.findByText("Nömrəni tam yazın")).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
   it("TC-03 — server xətasında forma açıq qalır, mesaj göstərilir, məlumatlar itmir", async () => {
     const user = userEvent.setup();
     const { ApiError } = await import("@/lib/api-client");

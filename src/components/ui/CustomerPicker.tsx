@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Plus, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { fmtMoney } from "@/lib/format";
-import { formatPhoneDisplay, phoneDigits } from "@/lib/phone";
+import { fmtMoney, fmtPhone } from "@/lib/format";
+import { phoneDigits } from "@/lib/phone";
 import type { Customer } from "@/types";
 
 interface Props {
@@ -175,7 +175,7 @@ export function CustomerPicker({
             </li>
           ) : (
             filtered.map((c, i) => {
-              const phone = formatPhoneDisplay(c.phone);
+              const phone = fmtPhone(c.phone);
               const isDebt = c.remainingDebt > 0;
               const active = i === activeIndex;
               const selectedRow = c.id === value;

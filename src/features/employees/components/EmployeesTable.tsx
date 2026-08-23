@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
+import { fmtPhone } from "@/lib/format";
 import { employeeRoleLabel } from "../lib";
 import type { Employee } from "@/types";
 
@@ -58,7 +59,7 @@ export function EmployeesTable({
         accessorKey: "phone",
         header: "Telefon",
         cell: ({ getValue }) => (
-          <span className="text-xs">{getValue() as string}</span>
+          <span className="text-xs">{fmtPhone(getValue() as string)}</span>
         ),
       },
       {

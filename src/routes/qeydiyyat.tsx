@@ -11,6 +11,7 @@ import { InlineError } from "@/components/ui/InlineError";
 import { useAuthStore } from "@/features/auth/store";
 import { useRegisterTenant } from "@/features/auth/queries";
 import { ApiError } from "@/lib/api-client";
+import { isPhoneIncomplete } from "@/lib/phone";
 import { AuthBackground } from "./-auth-background";
 
 export const Route = createFileRoute("/qeydiyyat")({
@@ -131,14 +132,17 @@ function RegisterPage() {
                 name="phone"
                 control={control}
                 rules={{
-                  validate: (v) =>
-                    v.trim() !== "" || "Telefon nömrəsi mütləqdir",
+                  validate: (v) => {
+                    if (!v || v.trim() === "") return "Telefon nömrəsi mütləqdir";
+                    if (isPhoneIncomplete(v)) return "Nömrəni tam yazın";
+                    return true;
+                  },
                 }}
                 render={({ field }) => (
                   <PhoneInput
                     value={field.value}
                     onChange={field.onChange}
-                    className="!h-[52px]"
+                    size="lg"
                   />
                 )}
               />
