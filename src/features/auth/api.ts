@@ -47,8 +47,19 @@ const MOCK_PENDING_MESSAGE =
   "Qeydiyyatınız qəbul edildi. Hesabınız təsdiq gözləyir";
 
 export const authApi = {
-  /** Telefon + şifrə ilə giriş. Mock rejimdə istənilən dəyər qəbul olunur. */
-  async login(phone: string, password: string): Promise<LoginResult> {
+  /**
+   * Telefon + şifrə ilə giriş. Mock rejimdə istənilən dəyər qəbul olunur.
+   *
+   * FE#187 — `rememberMe` (defolt `true`) BE#45-ə göndərilir: `true` olanda
+   * backend 30 günlük token verir. Yaddaşda (localStorage/sessionStorage)
+   * haradaki saxlanılacağı isə auth store-un dinamik storage adapteri
+   * tərəfindən idarə olunur (bax `features/auth/store.ts`).
+   */
+  async login(
+    phone: string,
+    password: string,
+    rememberMe = true,
+  ): Promise<LoginResult> {
     if (USE_MOCK) {
       return {
         token: `mock_${uid("tok")}`,
@@ -63,6 +74,7 @@ export const authApi = {
     const res = await apiClient.post<LoginResponse>("/api/auth/login", {
       phone,
       password,
+      rememberMe,
     });
     return { token: res.token, user: toAuthUser(res.user) };
   },
