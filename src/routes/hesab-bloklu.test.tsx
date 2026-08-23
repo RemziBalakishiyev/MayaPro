@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComponentType, ReactNode } from "react";
 
 /**
@@ -32,10 +32,49 @@ import { Route } from "./hesab-bloklu";
 const AccessBlockedPage = Route.options.component as ComponentType;
 
 describe("/hesab-bloklu", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
   it("PendingApproval — 'Hesabınız təsdiq gözləyir' mesajı göstərir", () => {
     mockSearch = { reason: "PendingApproval" };
     render(<AccessBlockedPage />);
     expect(screen.getByText("Hesabınız təsdiq gözləyir")).toBeInTheDocument();
+  });
+
+  // FE#190 — pending ekranında login cəhdinin telefonu ilə WhatsApp bildiriş düyməsi.
+  it("PendingApproval — sessionStorage-dakı login telefonu ilə WhatsApp düyməsi göstərir", () => {
+    sessionStorage.setItem("sederek-last-login-phone", "994501112233");
+    mockSearch = { reason: "PendingApproval" };
+    render(<AccessBlockedPage />);
+
+    const waLink = screen.getByRole("link", {
+      name: /whatsapp-la qeydiyyatını bildir/i,
+    });
+    const href = waLink.getAttribute("href") ?? "";
+    expect(href).toContain("https://wa.me/994508712603?text=");
+    expect(decodeURIComponent(href)).toContain("Telefon: 994501112233");
+    // Mağaza adı yoxdur — mesaj sadələşdirilmiş formadadır.
+    expect(decodeURIComponent(href)).not.toContain("Mağaza:");
+  });
+
+  it("PendingApproval — sessionStorage-da login telefonu yoxdursa WhatsApp düyməsi göstərilmir", () => {
+    mockSearch = { reason: "PendingApproval" };
+    render(<AccessBlockedPage />);
+
+    expect(
+      screen.queryByRole("link", { name: /whatsapp-la qeydiyyatını bildir/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("Blocked — WhatsApp bildiriş düyməsi göstərilmir (yalnız PendingApproval üçündür)", () => {
+    sessionStorage.setItem("sederek-last-login-phone", "994501112233");
+    mockSearch = { reason: "Blocked" };
+    render(<AccessBlockedPage />);
+
+    expect(
+      screen.queryByRole("link", { name: /whatsapp-la qeydiyyatını bildir/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("Blocked — 'Hesabınıza giriş bloklanıb' mesajı və admin telefonu göstərir", () => {

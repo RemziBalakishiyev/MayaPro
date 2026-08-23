@@ -10,6 +10,7 @@ import { Field } from "@/components/ui/Field";
 import { InlineError } from "@/components/ui/InlineError";
 import { useAuthStore } from "@/features/auth/store";
 import { useRegisterTenant } from "@/features/auth/queries";
+import { WhatsAppNotifyButton } from "@/features/auth/components/WhatsAppNotifyButton";
 import { ApiError } from "@/lib/api-client";
 import { isPhoneIncomplete } from "@/lib/phone";
 import { AuthBackground } from "./-auth-background";
@@ -37,6 +38,8 @@ const MIN_PASSWORD_LENGTH = 6;
 function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // FE#190 — WhatsApp bildiriş mesajı üçün göndərilmiş dəyərlər saxlanılır.
+  const [submitted, setSubmitted] = useState({ storeName: "", phone: "" });
   const registerMut = useRegisterTenant();
   const {
     register,
@@ -52,12 +55,15 @@ function RegisterPage() {
     try {
       // FE#183 (AC-2) — token yazılmır, istifadəçi login edilmir; yalnız
       // "qəbul olundu" ekranı göstərilir.
+      const storeName = data.storeName.trim();
+      const phone = data.phone.trim();
       await registerMut.mutateAsync({
-        storeName: data.storeName.trim(),
+        storeName,
         ownerName: data.ownerName.trim(),
-        phone: data.phone.trim(),
+        phone,
         password: data.password,
       });
+      setSubmitted({ storeName, phone });
       setDone(true);
     } catch (e) {
       setServerError(
@@ -80,6 +86,10 @@ function RegisterPage() {
           <p className="mt-2 text-sm leading-relaxed text-stone-600">
             Müraciətiniz qəbul olundu — təsdiqdən sonra sizə xəbər veriləcək.
           </p>
+          <WhatsAppNotifyButton
+            storeName={submitted.storeName}
+            phone={submitted.phone}
+          />
           <Link to="/login" className="mt-6 block">
             <Button variant="secondary" className="w-full justify-center">
               Girişə qayıt
