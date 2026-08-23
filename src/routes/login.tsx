@@ -9,6 +9,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { InlineError } from "@/components/ui/InlineError";
 import { useAuthStore, setRememberMe } from "@/features/auth/store";
 import { authApi } from "@/features/auth/api";
+import { rememberLastLoginPhone } from "@/features/auth/lastLoginPhone";
 import { ApiError, USE_MOCK } from "@/lib/api-client";
 import { isPhoneIncomplete } from "@/lib/phone";
 import { Field } from "@/components/ui/Field";
@@ -55,6 +56,10 @@ export function LoginPage() {
       // "yadda saxla" AÇIQ — 30 gün, ya sessionStorage — tab bağlanana qədər)
       // yazsın (bax `features/auth/store.ts`).
       setRememberMe(data.rememberMe);
+      // FE#190 — 403 PendingApproval tam səhifə yönləndirməsi ilə baş verir
+      // (bax `lib/api-client.ts`), React state itir; nömrə körpü kimi
+      // sessionStorage-a yazılır ki, `/hesab-bloklu` WhatsApp mesajında görünsün.
+      rememberLastLoginPhone(data.phone.trim());
       const { user, token } = await authApi.login(
         data.phone.trim(),
         data.password,

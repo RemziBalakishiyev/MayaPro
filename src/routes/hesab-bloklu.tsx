@@ -3,6 +3,8 @@ import { z } from "zod";
 import { Clock, Lock, CalendarClock, ShieldAlert, Phone } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { WhatsAppNotifyButton } from "@/features/auth/components/WhatsAppNotifyButton";
+import { getLastLoginPhone } from "@/features/auth/lastLoginPhone";
 
 const searchSchema = z.object({
   reason: z
@@ -66,6 +68,9 @@ export function AccessBlockedPage() {
   const meta = reason ? REASON_META[reason] : FALLBACK_META;
   const Icon = meta.icon;
   const phone = extractPhone(message);
+  // FE#190 — yalnız təsdiq gözləyən istifadəçiyə (öz cəhdinin nömrəsi ilə)
+  // WhatsApp bildiriş düyməsi göstərilir.
+  const loginPhone = reason === "PendingApproval" ? getLastLoginPhone() : "";
 
   return (
     <div className="flex min-h-full items-center justify-center bg-stone-100 p-4">
@@ -98,6 +103,10 @@ export function AccessBlockedPage() {
             <Phone size={16} aria-hidden />
             Admin ilə əlaqə: {phone}
           </a>
+        )}
+
+        {reason === "PendingApproval" && (
+          <WhatsAppNotifyButton phone={loginPhone} />
         )}
 
         <Link to="/login" className="mt-6 block">
