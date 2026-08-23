@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Store, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { BRAND_NAME } from "@/lib/config";
 
 export interface SidebarNavItem {
   to: string;
@@ -14,9 +15,13 @@ export interface SidebarNavItem {
 }
 
 export interface SidebarProps {
-  /** Mağaza adı — brend bloku. */
+  /** Mağazanın öz adı (`useSettingsStore.storeName`) — loqo blokunda əsas yazı. */
   storeName: string;
-  /** Brend blokunun alt yazısı. */
+  /**
+   * Loqo blokunun üst kiçik yazısı. FE#192: platforma brendi ilə mağaza adı
+   * qarışmasın deyə defolt olaraq `BRAND_NAME` göstərilir — mağaza adı
+   * bunun ALTINDA, öz sətrində qalır.
+   */
   storeSubtitle?: string;
   items: SidebarNavItem[];
   /** Menyunun altındakı sabit blok (məs. kassa göstəricisi + Çıxış). */
@@ -34,7 +39,7 @@ export interface SidebarProps {
  */
 export function Sidebar({
   storeName,
-  storeSubtitle = "Anbar İdarəetməsi",
+  storeSubtitle = BRAND_NAME,
   items,
   footer,
   isDrawer = false,
@@ -53,11 +58,11 @@ export function Sidebar({
           <Store size={22} className="text-emerald-300" />
         </div>
         <div className="min-w-0">
+          <p className="truncate text-xs font-semibold uppercase tracking-wide text-emerald-300/70">
+            {storeSubtitle}
+          </p>
           <p className="truncate text-base font-bold leading-tight text-white">
             {storeName}
-          </p>
-          <p className="truncate text-xs leading-tight text-emerald-300/70">
-            {storeSubtitle}
           </p>
         </div>
       </div>

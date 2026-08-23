@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Store } from "lucide-react";
+import { BRAND_NAME } from "@/lib/config";
 import { Container } from "./Section";
 import { scrollToSection } from "./motion";
 
@@ -21,7 +22,7 @@ export function LandingFooter() {
                 <Store size={18} aria-hidden />
               </span>
               <span className="text-base font-extrabold tracking-tight text-stone-900">
-                Sədərək Sistem
+                {BRAND_NAME}
               </span>
             </div>
             <p className="mt-3 text-pretty text-sm leading-relaxed text-stone-500">
@@ -67,7 +68,7 @@ export function LandingFooter() {
         </div>
 
         <p className="mt-10 border-t border-stone-200 pt-6 text-sm text-stone-400">
-          © {new Date().getFullYear()} Sədərək Sistem
+          © {new Date().getFullYear()} {BRAND_NAME}
         </p>
       </Container>
     </footer>
