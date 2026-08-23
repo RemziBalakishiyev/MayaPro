@@ -1,7 +1,8 @@
 import { Phone } from "lucide-react";
 import { useToast } from "@/components/ui/toast-store";
 import { cn } from "@/lib/cn";
-import { formatPhoneDisplay, toStoredPhone } from "@/lib/phone";
+import { toStoredPhone } from "@/lib/phone";
+import { fmtPhone } from "@/lib/format";
 
 async function copyText(text: string): Promise<boolean> {
   try {
@@ -35,7 +36,7 @@ export function CopyablePhone({
     return null;
   }
 
-  const display = formatPhoneDisplay(phone);
+  const display = fmtPhone(phone);
 
   return (
     <span className="inline-flex items-center gap-1.5">

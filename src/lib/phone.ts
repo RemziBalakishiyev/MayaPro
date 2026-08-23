@@ -38,3 +38,13 @@ export function formatPhoneDisplay(value: string): string {
   if (!local) return "";
   return `+${COUNTRY_CODE} ${formatLocalPhone(local)}`;
 }
+
+/**
+ * FE#188 — natamam nömrə yoxlaması: istifadəçi rəqəm yazıb, lakin 9 yerli
+ * rəqəmi (994-dən sonrakı hissə) tamamlamayıb (məs. yalnız "50 12"). Boş
+ * sahə "natamam" sayılmır — bu, ayrıca "məcburidir" qaydası ilə yoxlanılır.
+ */
+export function isPhoneIncomplete(value: string): boolean {
+  const local = toLocalPhoneDigits(value);
+  return local.length > 0 && local.length < LOCAL_LEN;
+}

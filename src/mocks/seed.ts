@@ -19,7 +19,7 @@ import type {
 } from "@/types";
 
 /** Seed strukturu dəyişəndə bu nömrəni artırın → localStorage yenilənir. */
-export const SEED_VERSION = 10;
+export const SEED_VERSION = 11;
 
 /**
  * BE#15 — qismən ödənişli satış sahələri: seed datasında hər satış tam
@@ -55,7 +55,7 @@ const buildSuppliers = (): Supplier[] =>
     {
       id: "sup_1",
       name: "İstanbul Tekstil (Laleli)",
-      phone: "+994502223344",
+      phone: "994502223344",
       totalDebt: 8400,
       paidAmount: 5400,
       itemCount: 6,
@@ -63,7 +63,7 @@ const buildSuppliers = (): Supplier[] =>
     {
       id: "sup_2",
       name: "Guangzhou Ayaqqabı MMC",
-      phone: "+994515556677",
+      phone: "994515556677",
       totalDebt: 12200,
       paidAmount: 9000,
       itemCount: 4,
@@ -71,7 +71,7 @@ const buildSuppliers = (): Supplier[] =>
     {
       id: "sup_3",
       name: "Bakı Toptan Aksesuar",
-      phone: "+994703334455",
+      phone: "994703334455",
       totalDebt: 1500,
       paidAmount: 1500,
       itemCount: 3,
@@ -79,7 +79,7 @@ const buildSuppliers = (): Supplier[] =>
     {
       id: "sup_4",
       name: "Merter Cins Toptan",
-      phone: "+994554447788",
+      phone: "994554447788",
       totalDebt: 6300,
       paidAmount: 2300,
       itemCount: 2,
@@ -382,7 +382,7 @@ const buildEmployees = (): Employee[] => [
   {
     id: "emp_1",
     name: "Kamran Vəliyev",
-    phone: "+994501234567",
+    phone: "994501234567",
     role: "Sahibkar",
     status: "Aktiv",
     monthlySalary: 0,
@@ -390,7 +390,7 @@ const buildEmployees = (): Employee[] => [
   {
     id: "emp_2",
     name: "Səbinə Rüstəmova",
-    phone: "+994557654321",
+    phone: "994557654321",
     role: "Menecer",
     status: "Aktiv",
     monthlySalary: 900,
@@ -398,7 +398,7 @@ const buildEmployees = (): Employee[] => [
   {
     id: "emp_3",
     name: "Tural Abbasov",
-    phone: "+994708889900",
+    phone: "994708889900",
     role: "Satıcı",
     status: "Aktiv",
     monthlySalary: 600,
@@ -406,7 +406,7 @@ const buildEmployees = (): Employee[] => [
   {
     id: "emp_4",
     name: "Orxan Nəbiyev",
-    phone: "+994515550011",
+    phone: "994515550011",
     role: "Satıcı",
     status: "Deaktiv",
     monthlySalary: 0,

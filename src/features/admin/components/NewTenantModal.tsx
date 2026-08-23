@@ -7,6 +7,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
+import { isPhoneIncomplete } from "@/lib/phone";
 import { useCreateTenant } from "../queries";
 
 const PERIOD_OPTIONS = [1, 3, 6, 12];
@@ -34,10 +35,13 @@ export function NewTenantModal({ open, onClose }: { open: boolean; onClose: () =
   }, [open]);
 
   const passwordInvalid = password.trim() !== "" && password.trim().length < 6;
+  const phoneEmpty = phone.trim() === "";
+  const phoneInvalid = !phoneEmpty && isPhoneIncomplete(phone);
   const valid =
     storeName.trim() !== "" &&
     ownerName.trim() !== "" &&
-    phone.trim() !== "" &&
+    !phoneEmpty &&
+    !phoneInvalid &&
     password.trim().length >= 6;
 
   const save = async () => {
@@ -67,7 +71,11 @@ export function NewTenantModal({ open, onClose }: { open: boolean; onClose: () =
         <Field label="Sahibkarın adı" required>
           <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
         </Field>
-        <Field label="Telefon" required>
+        <Field
+          label="Telefon"
+          required
+          error={phoneInvalid ? "Nömrəni tam yazın" : undefined}
+        >
           <PhoneInput value={phone} onChange={setPhone} />
         </Field>
         <Field

@@ -57,6 +57,17 @@ describe("validateSettings — backend UpdateSettingsValidator ilə güzgüləni
     expect(errors.phone).toBe("Telefon 30 simvoldan çox ola bilməz");
   });
 
+  // FE#188 — PhoneInput natamam nömrə (9 yerli rəqəmdən az) saxlaya bilər.
+  it("natamam telefon (9 yerli rəqəmdən az) → 'Nömrəni tam yazın' xətası", () => {
+    const errors = validateSettings({ ...base, phone: "994501" });
+    expect(errors.phone).toBe("Nömrəni tam yazın");
+  });
+
+  it("tam kanonik telefon (994 + 9 rəqəm) → xəta yoxdur", () => {
+    const errors = validateSettings({ ...base, phone: "994501234567" });
+    expect(errors.phone).toBeUndefined();
+  });
+
   it("mənfi minimum stok → xəta", () => {
     const errors = validateSettings({ ...base, defaultMinStock: -1 });
     expect(errors.defaultMinStock).toBe("Minimum stok mənfi ola bilməz");

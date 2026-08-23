@@ -7,6 +7,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
+import { isPhoneIncomplete } from "@/lib/phone";
 import { useCreateCustomer } from "../queries";
 import type { Customer } from "@/types";
 
@@ -44,9 +45,10 @@ export function NewCustomerModal({
   const debtNum = Number(initialDebt);
   const debtInvalid =
     initialDebt.trim() !== "" && (!Number.isFinite(debtNum) || debtNum < 0);
+  const phoneInvalid = isPhoneIncomplete(phone);
 
   const save = async () => {
-    if (!name.trim() || debtInvalid) return;
+    if (!name.trim() || debtInvalid || phoneInvalid) return;
     try {
       const customer = await createMut.mutateAsync({
         name,
@@ -73,7 +75,10 @@ export function NewCustomerModal({
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
-        <Field label="Telefon">
+        <Field
+          label="Telefon"
+          error={phoneInvalid ? "Nömrəni tam yazın" : undefined}
+        >
           <PhoneInput value={phone} onChange={setPhone} />
         </Field>
         <Field
@@ -105,7 +110,7 @@ export function NewCustomerModal({
         </Button>
         <Button
           onClick={save}
-          disabled={!name.trim() || debtInvalid}
+          disabled={!name.trim() || debtInvalid || phoneInvalid}
           loading={createMut.isPending}
           icon={<Plus size={15} />}
         >

@@ -17,7 +17,19 @@ export type PhoneInputProps = Omit<
  * Azərbaycan mobil nömrəsi: sabit +994 prefiksi + 50 123 45 67 maskası.
  */
 export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
-  ({ value, onChange, className, placeholder = "50 123 45 67", ...props }, ref) => {
+  (
+    {
+      value,
+      onChange,
+      className,
+      placeholder = "50 123 45 67",
+      // FE#188 — login kimi xüsusi formalar parol menecerləri üçün
+      // `autoComplete="username"` ötürə bilsin deyə defolt override edilə bilir.
+      autoComplete = "tel-national",
+      ...props
+    },
+    ref,
+  ) => {
     const display = formatLocalPhone(value);
 
     return (
@@ -35,7 +47,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
           {...props}
           type="tel"
           inputMode="numeric"
-          autoComplete="tel-national"
+          autoComplete={autoComplete}
           value={display}
           placeholder={placeholder}
           onChange={(e) => {

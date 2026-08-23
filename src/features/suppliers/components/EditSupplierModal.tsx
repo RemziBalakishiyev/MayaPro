@@ -7,6 +7,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/toast-store";
+import { isPhoneIncomplete } from "@/lib/phone";
 import { useUpdateSupplier } from "../queries";
 import type { Supplier } from "@/types";
 
@@ -31,8 +32,10 @@ export function EditSupplierModal({ open, onClose, supplier }: Props) {
     }
   }, [open, supplier]);
 
+  const phoneInvalid = isPhoneIncomplete(phone);
+
   const save = async () => {
-    if (!supplier || !name.trim()) return;
+    if (!supplier || !name.trim() || phoneInvalid) return;
     try {
       await updateMut.mutateAsync({
         id: supplier.id,
@@ -59,7 +62,10 @@ export function EditSupplierModal({ open, onClose, supplier }: Props) {
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
-        <Field label="Telefon">
+        <Field
+          label="Telefon"
+          error={phoneInvalid ? "Nömrəni tam yazın" : undefined}
+        >
           <PhoneInput value={phone} onChange={setPhone} />
         </Field>
         <Field label="Qeyd">
@@ -76,7 +82,7 @@ export function EditSupplierModal({ open, onClose, supplier }: Props) {
         </Button>
         <Button
           onClick={() => void save()}
-          disabled={!name.trim()}
+          disabled={!name.trim() || phoneInvalid}
           loading={updateMut.isPending}
           icon={<Check size={15} />}
         >
