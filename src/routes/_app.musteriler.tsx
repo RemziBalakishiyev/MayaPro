@@ -56,11 +56,19 @@ function MusterilerPage() {
   const [editFor, setEditFor] = useState<Customer | null>(null);
   const [deleteFor, setDeleteFor] = useState<Customer | null>(null);
 
-  // Satış detalından ?customerId=… ilə gələndə drawer aç
+  // Satış detalından ?customerId=… ilə gələndə drawer aç. FE#189 (bənd 2) —
+  // silinmiş müştəri linki (id siyahıda tapılmır): çılpaq sükut əvəzinə
+  // "tapılmadı" bildirişi + köhnəlmiş parametr URL-dən təmizlənir.
   useEffect(() => {
     if (!search.customerId || customers.length === 0) return;
     const c = customers.find((x) => x.id === search.customerId);
-    if (c) setSelected(c);
+    if (c) {
+      setSelected(c);
+    } else {
+      toast.error("Bu müştəri tapılmadı — silinmiş ola bilər");
+      navigate({ search: (prev) => ({ ...prev, customerId: undefined }) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `navigate`/`toast` stabil referanslardır, əlavə edilməsi lazımsız yenidən-işə düşmələr yaradır
   }, [search.customerId, customers]);
 
   const filtered = useMemo(() => {

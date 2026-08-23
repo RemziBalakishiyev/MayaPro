@@ -4,10 +4,12 @@ import { Loader2, Pencil, Receipt, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyValue } from "@/components/ui/EmptyValue";
 import { Spinner } from "@/components/ui/Spinner";
 import { WhatsAppIcon } from "@/components/ui/icons/WhatsAppIcon";
 import { cn } from "@/lib/cn";
+import { ApiError } from "@/lib/api-client";
 import { fmtMoney, fmtMoneySigned, fmtPhone } from "@/lib/format";
 import { useCan } from "@/features/auth/store";
 import { useCustomers } from "@/features/customers/queries";
@@ -189,11 +191,25 @@ export function SaleDetailDrawer({ saleId, onClose, onEdit, onDelete }: Props) {
         </div>
       )}
 
-      {isError && (
-        <p className="py-8 text-center text-sm text-red-600">
-          {error instanceof Error ? error.message : "Satış yüklənmədi"}
-        </p>
-      )}
+      {isError &&
+        (error instanceof ApiError && error.status === 404 ? (
+          // FE#189 (bənd 2) — silinmiş satış linki: çılpaq xəta əvəzinə drawer
+          // içində EmptyState + geri (bağlama) düyməsi.
+          <EmptyState
+            embedded
+            title="Bu qeyd tapılmadı"
+            hint="Bu satış silinmiş ola bilər."
+            action={
+              <Button variant="secondary" size="sm" onClick={onClose}>
+                Siyahıya qayıt
+              </Button>
+            }
+          />
+        ) : (
+          <p className="py-8 text-center text-sm text-red-600">
+            {error instanceof Error ? error.message : "Satış yüklənmədi"}
+          </p>
+        ))}
 
       {sale && (
         <div className="space-y-4">
